@@ -12,15 +12,15 @@
   "kv_namespaces": [
     {
       "binding": "VOTER_KV",
-      "id": "YOUR_KV_NAMESPACE_ID_HERE",
-      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE"
+      "id": "YOUR_KV_NAMESPACE_ID_HERE", // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE" // xxxxxxxxxxxxxxxxxxxxxxxxx
     }
   ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "voter-db",
-      "database_id": "YOUR_D1_DATABASE_ID_HERE"
+      "database_id": "YOUR_D1_DATABASE_ID_HERE" // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     }
   ]
 }
