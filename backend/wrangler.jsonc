@@ -1,26 +1,23 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "backend",
+  "name": "voter15-backend",
   "main": "src/index.ts",
-  "compatibility_date": "2025-07-15",
+  "compatibility_date": "2025-07-09",
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "vars": {
-    "JWT_SECRET": "your-jwt-secret-key-here"
-  },
   "kv_namespaces": [
     {
       "binding": "VOTER_KV",
-      "id": "voter15-kv-demo-1",
-      "preview_id": "a583d8cdfabf4ee58cf6cd3fded8f286"
+      "id": "${KV_ID}",
+      "preview_id": "${KV_PREVIEW_ID}"
     }
   ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "voter-db",
-      "database_id": "2d621e7e-4679-474b-a95f-6cf3f0a8c04e"
+      "database_id": "${D1_DATABASE_ID}"
     }
   ]
 }
