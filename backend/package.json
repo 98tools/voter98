@@ -7,7 +7,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply voter-db",
-    "db:studio": "drizzle-kit studio --config=drizzle.studio.config.ts"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@hono/swagger-ui": "^0.5.2",
