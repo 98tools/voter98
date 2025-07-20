@@ -1,3 +1,6 @@
+# Wrangler Configuration Template
+# Copy wrangler.jsonc.template to wrangler.jsonc and replace the IDs with your actual values
+
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "voter15-backend",
@@ -9,15 +12,15 @@
   "kv_namespaces": [
     {
       "binding": "VOTER_KV",
-      "id": "${KV_ID}",
-      "preview_id": "${KV_PREVIEW_ID}"
+      "id": "YOUR_KV_NAMESPACE_ID_HERE",
+      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE"
     }
   ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "voter-db",
-      "database_id": "${D1_DATABASE_ID}"
+      "database_id": "YOUR_D1_DATABASE_ID_HERE"
     }
   ]
 }
