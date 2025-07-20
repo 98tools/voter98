@@ -34,6 +34,8 @@ export const userApi = {
   getSubAdmins: () => api.get<{ subAdmins: User[] }>('/users/sub-admins'),
   createSubAdmin: (email: string, password: string, name: string) => 
     api.post<{ message: string; user: User }>('/users/sub-admin', { email, password, name }),
+  createUser: (userData: { name: string; email: string; password: string; role: string }) => 
+    api.post<{ message: string; user: User }>('/users/create', userData),
 };
 
 // Poll API

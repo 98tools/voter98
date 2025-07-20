@@ -17,6 +17,14 @@ const createSubAdminSchema = z.object({
   name: z.string().min(1),
 });
 
+// Create user schema (for any role)
+const createUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().min(1),
+  role: z.enum(['user', 'sub-admin', 'admin']).default('user'),
+});
+
 // Apply auth middleware to all routes
 userRoutes.use('/*', authMiddleware);
 
@@ -97,6 +105,42 @@ userRoutes.get('/all', adminMiddleware, async (c) => {
     return c.json({ users: allUsers });
   } catch (error) {
     console.error('Get all users error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Create user (admin only)
+userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema), async (c) => {
+  const { email, password, name, role } = c.req.valid('json');
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if user already exists
+    const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    if (existingUser) {
+      return c.json({ error: 'User already exists' }, 400);
+    }
+
+    // Hash password and create user
+    const hashedPassword = await hashPassword(password);
+    const newUser = await db.insert(users).values({
+      email,
+      password: hashedPassword,
+      name,
+      role,
+    }).returning().get();
+
+    return c.json({
+      message: 'User created successfully',
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

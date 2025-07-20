@@ -21,6 +21,7 @@ const AdminPanel: React.FC = () => {
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
+    password: '',
     role: 'user' as 'admin' | 'sub-admin' | 'user'
   });
 
@@ -51,14 +52,8 @@ const AdminPanel: React.FC = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // For now, use createSubAdmin API - we'll extend this later
-      if (newUser.role === 'sub-admin') {
-        await userApi.createSubAdmin(newUser.email, 'defaultPassword123', newUser.name);
-      } else {
-        // Placeholder for other user types - would need proper API endpoint
-        console.log('Creating user:', newUser);
-      }
-      setNewUser({ name: '', email: '', role: 'user' });
+      await userApi.createUser(newUser);
+      setNewUser({ name: '', email: '', password: '', role: 'user' });
       setShowCreateUser(false);
       loadUsers();
     } catch (error: any) {
@@ -336,17 +331,31 @@ const AdminPanel: React.FC = () => {
                           />
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                        <select
-                          value={newUser.role}
-                          onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                        >
-                          <option value="user">User</option>
-                          <option value="sub-admin">Sub-Admin</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                          <input
+                            type="password"
+                            value={newUser.password}
+                            onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            required
+                            placeholder="Enter user's password"
+                            minLength={6}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                          <select
+                            value={newUser.role}
+                            onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                          >
+                            <option value="user">User</option>
+                            <option value="sub-admin">Sub-Admin</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
                       </div>
                       <div className="flex space-x-3">
                         <button

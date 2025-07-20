@@ -169,7 +169,13 @@ const Dashboard: React.FC = () => {
                 </p>
               </div>
               {(user?.role === 'admin' || user?.role === 'sub-admin') && (
-                <button className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 hover-lift">
+                <button 
+                  onClick={() => {
+                    // TODO: Navigate to poll creation page
+                    alert('Poll creation functionality coming soon!');
+                  }}
+                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 hover-lift border border-white border-opacity-20"
+                >
                   <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                   </svg>
@@ -237,7 +243,13 @@ const Dashboard: React.FC = () => {
                     : 'No polls are available for you to participate in yet.'}
                 </p>
                 {(user?.role === 'admin' || user?.role === 'sub-admin') && (
-                  <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700">
+                  <button 
+                    onClick={() => {
+                      // TODO: Navigate to poll creation page
+                      alert('Poll creation functionality coming soon!');
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+                  >
                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                     </svg>
