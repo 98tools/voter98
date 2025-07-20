@@ -2,10 +2,11 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getDb } from '../models/db';
-import { polls, users, pollAuditors, pollEditors, pollParticipants } from '../models/schema';
+import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware } from '../middleware/auth';
+import { verifyPassword } from '../utils/auth';
 
 const pollRoutes = new Hono<{ Bindings: AppBindings; Variables: { user?: JWTPayload } }>();
 
@@ -286,4 +287,294 @@ pollRoutes.delete('/:id', adminMiddleware, async (c) => {
   }
 });
 
+// Public poll access endpoint - no auth middleware
+const publicPollRoutes = new Hono<{ Bindings: AppBindings }>();
+
+// Get poll for public participation (no auth required)
+publicPollRoutes.get('/:id/public', async (c) => {
+  const pollId = c.req.param('id');
+  const db = getDb(c.env.DB);
+
+  try {
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Only return active polls for public access
+    if (poll.status !== 'active') {
+      return c.json({ error: 'Poll is not currently active' }, 403);
+    }
+
+    // Check if poll is within the voting period
+    const now = Date.now();
+    if (now < poll.startDate || now > poll.endDate) {
+      return c.json({ error: 'Poll is not currently open for voting' }, 403);
+    }
+
+    // Return poll data without sensitive information
+    const publicPoll = {
+      id: poll.id,
+      title: poll.title,
+      description: poll.description,
+      startDate: poll.startDate,
+      endDate: poll.endDate,
+      status: poll.status,
+      settings: poll.settings,
+      ballot: poll.ballot,
+    };
+
+    return c.json({ poll: publicPoll });
+  } catch (error) {
+    console.error('Get public poll error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Validate participant access
+const validateParticipantSchema = z.object({
+  email: z.string().email().optional(),
+  token: z.string().optional(),
+  password: z.string().optional(),
+}).refine(data => data.email || data.token, {
+  message: "Either email or token must be provided"
+});
+
+publicPollRoutes.post('/:id/validate-access', zValidator('json', validateParticipantSchema), async (c) => {
+  const pollId = c.req.param('id');
+  const { email, token, password } = c.req.valid('json');
+  const db = getDb(c.env.DB);
+
+  try {
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    if (poll.status !== 'active') {
+      return c.json({ error: 'Poll is not currently active' }, 403);
+    }
+
+    const now = Date.now();
+    if (now < poll.startDate || now > poll.endDate) {
+      return c.json({ error: 'Poll is not currently open for voting' }, 403);
+    }
+
+    let participant = null;
+
+    if (token) {
+      // Token-based access (non-user participants)
+      participant = await db.select().from(pollParticipants)
+        .where(and(
+          eq(pollParticipants.pollId, pollId),
+          eq(pollParticipants.token, token),
+          eq(pollParticipants.tokenUsed, false),
+          eq(pollParticipants.status, 'approved')
+        ))
+        .get();
+
+      if (!participant) {
+        return c.json({ error: 'Invalid or expired token' }, 401);
+      }
+
+      // Mark token as used
+      await db.update(pollParticipants)
+        .set({ tokenUsed: true, updatedAt: Date.now() })
+        .where(eq(pollParticipants.id, participant.id));
+
+    } else if (email && password) {
+      // User login-based access
+      const user = await db.select().from(users).where(eq(users.email, email)).get();
+      if (!user) {
+        return c.json({ error: 'Invalid credentials' }, 401);
+      }
+
+      // Verify password
+      const isValidPassword = await verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return c.json({ error: 'Invalid credentials' }, 401);
+      }
+
+      participant = await db.select().from(pollParticipants)
+        .where(and(
+          eq(pollParticipants.pollId, pollId),
+          eq(pollParticipants.userId, user.id),
+          eq(pollParticipants.status, 'approved')
+        ))
+        .get();
+
+      if (!participant) {
+        return c.json({ error: 'You are not authorized to participate in this poll' }, 403);
+      }
+    }
+
+    if (!participant) {
+      return c.json({ error: 'Invalid access credentials' }, 401);
+    }
+
+    if (participant.hasVoted) {
+      return c.json({ error: 'You have already voted in this poll' }, 403);
+    }
+
+    // Generate a temporary session token for voting
+    const sessionToken = crypto.randomUUID();
+    
+    // Store session in KV for 1 hour
+    await c.env.VOTER_KV.put(`vote_session:${sessionToken}`, JSON.stringify({
+      pollId: pollId,
+      participantId: participant.id,
+      expires: Date.now() + (60 * 60 * 1000) // 1 hour
+    }), { expirationTtl: 3600 });
+
+    return c.json({ 
+      success: true,
+      sessionToken,
+      participant: {
+        id: participant.id,
+        name: participant.name,
+        email: participant.email,
+        voteWeight: participant.voteWeight
+      }
+    });
+  } catch (error) {
+    console.error('Validate access error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Submit vote
+const submitVoteSchema = z.object({
+  sessionToken: z.string(),
+  votes: z.record(z.array(z.string())), // questionId -> array of selected option IDs
+});
+
+publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (c) => {
+  const pollId = c.req.param('id');
+  const { sessionToken, votes } = c.req.valid('json');
+  const db = getDb(c.env.DB);
+
+  try {
+    // Validate session token
+    const sessionData = await c.env.VOTER_KV.get(`vote_session:${sessionToken}`);
+    if (!sessionData) {
+      return c.json({ error: 'Invalid or expired session' }, 401);
+    }
+
+    const session = JSON.parse(sessionData);
+    if (session.pollId !== pollId || session.expires < Date.now()) {
+      return c.json({ error: 'Invalid or expired session' }, 401);
+    }
+
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    const participant = await db.select().from(pollParticipants)
+      .where(eq(pollParticipants.id, session.participantId))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    if (participant.hasVoted) {
+      return c.json({ error: 'Vote already submitted' }, 403);
+    }
+
+    // Validate votes against ballot
+    const ballot = poll.ballot as any[];
+    for (const question of ballot) {
+      const questionVotes = votes[question.id] || [];
+      
+      if (questionVotes.length < (question.minSelection || 1)) {
+        return c.json({ error: `Please select at least ${question.minSelection || 1} option(s) for "${question.title}"` }, 400);
+      }
+      
+      if (questionVotes.length > (question.maxSelection || 1)) {
+        return c.json({ error: `Please select at most ${question.maxSelection || 1} option(s) for "${question.title}"` }, 400);
+      }
+
+      // Validate that selected options exist
+      const validOptionIds = question.options.map((opt: any) => opt.id);
+      const invalidSelections = questionVotes.filter(optId => !validOptionIds.includes(optId));
+      if (invalidSelections.length > 0) {
+        return c.json({ error: `Invalid option selections for "${question.title}"` }, 400);
+      }
+    }
+
+    // Store votes
+    const voteRecords = [];
+    for (const [questionId, selectedOptions] of Object.entries(votes)) {
+      voteRecords.push({
+        pollId: pollId,
+        participantId: participant.id,
+        questionId: questionId,
+        selectedOptions: selectedOptions,
+        voteWeight: participant.voteWeight,
+      });
+    }
+
+    // Store votes and mark participant as voted
+    for (const vote of voteRecords) {
+      await db.insert(pollVotes).values(vote);
+    }
+    
+    await db.update(pollParticipants)
+      .set({ hasVoted: true, updatedAt: Date.now() })
+      .where(eq(pollParticipants.id, participant.id));
+
+    // Clean up session
+    await c.env.VOTER_KV.delete(`vote_session:${sessionToken}`);
+
+    return c.json({ 
+      success: true,
+      message: 'Vote submitted successfully' 
+    });
+  } catch (error) {
+    console.error('Submit vote error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Check if participant has voted
+publicPollRoutes.get('/:id/vote-status/:sessionToken', async (c) => {
+  const pollId = c.req.param('id');
+  const sessionToken = c.req.param('sessionToken');
+
+  try {
+    // Validate session token
+    const sessionData = await c.env.VOTER_KV.get(`vote_session:${sessionToken}`);
+    if (!sessionData) {
+      return c.json({ error: 'Invalid session' }, 401);
+    }
+
+    const session = JSON.parse(sessionData);
+    if (session.pollId !== pollId) {
+      return c.json({ error: 'Invalid session' }, 401);
+    }
+
+    const db = getDb(c.env.DB);
+    const participant = await db.select().from(pollParticipants)
+      .where(eq(pollParticipants.id, session.participantId))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    return c.json({ 
+      hasVoted: participant.hasVoted,
+      participant: {
+        name: participant.name,
+        email: participant.email
+      }
+    });
+  } catch (error) {
+    console.error('Check vote status error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+export { publicPollRoutes };
 export default pollRoutes;

@@ -49,4 +49,16 @@ export const pollApi = {
   deletePoll: (id: string) => api.delete<{ message: string }>(`/polls/${id}`),
 };
 
+// Public Poll API (no authentication required)
+export const publicPollApi = {
+  getPoll: (id: string) => 
+    axios.get<{ poll: Poll }>(`${API_BASE_URL}/poll/${id}/public`),
+  validateAccess: (id: string, credentials: { email?: string; password?: string; token?: string }) =>
+    axios.post<{ success: boolean; sessionToken: string; participant: any }>(`${API_BASE_URL}/poll/${id}/validate-access`, credentials),
+  submitVote: (id: string, sessionToken: string, votes: Record<string, string[]>) =>
+    axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { sessionToken, votes }),
+  getVoteStatus: (id: string, sessionToken: string) =>
+    axios.get<{ hasVoted: boolean; participant: any }>(`${API_BASE_URL}/poll/${id}/vote-status/${sessionToken}`),
+};
+
 export default api;

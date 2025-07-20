@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { pollApi } from '../utils/api';
+import { publicPollApi } from '../utils/api';
 import type { Poll as PollType } from '../types';
 
-const Poll: React.FC = () => {
+const PollParticipation: React.FC = () => {
   const { pollId } = useParams<{ pollId: string }>();
   const navigate = useNavigate();
+  
+  // Poll data
   const [poll, setPoll] = useState<PollType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionToken, setSessionToken] = useState('');
+  const [participant, setParticipant] = useState<any>(null);
+  
+  // Authentication form
+  const [authMethod, setAuthMethod] = useState<'login' | 'token'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  
+  // Voting state
   const [votes, setVotes] = useState<Record<string, string[]>>({});
   const [hasVoted, setHasVoted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -23,16 +39,35 @@ const Poll: React.FC = () => {
     if (!pollId) return;
     
     try {
-      // This will need to be a different API endpoint for public poll access
-      const response = await pollApi.getPoll(pollId);
+      const response = await publicPollApi.getPoll(pollId);
       setPoll(response.data.poll);
-      
-      // Check if user has already voted (this would come from the API)
-      // setHasVoted(response.data.hasVoted);
     } catch (error: any) {
       setError(error.response?.data?.error || 'Poll not found or not accessible');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAuthentication = async () => {
+    if (!pollId) return;
+    
+    setAuthLoading(true);
+    setError('');
+
+    try {
+      const credentials = authMethod === 'login' 
+        ? { email, password }
+        : { token };
+
+      const response = await publicPollApi.validateAccess(pollId, credentials);
+      
+      setIsAuthenticated(true);
+      setSessionToken(response.data.sessionToken);
+      setParticipant(response.data.participant);
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -63,7 +98,7 @@ const Poll: React.FC = () => {
   };
 
   const handleSubmitVote = async () => {
-    if (!poll || !pollId) return;
+    if (!poll || !pollId || !sessionToken) return;
 
     // Validate minimum selections
     for (const question of poll.ballot) {
@@ -78,12 +113,8 @@ const Poll: React.FC = () => {
     setError('');
 
     try {
-      // This would be a new API endpoint for submitting votes
-      // await pollApi.submitVote(pollId, votes);
-      
-      // For now, just simulate success
+      await publicPollApi.submitVote(pollId, sessionToken, votes);
       setHasVoted(true);
-      console.log('Vote submitted:', votes);
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to submit vote');
     } finally {
@@ -131,7 +162,7 @@ const Poll: React.FC = () => {
     );
   }
 
-  if (error || !poll) {
+  if (error && !poll) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -159,8 +190,8 @@ const Poll: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Vote Submitted Successfully!</h3>
-          <p className="text-gray-500 mb-6">Thank you for participating in "{poll.title}". Your vote has been recorded.</p>
-          {poll.settings.allowResultsView && (
+          <p className="text-gray-500 mb-6">Thank you for participating in "{poll?.title}". Your vote has been recorded.</p>
+          {poll?.settings.allowResultsView && (
             <button
               onClick={() => {/* Navigate to results view */}}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 mr-3"
@@ -179,6 +210,148 @@ const Poll: React.FC = () => {
     );
   }
 
+  // Authentication screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{poll?.title}</h1>
+              {poll?.description && (
+                <p className="text-gray-600 mb-4">{poll.description}</p>
+              )}
+              <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(poll?.status || '')}`}>
+                  {poll?.status.toUpperCase()}
+                </span>
+                <span>Ends: {poll && formatDate(poll.endDate)}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Authentication Form */}
+        <main className="max-w-md mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">Access Poll</h2>
+              <p className="text-gray-600 mt-2">Please authenticate to participate in this poll</p>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-red-700 font-medium">{error}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Auth Method Selection */}
+            <div className="mb-6">
+              <div className="flex border border-gray-300 rounded-lg p-1">
+                <button
+                  onClick={() => setAuthMethod('login')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                    authMethod === 'login'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  User Login
+                </button>
+                <button
+                  onClick={() => setAuthMethod('token')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                    authMethod === 'token'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Access Token
+                </button>
+              </div>
+            </div>
+
+            {/* Authentication Form */}
+            {authMethod === 'login' ? (
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                  Access Token
+                </label>
+                <input
+                  type="text"
+                  id="token"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your access token"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use the token provided in your invitation email
+                </p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              onClick={handleAuthentication}
+              disabled={authLoading || (authMethod === 'login' ? !email || !password : !token)}
+              className="w-full mt-6 py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {authLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  Authenticating...
+                </>
+              ) : (
+                'Access Poll'
+              )}
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Voting screen - authenticated user can now vote
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -195,6 +368,14 @@ const Poll: React.FC = () => {
               </span>
               <span>Ends: {formatDate(poll.endDate)}</span>
             </div>
+            {participant && (
+              <div className="mt-2 text-sm text-gray-600">
+                Voting as: <span className="font-medium">{participant.name}</span>
+                {participant.voteWeight !== 1 && (
+                  <span className="ml-2 text-xs text-blue-600">(Vote weight: {participant.voteWeight})</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -361,4 +542,4 @@ const Poll: React.FC = () => {
   );
 };
 
-export default Poll;
+export default PollParticipation;
