@@ -1,0 +1,457 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { userApi } from '../utils/api';
+import type { User } from '../types';
+
+const AdminPanel: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('users');
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    admins: 0,
+    subAdmins: 0,
+    activePolls: 0
+  });
+
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    role: 'user' as 'admin' | 'sub-admin' | 'user'
+  });
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const response = await userApi.getAllUsers();
+      const userData = response.data.users;
+      setUsers(userData);
+      
+      // Calculate stats
+      setStats({
+        totalUsers: userData.length,
+        admins: userData.filter((u: User) => u.role === 'admin').length,
+        subAdmins: userData.filter((u: User) => u.role === 'sub-admin').length,
+        activePolls: 0 // This would come from polls API
+      });
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // For now, use createSubAdmin API - we'll extend this later
+      if (newUser.role === 'sub-admin') {
+        await userApi.createSubAdmin(newUser.email, 'defaultPassword123', newUser.name);
+      } else {
+        // Placeholder for other user types - would need proper API endpoint
+        console.log('Creating user:', newUser);
+      }
+      setNewUser({ name: '', email: '', role: 'user' });
+      setShowCreateUser(false);
+      loadUsers();
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Failed to create user');
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'sub-admin': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-green-100 text-green-800 border-green-200';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'sub-admin':
+        return (
+          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+          </svg>
+        );
+    }
+  };
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
+          <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">This area is restricted to administrators only.</p>
+          <Link to="/dashboard" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+                  <p className="text-xs text-gray-500">Voter15 Management</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l5.293 5.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+                Back to Dashboard
+              </Link>
+              
+              <button
+                onClick={logout}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover-lift"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                </svg>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Admin Welcome */}
+        <div className="mb-8 animate-fade-in">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">
+                  Admin Control Center ⚡
+                </h2>
+                <p className="text-purple-100 text-lg">
+                  Manage users, polls, and monitor the entire voting platform.
+                </p>
+              </div>
+              <div className="bg-white bg-opacity-20 rounded-xl p-4">
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-purple-100 text-sm">Total Users</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                <p className="text-gray-600 text-sm">Total Users</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{stats.admins}</p>
+                <p className="text-gray-600 text-sm">Admins</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{stats.subAdmins}</p>
+                <p className="text-gray-600 text-sm">Sub-Admins</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{stats.activePolls}</p>
+                <p className="text-gray-600 text-sm">Active Polls</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg animate-slide-in-right">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="text-red-700 font-medium">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Main Panel */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex">
+              {[
+                { id: 'users', name: 'User Management', icon: '👥' },
+                { id: 'polls', name: 'Poll Management', icon: '📊' },
+                { id: 'settings', name: 'Settings', icon: '⚙️' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                    activeTab === tab.id
+                      ? 'border-purple-500 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="mr-2">{tab.icon}</span>
+                  {tab.name}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'users' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">User Management</h3>
+                  <button
+                    onClick={() => setShowCreateUser(!showCreateUser)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Create New User
+                  </button>
+                </div>
+
+                {/* Create User Form */}
+                {showCreateUser && (
+                  <div className="bg-gray-50 rounded-xl p-6 mb-6 animate-slide-in-right">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Create New User</h4>
+                    <form onSubmit={handleCreateUser} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                          <input
+                            type="text"
+                            value={newUser.name}
+                            onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            required
+                            placeholder="Enter user's full name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                          <input
+                            type="email"
+                            value={newUser.email}
+                            onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            required
+                            placeholder="Enter user's email"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                        <select
+                          value={newUser.role}
+                          onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                        >
+                          <option value="user">User</option>
+                          <option value="sub-admin">Sub-Admin</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                      <div className="flex space-x-3">
+                        <button
+                          type="submit"
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
+                        >
+                          Create User
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateUser(false)}
+                          className="flex-1 bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Users Table */}
+                <div className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {users.map((user) => (
+                          <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-200">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white font-semibold text-sm">
+                                    {user.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                                  <div className="text-sm text-gray-500">ID: {user.id}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{user.email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.role)}`}>
+                                {getRoleIcon(user.role)}
+                                <span className="ml-1">{user.role.toUpperCase()}</span>
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex justify-end space-x-2">
+                                <button className="text-blue-600 hover:text-blue-900 font-medium transition-colors duration-200">
+                                  Edit
+                                </button>
+                                <button className="text-red-600 hover:text-red-900 font-medium transition-colors duration-200">
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'polls' && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Poll Management</h3>
+                <p className="text-gray-500 mb-6">Coming soon - Advanced poll management features</p>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">System Settings</h3>
+                <p className="text-gray-500 mb-6">Coming soon - Platform configuration settings</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default AdminPanel;

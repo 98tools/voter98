@@ -2,37 +2,25 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "backend",
   "main": "src/index.ts",
-  "compatibility_date": "2025-07-15"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // },
-  // "observability": {
-  //   "enabled": true,
-  //   "head_sampling_rate": 1
-  // }
+  "compatibility_date": "2025-07-15",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "JWT_SECRET": "your-jwt-secret-key-here"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "VOTER_KV",
+      "id": "voter15-kv-demo-1",
+      "preview_id": "a583d8cdfabf4ee58cf6cd3fded8f286"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "voter-db",
+      "database_id": "2d621e7e-4679-474b-a95f-6cf3f0a8c04e"
+    }
+  ]
 }

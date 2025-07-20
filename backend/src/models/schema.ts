@@ -1,0 +1,143 @@
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { createId } from '@paralleldrive/cuid2';
+
+// Users table
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+  name: text('name').notNull(),
+  role: text('role').notNull().default('user'), // 'admin', 'sub-admin', 'user'
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Polls table
+export const polls = sqliteTable('polls', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  title: text('title').notNull(),
+  description: text('description'),
+  startDate: integer('start_date').notNull(),
+  endDate: integer('end_date').notNull(),
+  status: text('status').notNull().default('draft'), // 'draft', 'active', 'completed', 'cancelled'
+  managerId: text('manager_id').notNull().references(() => users.id),
+  createdById: text('created_by_id').notNull().references(() => users.id),
+  settings: text('settings', { mode: 'json' }).notNull().default('{}'), // JSON object for poll settings
+  ballot: text('ballot', { mode: 'json' }).notNull().default('[]'), // JSON array of ballot questions
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Poll auditors table (many-to-many relationship)
+export const pollAuditors = sqliteTable('poll_auditors', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  pollId: text('poll_id').notNull().references(() => polls.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Poll editors table (many-to-many relationship)
+export const pollEditors = sqliteTable('poll_editors', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  pollId: text('poll_id').notNull().references(() => polls.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Poll participants table
+export const pollParticipants = sqliteTable('poll_participants', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  pollId: text('poll_id').notNull().references(() => polls.id),
+  userId: text('user_id').references(() => users.id), // null for non-user participants
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  isUser: integer('is_user', { mode: 'boolean' }).notNull().default(false),
+  token: text('token').unique(), // one-time use token for non-user participants
+  tokenUsed: integer('token_used', { mode: 'boolean' }).notNull().default(false),
+  voteWeight: real('vote_weight').notNull().default(1.0),
+  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
+  hasVoted: integer('has_voted', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Poll votes table
+export const pollVotes = sqliteTable('poll_votes', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  pollId: text('poll_id').notNull().references(() => polls.id),
+  participantId: text('participant_id').notNull().references(() => pollParticipants.id),
+  questionId: text('question_id').notNull(), // ID of the ballot question
+  selectedOptions: text('selected_options', { mode: 'json' }).notNull(), // JSON array of selected option IDs
+  voteWeight: real('vote_weight').notNull().default(1.0),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Poll requests table (for sub-admin requests)
+export const pollRequests = sqliteTable('poll_requests', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  requesterId: text('requester_id').notNull().references(() => users.id),
+  pollId: text('poll_id').references(() => polls.id), // null for new poll requests
+  requestType: text('request_type').notNull(), // 'create_poll', 'become_auditor'
+  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
+  requestData: text('request_data', { mode: 'json' }).notNull().default('{}'), // JSON object with request details
+  reviewedBy: text('reviewed_by').references(() => users.id),
+  reviewedAt: integer('reviewed_at'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Participation requests table
+export const participationRequests = sqliteTable('participation_requests', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  pollId: text('poll_id').notNull().references(() => polls.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
+  reviewedBy: text('reviewed_by').references(() => users.id),
+  reviewedAt: integer('reviewed_at'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
+// Types for TypeScript
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Poll = typeof polls.$inferSelect;
+export type NewPoll = typeof polls.$inferInsert;
+export type PollParticipant = typeof pollParticipants.$inferSelect;
+export type NewPollParticipant = typeof pollParticipants.$inferInsert;
+export type PollVote = typeof pollVotes.$inferSelect;
+export type NewPollVote = typeof pollVotes.$inferInsert;
+export type PollRequest = typeof pollRequests.$inferSelect;
+export type NewPollRequest = typeof pollRequests.$inferInsert;
+export type ParticipationRequest = typeof participationRequests.$inferSelect;
+export type NewParticipationRequest = typeof participationRequests.$inferInsert;
+
+// Ballot question and option types
+export interface BallotOption {
+  id: string;
+  title: string;
+  shortDescription?: string;
+  longDescription?: string;
+  link?: string;
+  image?: string;
+}
+
+export interface BallotQuestion {
+  id: string;
+  title: string;
+  description?: string;
+  randomizedOrder?: boolean;
+  minSelection?: number;
+  maxSelection?: number;
+  attachments?: string[];
+  options: BallotOption[];
+}
+
+export interface PollSettings {
+  showParticipantNames?: boolean;
+  showVoteWeights?: boolean;
+  showVoteCounts?: boolean;
+  showResultsBeforeEnd?: boolean;
+  allowResultsView?: boolean;
+  voteWeightEnabled?: boolean;
+}
