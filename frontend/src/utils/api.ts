@@ -42,7 +42,7 @@ export const userApi = {
 export const pollApi = {
   getPolls: () => api.get<{ polls: Poll[] }>('/polls'),
   getPoll: (id: string) => api.get<{ poll: Poll }>(`/polls/${id}`),
-  createPoll: (pollData: Omit<Poll, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => 
+  createPoll: (pollData: { title: string; managerId: string; description?: string }) => 
     api.post<{ message: string; poll: Poll }>('/polls', pollData),
   updatePoll: (id: string, pollData: Partial<Poll>) => 
     api.put<{ message: string; poll: Poll }>(`/polls/${id}`, pollData),

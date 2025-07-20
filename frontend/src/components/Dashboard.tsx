@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { pollApi } from '../utils/api';
 import type { Poll } from '../types';
+import CreatePollModal from './CreatePollModal';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     loadPolls();
@@ -23,6 +26,23 @@ const Dashboard: React.FC = () => {
       setError(error.response?.data?.error || 'Failed to load polls');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePollCreated = (pollId: string) => {
+    // Reload polls and navigate to poll settings
+    loadPolls();
+    navigate(`/polls/${pollId}/settings`);
+  };
+
+  const handlePollClick = (poll: Poll) => {
+    // Navigate to poll settings if user can edit, otherwise to poll view
+    const canEdit = user?.role === 'admin' || poll.managerId === user?.id;
+    if (canEdit) {
+      navigate(`/polls/${poll.id}/settings`);
+    } else {
+      // TODO: Navigate to poll view/voting page when implemented
+      alert('Poll viewing functionality coming soon!');
     }
   };
 
@@ -170,10 +190,7 @@ const Dashboard: React.FC = () => {
               </div>
               {(user?.role === 'admin' || user?.role === 'sub-admin') && (
                 <button 
-                  onClick={() => {
-                    // TODO: Navigate to poll creation page
-                    alert('Poll creation functionality coming soon!');
-                  }}
+                  onClick={() => setShowCreateModal(true)}
                   className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 hover-lift border border-white border-opacity-20"
                 >
                   <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
@@ -244,10 +261,7 @@ const Dashboard: React.FC = () => {
                 </p>
                 {(user?.role === 'admin' || user?.role === 'sub-admin') && (
                   <button 
-                    onClick={() => {
-                      // TODO: Navigate to poll creation page
-                      alert('Poll creation functionality coming soon!');
-                    }}
+                    onClick={() => setShowCreateModal(true)}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
                   >
                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -299,19 +313,28 @@ const Dashboard: React.FC = () => {
                       </div>
                       
                       <div className="flex space-x-2">
-                        <button className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                        <button 
+                          onClick={() => handlePollClick(poll)}
+                          className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+                        >
                           <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                             <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                           </svg>
-                          View
+                          {(user?.role === 'admin' || poll.managerId === user?.id) ? 'Settings' : 'View'}
                         </button>
-                        {(user?.role === 'admin' || poll.managerId === user?.id) && (
-                          <button className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+                        {(user?.role === 'admin' || poll.managerId === user?.id) && poll.status === 'active' && (
+                          <button 
+                            onClick={() => {
+                              // TODO: Navigate to poll results page when implemented
+                              alert('Poll results functionality coming soon!');
+                            }}
+                            className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
+                          >
                             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                            Edit
+                            Results
                           </button>
                         )}
                       </div>
@@ -322,6 +345,13 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Create Poll Modal */}
+      <CreatePollModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPollCreated={handlePollCreated}
+      />
     </div>
   );
 };

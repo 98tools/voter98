@@ -1,9 +1,9 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
+import PollSettings from './components/PollSettings';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -20,6 +20,11 @@ function App() {
           <Route path="/admin" element={
             <ProtectedRoute requiredRole="admin">
               <AdminPanel />
+            </ProtectedRoute>
+          } />
+          <Route path="/polls/:pollId/settings" element={
+            <ProtectedRoute>
+              <PollSettings />
             </ProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

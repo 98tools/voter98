@@ -45,8 +45,8 @@ const pollSettingsSchema = z.object({
 const createPollSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  startDate: z.number(),
-  endDate: z.number(),
+  startDate: z.number().optional(),
+  endDate: z.number().optional(),
   managerId: z.string(),
   settings: pollSettingsSchema.optional().default({}),
   ballot: z.array(ballotQuestionSchema).optional().default([]),
@@ -58,6 +58,7 @@ const updatePollSchema = z.object({
   description: z.string().optional(),
   startDate: z.number().optional(),
   endDate: z.number().optional(),
+  status: z.enum(['draft', 'active', 'completed', 'cancelled']).optional(),
   settings: pollSettingsSchema.optional(),
   ballot: z.array(ballotQuestionSchema).optional(),
 });
@@ -78,16 +79,21 @@ pollRoutes.post('/', adminMiddleware, zValidator('json', createPollSchema), asyn
       return c.json({ error: 'Manager must be a sub-admin' }, 400);
     }
 
+    // Default start and end dates for drafts (can be updated later)
+    const defaultStartDate = pollData.startDate || Date.now();
+    const defaultEndDate = pollData.endDate || (Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
     // Create poll
     const newPoll = await db.insert(polls).values({
       title: pollData.title,
       description: pollData.description,
-      startDate: pollData.startDate,
-      endDate: pollData.endDate,
+      startDate: defaultStartDate,
+      endDate: defaultEndDate,
       managerId: pollData.managerId,
       createdById: currentUser.userId,
       settings: pollData.settings,
       ballot: pollData.ballot,
+      status: 'draft', // Always create as draft initially
     }).returning().get();
 
     return c.json({
