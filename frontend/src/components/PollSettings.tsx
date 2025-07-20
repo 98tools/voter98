@@ -1436,6 +1436,54 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Attachments (Optional)
+            </label>
+            <div className="space-y-2">
+              {(question.attachments || []).map((attachment, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="url"
+                    value={attachment}
+                    onChange={(e) => {
+                      const newAttachments = [...(question.attachments || [])];
+                      newAttachments[index] = e.target.value;
+                      onUpdate({ attachments: newAttachments });
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter attachment URL"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newAttachments = (question.attachments || []).filter((_, i) => i !== index);
+                      onUpdate({ attachments: newAttachments });
+                    }}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const newAttachments = [...(question.attachments || []), ''];
+                  onUpdate({ attachments: newAttachments });
+                }}
+                className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Add Attachment
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1508,20 +1556,79 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     </button>
                   </div>
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={option.title}
-                      onChange={(e) => onUpdateOption(option.id, { title: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Option title"
-                    />
-                    <input
-                      type="text"
-                      value={option.shortDescription || ''}
-                      onChange={(e) => onUpdateOption(option.id, { shortDescription: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Short description (optional)"
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Option Title *
+                      </label>
+                      <input
+                        type="text"
+                        value={option.title}
+                        onChange={(e) => onUpdateOption(option.id, { title: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Option title"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Short Description (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={option.shortDescription || ''}
+                        onChange={(e) => onUpdateOption(option.id, { shortDescription: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Brief description shown in summary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Long Description (Optional)
+                      </label>
+                      <textarea
+                        value={option.longDescription || ''}
+                        onChange={(e) => onUpdateOption(option.id, { longDescription: e.target.value })}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        placeholder="Detailed description for this option"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        External Link (Optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={option.link || ''}
+                        onChange={(e) => onUpdateOption(option.id, { link: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Image URL (Optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={option.image || ''}
+                        onChange={(e) => onUpdateOption(option.id, { image: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                      {option.image && (
+                        <div className="mt-2">
+                          <img
+                            src={option.image}
+                            alt="Option preview"
+                            className="max-w-32 max-h-32 object-cover rounded border border-gray-300"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1541,6 +1648,27 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             {question.description && (
               <p className="text-gray-600 text-sm mt-1">{question.description}</p>
             )}
+            {question.attachments && question.attachments.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs font-medium text-gray-700 mb-1">Attachments:</p>
+                <div className="space-y-1">
+                  {question.attachments.filter(att => att.trim()).map((attachment, idx) => (
+                    <a
+                      key={idx}
+                      href={attachment}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                      </svg>
+                      Attachment {idx + 1}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -1557,13 +1685,49 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           {question.options.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-700">Options:</p>
-              <div className="space-y-1">
+              <div className="space-y-3">
                 {question.options.map((option, idx) => (
-                  <div key={option.id} className="text-sm text-gray-600">
-                    {idx + 1}. {option.title}
-                    {option.shortDescription && (
-                      <span className="text-gray-500 ml-2">- {option.shortDescription}</span>
-                    )}
+                  <div key={option.id} className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h6 className="text-sm font-medium text-gray-900">
+                          {idx + 1}. {option.title}
+                        </h6>
+                        {option.shortDescription && (
+                          <p className="text-xs text-gray-600 mt-1">{option.shortDescription}</p>
+                        )}
+                        {option.longDescription && (
+                          <p className="text-xs text-gray-500 mt-2">{option.longDescription}</p>
+                        )}
+                        <div className="flex items-center space-x-3 mt-2">
+                          {option.link && (
+                            <a
+                              href={option.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                            >
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                              </svg>
+                              View Link
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {option.image && (
+                        <div className="ml-3 flex-shrink-0">
+                          <img
+                            src={option.image}
+                            alt={`Option ${idx + 1}`}
+                            className="w-16 h-16 object-cover rounded border border-gray-300"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
