@@ -1575,7 +1575,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   );
 };
 
-const AuditorsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => void; saving: boolean }> = ({ poll, onSave, saving }) => {
+// const AuditorsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => void; saving: boolean }> = ({ poll, onSave, saving }) => {
+const AuditorsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => void; saving: boolean }> = () => {
   const [auditors, setAuditors] = useState<any[]>([]);
   const [editors, setEditors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
