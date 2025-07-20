@@ -9,6 +9,9 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "vars": {
+    "JWT_SECRET": "your-super-secret-jwt-key-for-development-please-change-in-production"
+  },
   "kv_namespaces": [
     {
       "binding": "VOTER_KV",

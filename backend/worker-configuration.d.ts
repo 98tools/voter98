@@ -4,7 +4,7 @@
 declare namespace Cloudflare {
 	interface Env {
 		VOTER_KV: KVNamespace;
-		JWT_SECRET: "your-jwt-secret-key-here";
+		JWT_SECRET: string;
 		DB: D1Database;
 	}
 }
