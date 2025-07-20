@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import PollSettings from './components/PollSettings';
+import Poll from './components/PollParticipation';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
               <PollSettings />
             </ProtectedRoute>
           } />
+          <Route path="/poll/:pollId" element={<Poll />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
