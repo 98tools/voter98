@@ -6,7 +6,8 @@
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply voter-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply voter-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply voter-db --remote",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
