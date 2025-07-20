@@ -223,6 +223,7 @@ const PollSettings: React.FC = () => {
                 { id: 'questions', label: 'Questions', icon: 'question' },
                 { id: 'settings', label: 'Settings', icon: 'cog' },
                 { id: 'participants', label: 'Participants', icon: 'users' },
+                { id: 'auditors', label: 'Auditors & Editors', icon: 'shield' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -255,6 +256,9 @@ const PollSettings: React.FC = () => {
             )}
             {activeTab === 'participants' && (
               <ParticipantsTab poll={poll} onSave={handleSave} saving={saving} />
+            )}
+            {activeTab === 'auditors' && (
+              <AuditorsTab poll={poll} onSave={handleSave} saving={saving} />
             )}
           </div>
         </div>
@@ -556,14 +560,31 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
     onSave({ settings });
   };
 
+  const isPollActive = poll.status === 'active' || poll.status === 'completed';
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Poll Settings</h3>
+        
+        {isPollActive && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-yellow-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div className="text-yellow-700 text-sm">
+                <p className="font-medium mb-1">Poll is Active</p>
+                <p>Some settings cannot be changed after the poll has started. Visibility and privacy settings can still be modified.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSaveSettings} className="space-y-6">
-          {/* Visibility Settings */}
+          {/* Transparency & Visibility Settings */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h4 className="text-base font-medium text-gray-900 mb-4">Visibility & Privacy</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">Transparency & Visibility</h4>
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="flex items-center h-5">
@@ -579,7 +600,7 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                   <label htmlFor="showParticipantNames" className="font-medium text-gray-700">
                     Show participant names
                   </label>
-                  <p className="text-gray-500">Display the names of participants who have voted</p>
+                  <p className="text-gray-500">Display the names of participants who have voted. When disabled, participants remain anonymous.</p>
                 </div>
               </div>
 
@@ -595,9 +616,9 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="showVoteWeights" className="font-medium text-gray-700">
-                    Show vote weights
+                    Show vote weights by name
                   </label>
-                  <p className="text-gray-500">Display the weight of each vote in results</p>
+                  <p className="text-gray-500">Display the weight of each vote with participant names. Anonymous vote weights are always shown if vote weighting is enabled.</p>
                 </div>
               </div>
 
@@ -613,17 +634,17 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="showVoteCounts" className="font-medium text-gray-700">
-                    Show vote counts
+                    Show total vote counts during voting
                   </label>
-                  <p className="text-gray-500">Display the number of votes for each option</p>
+                  <p className="text-gray-500">Display the total number of votes cast while the poll is active. Always shown after poll ends.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Results Settings */}
+          {/* Results Access Settings */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h4 className="text-base font-medium text-gray-900 mb-4">Results & Access</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">Results Access</h4>
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="flex items-center h-5">
@@ -637,9 +658,9 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="showResultsBeforeEnd" className="font-medium text-gray-700">
-                    Show results before poll ends
+                    Show vote breakdown before poll ends
                   </label>
-                  <p className="text-gray-500">Allow participants to see results while voting is still open</p>
+                  <p className="text-gray-500">Allow participants to see vote distribution by option while voting is still open. Results always appear after poll ends.</p>
                 </div>
               </div>
 
@@ -655,17 +676,17 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="allowResultsView" className="font-medium text-gray-700">
-                    Allow results viewing
+                    Allow participants to view results
                   </label>
-                  <p className="text-gray-500">Enable participants to view poll results after voting</p>
+                  <p className="text-gray-500">Enable participants to access poll results after voting. Disable to restrict result viewing to managers and auditors only.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Voting Settings */}
+          {/* Voting System Settings */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h4 className="text-base font-medium text-gray-900 mb-4">Voting Options</h4>
+            <h4 className="text-base font-medium text-gray-900 mb-4">Voting System</h4>
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="flex items-center h-5">
@@ -675,27 +696,39 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                     checked={settings.voteWeightEnabled || false}
                     onChange={(e) => handleSettingChange('voteWeightEnabled', e.target.checked)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={isPollActive}
                   />
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="voteWeightEnabled" className="font-medium text-gray-700">
-                    Enable vote weighting
+                    Enable weighted voting
                   </label>
-                  <p className="text-gray-500">Allow different participants to have different vote weights</p>
+                  <p className="text-gray-500">
+                    Allow different participants to have different vote weights. When enabled, anonymous vote weights will always be visible.
+                    {isPollActive && <span className="block text-yellow-600 font-medium mt-1">Cannot be changed after poll starts</span>}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Advanced Settings Info */}
+          {/* Information Display */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <div className="text-blue-700 text-sm">
-                <p className="font-medium mb-1">Settings Information</p>
-                <p>These settings control how participants interact with your poll and view results. Changes can be made even after the poll is active, but some restrictions may apply.</p>
+                <p className="font-medium mb-2">Always Visible to Participants:</p>
+                <ul className="space-y-1 text-blue-600">
+                  <li>• Poll title, description, and dates</li>
+                  <li>• Ballot questions and options</li>
+                  <li>• Manager and auditor names</li>
+                  <li>• Total number of participants</li>
+                  <li>• Whether vote weighting is enabled</li>
+                  <li>• Anonymous vote weights (numbers only)</li>
+                </ul>
+                <p className="mt-3 text-blue-700">Transparency settings above control additional information visibility.</p>
               </div>
             </div>
           </div>
@@ -719,10 +752,15 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvData, setCsvData] = useState('');
+  const [csvError, setCsvError] = useState('');
   const [newParticipant, setNewParticipant] = useState({
     name: '',
     email: '',
-    voteWeight: 1.0
+    isUser: false,
+    voteWeight: 1.0,
+    token: ''
   });
 
   useEffect(() => {
@@ -731,23 +769,37 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
 
   const loadParticipants = async () => {
     // TODO: Implement API call to fetch participants
-    // For now, using mock data
+    // For now, using mock data that represents the different participant types
     setParticipants([
       {
         id: '1',
         name: 'John Doe',
         email: 'john@example.com',
+        isUser: true,
         voteWeight: 1.0,
         status: 'approved',
-        hasVoted: false
+        hasVoted: false,
+        token: null
       },
       {
         id: '2',
         name: 'Jane Smith',
         email: 'jane@example.com',
+        isUser: true,
         voteWeight: 1.5,
         status: 'approved',
-        hasVoted: true
+        hasVoted: true,
+        token: null
+      },
+      {
+        id: '3',
+        name: 'Bob Wilson',
+        email: 'bob.wilson@external.com',
+        isUser: false,
+        voteWeight: 1.0,
+        status: 'approved',
+        hasVoted: false,
+        token: 'tok_abc123def456'
       }
     ]);
     setLoading(false);
@@ -755,16 +807,79 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
 
   const handleAddParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement API call to add participant
+    
+    // Generate token for non-user participants if not provided
+    const token = !newParticipant.isUser && !newParticipant.token 
+      ? `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      : newParticipant.token || null;
+
     const newPart = {
       id: Date.now().toString(),
       ...newParticipant,
       status: 'approved',
-      hasVoted: false
+      hasVoted: false,
+      token
     };
+    
     setParticipants([...participants, newPart]);
-    setNewParticipant({ name: '', email: '', voteWeight: 1.0 });
+    setNewParticipant({ name: '', email: '', isUser: false, voteWeight: 1.0, token: '' });
     setShowAddModal(false);
+  };
+
+  const handleCsvUpload = () => {
+    setCsvError('');
+    
+    try {
+      const lines = csvData.trim().split('\n');
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      
+      // Validate required headers
+      const requiredHeaders = ['name', 'email', 'is_user'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      if (missingHeaders.length > 0) {
+        setCsvError(`Missing required headers: ${missingHeaders.join(', ')}`);
+        return;
+      }
+
+      const newParticipants = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row: any = {};
+        
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+
+        // Validate and process row
+        if (!row.name || !row.email) {
+          setCsvError(`Row ${i + 1}: Name and email are required`);
+          return;
+        }
+
+        const isUser = row.is_user === 'true' || row.is_user === '1';
+        const voteWeight = parseFloat(row.vote_weight) || 1.0;
+        const token = !isUser ? (row.token || `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`) : null;
+
+        newParticipants.push({
+          id: `csv_${Date.now()}_${i}`,
+          name: row.name,
+          email: row.email,
+          isUser,
+          voteWeight,
+          token,
+          status: 'approved',
+          hasVoted: false
+        });
+      }
+
+      setParticipants([...participants, ...newParticipants]);
+      setCsvData('');
+      setShowCsvModal(false);
+      
+    } catch (error) {
+      setCsvError('Invalid CSV format. Please check your data.');
+    }
   };
 
   const handleRemoveParticipant = (participantId: string) => {
@@ -775,6 +890,28 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
     setParticipants(participants.map(p => 
       p.id === participantId ? { ...p, voteWeight: newWeight } : p
     ));
+  };
+
+  const handleRegenerateToken = (participantId: string) => {
+    const newToken = `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setParticipants(participants.map(p => 
+      p.id === participantId ? { ...p, token: newToken } : p
+    ));
+  };
+
+  const downloadCsvTemplate = () => {
+    const csvTemplate = `name,email,is_user,vote_weight,token
+John Doe,john@example.com,true,1.0,
+Jane Smith External,jane@external.com,false,1.5,custom_token_123
+Bob Wilson,bob@example.com,true,2.0,`;
+    
+    const blob = new Blob([csvTemplate], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'participants_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -788,16 +925,86 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Participants</h3>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-        >
-          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
-          Add Participant
-        </button>
+        <h3 className="text-lg font-medium text-gray-900">Participants Management</h3>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowCsvModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Upload CSV
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Participant
+          </button>
+        </div>
+      </div>
+
+      {/* Participants Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-blue-600">Total Participants</p>
+              <p className="text-lg font-semibold text-blue-900">{participants.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-green-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-600">Registered Users</p>
+              <p className="text-lg font-semibold text-green-900">{participants.filter(p => p.isUser).length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-yellow-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-yellow-600">External Participants</p>
+              <p className="text-lg font-semibold text-yellow-900">{participants.filter(p => !p.isUser).length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-purple-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-purple-600">Voted</p>
+              <p className="text-lg font-semibold text-purple-900">{participants.filter(p => p.hasVoted).length}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {participants.length === 0 ? (
@@ -806,13 +1013,21 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
           </svg>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No participants yet</h3>
-          <p className="text-gray-500 mb-4">Add participants who can vote in this poll.</p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-          >
-            Add First Participant
-          </button>
+          <p className="text-gray-500 mb-4">Add participants who can vote in this poll. You can add them individually or upload a CSV file.</p>
+          <div className="flex items-center justify-center space-x-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+            >
+              Add Individual Participant
+            </button>
+            <button
+              onClick={() => setShowCsvModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+            >
+              Upload CSV File
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -825,6 +1040,9 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                       Participant
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -832,6 +1050,9 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Voted
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Token/Access
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -846,6 +1067,15 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                           <div className="text-sm font-medium text-gray-900">{participant.name}</div>
                           <div className="text-sm text-gray-500">{participant.email}</div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          participant.isUser 
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {participant.isUser ? 'Registered User' : 'External'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -890,6 +1120,23 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                             </>
                           )}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {participant.isUser ? (
+                          <span className="text-green-600 font-medium">System Login</span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                              {participant.token}
+                            </div>
+                            <button
+                              onClick={() => handleRegenerateToken(participant.id)}
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                            >
+                              Regenerate
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
@@ -952,6 +1199,19 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                   />
                 </div>
 
+                <div className="flex items-center">
+                  <input
+                    id="isUser"
+                    type="checkbox"
+                    checked={newParticipant.isUser}
+                    onChange={(e) => setNewParticipant({ ...newParticipant, isUser: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="isUser" className="ml-2 block text-sm text-gray-900">
+                    Registered system user
+                  </label>
+                </div>
+
                 {poll.settings.voteWeightEnabled && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -964,6 +1224,21 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                       value={newParticipant.voteWeight}
                       onChange={(e) => setNewParticipant({ ...newParticipant, voteWeight: parseFloat(e.target.value) })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+
+                {!newParticipant.isUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Custom Token (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newParticipant.token}
+                      onChange={(e) => setNewParticipant({ ...newParticipant, token: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Leave empty to auto-generate"
                     />
                   </div>
                 )}
@@ -984,6 +1259,85 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Upload Modal */}
+      {showCsvModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Upload Participants CSV</h3>
+                <button
+                  onClick={() => setShowCsvModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">CSV Format Requirements:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• <strong>name</strong>: Participant's full name (required)</li>
+                    <li>• <strong>email</strong>: Participant's email address (required)</li>
+                    <li>• <strong>is_user</strong>: true/false - whether participant is a registered user (required)</li>
+                    <li>• <strong>vote_weight</strong>: Numeric value, defaults to 1.0 (optional)</li>
+                    <li>• <strong>token</strong>: Custom token for non-users, auto-generated if empty (optional)</li>
+                  </ul>
+                  <button
+                    onClick={downloadCsvTemplate}
+                    className="mt-3 inline-flex items-center px-3 py-1 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Download Template
+                  </button>
+                </div>
+
+                {csvError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 text-sm">{csvError}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CSV Data
+                  </label>
+                  <textarea
+                    value={csvData}
+                    onChange={(e) => setCsvData(e.target.value)}
+                    rows={10}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    placeholder="name,email,is_user,vote_weight,token&#10;John Doe,john@example.com,true,1.0,&#10;Jane External,jane@external.com,false,1.5,custom_token"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCsvModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCsvUpload}
+                    disabled={!csvData.trim()}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Upload Participants
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1215,6 +1569,559 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               </div>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AuditorsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => void; saving: boolean }> = ({ poll, onSave, saving }) => {
+  const [auditors, setAuditors] = useState<any[]>([]);
+  const [editors, setEditors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddAuditorModal, setShowAddAuditorModal] = useState(false);
+  const [showAddEditorModal, setShowAddEditorModal] = useState(false);
+  const [newAuditor, setNewAuditor] = useState({
+    name: '',
+    email: '',
+    permissions: {
+      viewResults: true,
+      viewParticipants: true,
+      viewAuditLog: true,
+      downloadResults: false
+    }
+  });
+  const [newEditor, setNewEditor] = useState({
+    name: '',
+    email: '',
+    permissions: {
+      editQuestions: true,
+      editSettings: true,
+      managePoll: false,
+      deleteQuestions: false
+    }
+  });
+
+  useEffect(() => {
+    loadAuditorsAndEditors();
+  }, []);
+
+  const loadAuditorsAndEditors = async () => {
+    // TODO: Implement API call to fetch auditors and editors
+    // For now, using mock data
+    setAuditors([
+      {
+        id: '1',
+        name: 'Alice Johnson',
+        email: 'alice@company.com',
+        role: 'auditor',
+        status: 'active',
+        permissions: {
+          viewResults: true,
+          viewParticipants: true,
+          viewAuditLog: true,
+          downloadResults: true
+        },
+        addedAt: '2024-01-15',
+        lastAccess: '2024-01-20'
+      }
+    ]);
+    
+    setEditors([
+      {
+        id: '1',
+        name: 'Bob Chen',
+        email: 'bob@company.com',
+        role: 'editor',
+        status: 'active',
+        permissions: {
+          editQuestions: true,
+          editSettings: true,
+          managePoll: false,
+          deleteQuestions: false
+        },
+        addedAt: '2024-01-16',
+        lastAccess: '2024-01-19'
+      }
+    ]);
+    
+    setLoading(false);
+  };
+
+  const handleAddAuditor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const auditor = {
+      id: Date.now().toString(),
+      ...newAuditor,
+      role: 'auditor',
+      status: 'active',
+      addedAt: new Date().toISOString().split('T')[0],
+      lastAccess: null
+    };
+    
+    setAuditors([...auditors, auditor]);
+    setNewAuditor({
+      name: '',
+      email: '',
+      permissions: {
+        viewResults: true,
+        viewParticipants: true,
+        viewAuditLog: true,
+        downloadResults: false
+      }
+    });
+    setShowAddAuditorModal(false);
+  };
+
+  const handleAddEditor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const editor = {
+      id: Date.now().toString(),
+      ...newEditor,
+      role: 'editor',
+      status: 'active',
+      addedAt: new Date().toISOString().split('T')[0],
+      lastAccess: null
+    };
+    
+    setEditors([...editors, editor]);
+    setNewEditor({
+      name: '',
+      email: '',
+      permissions: {
+        editQuestions: true,
+        editSettings: true,
+        managePoll: false,
+        deleteQuestions: false
+      }
+    });
+    setShowAddEditorModal(false);
+  };
+
+  const handleRemoveAuditor = (auditorId: string) => {
+    setAuditors(auditors.filter(a => a.id !== auditorId));
+  };
+
+  const handleRemoveEditor = (editorId: string) => {
+    setEditors(editors.filter(e => e.id !== editorId));
+  };
+
+  const handleUpdateAuditorPermissions = (auditorId: string, permission: string, value: boolean) => {
+    setAuditors(auditors.map(a => 
+      a.id === auditorId 
+        ? { ...a, permissions: { ...a.permissions, [permission]: value } }
+        : a
+    ));
+  };
+
+  const handleUpdateEditorPermissions = (editorId: string, permission: string, value: boolean) => {
+    setEditors(editors.map(e => 
+      e.id === editorId 
+        ? { ...e, permissions: { ...e.permissions, [permission]: value } }
+        : e
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Auditors Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Poll Auditors</h3>
+            <p className="text-sm text-gray-500">Users who can monitor and audit poll activity</p>
+          </div>
+          <button
+            onClick={() => setShowAddAuditorModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Auditor
+          </button>
+        </div>
+
+        {auditors.length === 0 ? (
+          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+            <svg className="mx-auto h-10 w-10 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <h4 className="text-sm font-medium text-gray-900 mb-1">No auditors assigned</h4>
+            <p className="text-sm text-gray-500">Add auditors to monitor poll activity and ensure transparency.</p>
+          </div>
+        ) : (
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Auditor
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Permissions
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Access
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {auditors.map((auditor) => (
+                      <tr key={auditor.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{auditor.name}</div>
+                            <div className="text-sm text-gray-500">{auditor.email}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            {Object.entries(auditor.permissions).map(([key, value]) => (
+                              <label key={key} className="flex items-center text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={value as boolean}
+                                  onChange={(e) => handleUpdateAuditorPermissions(auditor.id, key, e.target.checked)}
+                                  className="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded mr-2"
+                                />
+                                <span className="text-gray-700">
+                                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            auditor.status === 'active' 
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {auditor.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {auditor.lastAccess || 'Never'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleRemoveAuditor(auditor.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Editors Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Poll Editors</h3>
+            <p className="text-sm text-gray-500">Users who can modify poll content and settings</p>
+          </div>
+          <button
+            onClick={() => setShowAddEditorModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add Editor
+          </button>
+        </div>
+
+        {editors.length === 0 ? (
+          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+            <svg className="mx-auto h-10 w-10 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <h4 className="text-sm font-medium text-gray-900 mb-1">No editors assigned</h4>
+            <p className="text-sm text-gray-500">Add editors to allow collaborative poll management.</p>
+          </div>
+        ) : (
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Editor
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Permissions
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Access
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {editors.map((editor) => (
+                      <tr key={editor.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{editor.name}</div>
+                            <div className="text-sm text-gray-500">{editor.email}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            {Object.entries(editor.permissions).map(([key, value]) => (
+                              <label key={key} className="flex items-center text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={value as boolean}
+                                  onChange={(e) => handleUpdateEditorPermissions(editor.id, key, e.target.checked)}
+                                  className="h-3 w-3 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mr-2"
+                                />
+                                <span className="text-gray-700">
+                                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            editor.status === 'active' 
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {editor.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {editor.lastAccess || 'Never'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleRemoveEditor(editor.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add Auditor Modal */}
+      {showAddAuditorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add Auditor</h3>
+                <button
+                  onClick={() => setShowAddAuditorModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleAddAuditor} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newAuditor.name}
+                    onChange={(e) => setNewAuditor({ ...newAuditor, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newAuditor.email}
+                    onChange={(e) => setNewAuditor({ ...newAuditor, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Permissions
+                  </label>
+                  <div className="space-y-2">
+                    {Object.entries(newAuditor.permissions).map(([key, value]) => (
+                      <label key={key} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={value}
+                          onChange={(e) => setNewAuditor({
+                            ...newAuditor,
+                            permissions: { ...newAuditor.permissions, [key]: e.target.checked }
+                          })}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddAuditorModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Add Auditor
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Editor Modal */}
+      {showAddEditorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add Editor</h3>
+                <button
+                  onClick={() => setShowAddEditorModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleAddEditor} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newEditor.name}
+                    onChange={(e) => setNewEditor({ ...newEditor, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newEditor.email}
+                    onChange={(e) => setNewEditor({ ...newEditor, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Permissions
+                  </label>
+                  <div className="space-y-2">
+                    {Object.entries(newEditor.permissions).map(([key, value]) => (
+                      <label key={key} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={value}
+                          onChange={(e) => setNewEditor({
+                            ...newEditor,
+                            permissions: { ...newEditor.permissions, [key]: e.target.checked }
+                          })}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddEditorModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  >
+                    Add Editor
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>
