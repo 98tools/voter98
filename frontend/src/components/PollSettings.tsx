@@ -226,6 +226,7 @@ const PollSettings: React.FC = () => {
                 { id: 'settings', label: 'Settings', icon: 'cog' },
                 { id: 'participants', label: 'Participants', icon: 'users' },
                 { id: 'auditors', label: 'Auditors & Editors', icon: 'shield' },
+                { id: 'results', label: 'Results', icon: 'chart' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -261,6 +262,9 @@ const PollSettings: React.FC = () => {
             )}
             {activeTab === 'auditors' && (
               <AuditorsTab poll={poll} onSave={handleSave} saving={saving} />
+            )}
+            {activeTab === 'results' && (
+              <ResultsTab poll={poll} />
             )}
           </div>
         </div>
@@ -2359,6 +2363,50 @@ const PollUrlDisplay: React.FC<{ pollId: string }> = ({ pollId }) => {
       {copied && (
         <span className="text-xs text-green-600 font-medium">Copied!</span>
       )}
+    </div>
+  );
+};
+
+// Results Tab Component
+const ResultsTab: React.FC<{ poll: Poll }> = ({ poll }) => {
+  return (
+    <div className="space-y-6">
+      <div className="text-center py-12">
+        <svg className="mx-auto h-16 w-16 text-blue-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Poll Results</h3>
+        <p className="text-gray-500 mb-6">
+          For detailed poll results and analytics, visit the dedicated results page.
+        </p>
+        <div className="space-y-3">
+          <a
+            href={`/polls/${poll.id}/results`}
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+          >
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            View Full Results
+          </a>
+          
+          {poll.status === 'active' && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-blue-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h4 className="text-sm font-medium text-blue-800">Live Results</h4>
+                  <p className="text-sm text-blue-600 mt-1">
+                    Results are updated in real-time as participants vote. The visibility of results is controlled by your poll settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

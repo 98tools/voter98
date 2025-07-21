@@ -797,5 +797,267 @@ publicPollRoutes.get('/:id/vote-status/:sessionToken', async (c) => {
   }
 });
 
+// Get poll results (admin, manager, auditors, and participants based on settings)
+pollRoutes.get('/:id/results', async (c) => {
+  const pollId = c.req.param('id');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    let hasAccess = false;
+    let accessLevel = 'none'; // 'admin', 'manager', 'auditor', 'participant'
+
+    if (user.role === 'admin') {
+      hasAccess = true;
+      accessLevel = 'admin';
+    } else if (user.role === 'sub-admin') {
+      if (poll.managerId === user.userId) {
+        hasAccess = true;
+        accessLevel = 'manager';
+      } else {
+        // Check if user is an auditor
+        const isAuditor = await db.select().from(pollAuditors)
+          .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
+          .get();
+        if (isAuditor) {
+          hasAccess = true;
+          accessLevel = 'auditor';
+        }
+      }
+    } else {
+      // Check if user is a participant
+      const participant = await db.select().from(pollParticipants)
+        .where(and(
+          eq(pollParticipants.pollId, pollId),
+          eq(pollParticipants.userId, user.userId),
+          eq(pollParticipants.status, 'approved')
+        ))
+        .get();
+      
+      if (participant && poll.settings.allowResultsView) {
+        hasAccess = true;
+        accessLevel = 'participant';
+      }
+    }
+
+    if (!hasAccess) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Get poll results data
+    const results = await calculatePollResults(db, poll, accessLevel);
+    
+    return c.json({ results });
+  } catch (error) {
+    console.error('Get poll results error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Public poll results (for participants with session tokens)
+publicPollRoutes.get('/:id/results/:sessionToken?', async (c) => {
+  const pollId = c.req.param('id');
+  const sessionToken = c.req.param('sessionToken');
+  const db = getDb(c.env.DB);
+
+  try {
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check if results are allowed for participants
+    if (!poll.settings.allowResultsView) {
+      return c.json({ error: 'Results viewing is not allowed for this poll' }, 403);
+    }
+
+    let participant = null;
+    
+    // If session token provided, validate it
+    if (sessionToken) {
+      const sessionData = await c.env.VOTER_KV.get(`vote_session:${sessionToken}`);
+      if (sessionData) {
+        const session = JSON.parse(sessionData);
+        if (session.pollId === pollId) {
+          participant = await db.select().from(pollParticipants)
+            .where(eq(pollParticipants.id, session.participantId))
+            .get();
+        }
+      }
+    }
+
+    // Calculate results with participant-level access
+    const results = await calculatePollResults(db, poll, 'participant', participant);
+    
+    return c.json({ results });
+  } catch (error) {
+    console.error('Get public poll results error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Helper function to calculate poll results
+async function calculatePollResults(db: any, poll: any, accessLevel: string, participant?: any) {
+  const pollId = poll.id;
+  const settings = poll.settings;
+  const now = Date.now();
+  const pollEnded = now > poll.endDate || poll.status === 'completed';
+
+  // Get all participants
+  const participants = await db.select().from(pollParticipants)
+    .where(eq(pollParticipants.pollId, pollId))
+    .all();
+
+  // Get all votes
+  const votes = await db.select().from(pollVotes)
+    .where(eq(pollVotes.pollId, pollId))
+    .all();
+
+  // Get poll manager and auditors
+  const manager = await db.select().from(users)
+    .where(eq(users.id, poll.managerId))
+    .get();
+
+  const auditors = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+  }).from(pollAuditors)
+    .innerJoin(users, eq(pollAuditors.userId, users.id))
+    .where(eq(pollAuditors.pollId, pollId))
+    .all();
+
+  // Calculate basic statistics
+  const totalParticipants = participants.length;
+  const votedParticipants = participants.filter(p => p.hasVoted).length;
+  const participationRate = totalParticipants > 0 ? (votedParticipants / totalParticipants) * 100 : 0;
+
+  // Calculate total vote weight
+  const totalVoteWeight = votes.reduce((sum, vote) => sum + vote.voteWeight, 0);
+
+  // Process votes by question
+  const questionResults = poll.ballot.map((question: any) => {
+    const questionVotes = votes.filter(vote => vote.questionId === question.id);
+    
+    // Calculate results by option
+    const optionResults = question.options.map((option: any) => {
+      const optionVotes = questionVotes.filter(vote => 
+        (vote.selectedOptions as string[]).includes(option.id)
+      );
+      
+      const voteCount = optionVotes.length;
+      const weightedVoteCount = optionVotes.reduce((sum, vote) => sum + vote.voteWeight, 0);
+      const percentage = questionVotes.length > 0 ? (voteCount / questionVotes.length) * 100 : 0;
+      const weightedPercentage = totalVoteWeight > 0 ? (weightedVoteCount / totalVoteWeight) * 100 : 0;
+
+      return {
+        optionId: option.id,
+        title: option.title,
+        voteCount,
+        weightedVoteCount,
+        percentage: Math.round(percentage * 100) / 100,
+        weightedPercentage: Math.round(weightedPercentage * 100) / 100,
+      };
+    });
+
+    return {
+      questionId: question.id,
+      title: question.title,
+      totalVotes: questionVotes.length,
+      totalWeightedVotes: questionVotes.reduce((sum, vote) => sum + vote.voteWeight, 0),
+      options: optionResults,
+    };
+  });
+
+  // Build participant data based on access level and settings
+  let participantData = [];
+  if (accessLevel === 'admin' || accessLevel === 'manager' || accessLevel === 'auditor') {
+    // Full access - can see all participant details
+    participantData = participants.map(p => {
+      const participantVotes = votes.filter(v => v.participantId === p.id);
+      return {
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        isUser: p.isUser,
+        voteWeight: p.voteWeight,
+        hasVoted: p.hasVoted,
+        votedAt: participantVotes.length > 0 ? Math.max(...participantVotes.map(v => v.createdAt)) : null,
+      };
+    });
+  } else if (accessLevel === 'participant') {
+    // Limited access based on poll settings
+    if (settings.showParticipantNames) {
+      participantData = participants
+        .filter(p => p.hasVoted)
+        .map(p => ({
+          name: p.name,
+          voteWeight: settings.showVoteWeights ? p.voteWeight : undefined,
+          hasVoted: true,
+        }));
+    } else {
+      // Only show anonymous vote weights if enabled
+      if (settings.voteWeightEnabled) {
+        participantData = participants
+          .filter(p => p.hasVoted)
+          .map(p => ({
+            voteWeight: p.voteWeight,
+            hasVoted: true,
+          }));
+      }
+    }
+  }
+
+  // Determine what data to show based on access level and settings
+  const showVoteCounts = pollEnded || settings.showVoteCounts || 
+    ['admin', 'manager', 'auditor'].includes(accessLevel);
+  
+  const showResultsBreakdown = pollEnded || settings.showResultsBeforeEnd || 
+    ['admin', 'manager', 'auditor'].includes(accessLevel);
+
+  return {
+    poll: {
+      id: poll.id,
+      title: poll.title,
+      description: poll.description,
+      startDate: poll.startDate,
+      endDate: poll.endDate,
+      status: poll.status,
+      manager: {
+        name: manager?.name,
+        email: manager?.email,
+      },
+      auditors: auditors,
+      voteWeightEnabled: settings.voteWeightEnabled,
+    },
+    statistics: {
+      totalParticipants,
+      votedParticipants,
+      participationRate: Math.round(participationRate * 100) / 100,
+      totalVoteWeight: settings.voteWeightEnabled ? totalVoteWeight : undefined,
+    },
+    questions: showResultsBreakdown ? questionResults : questionResults.map(q => ({
+      questionId: q.questionId,
+      title: q.title,
+      totalVotes: showVoteCounts ? q.totalVotes : undefined,
+      totalWeightedVotes: showVoteCounts && settings.voteWeightEnabled ? q.totalWeightedVotes : undefined,
+    })),
+    participants: participantData,
+    permissions: {
+      canViewFullResults: ['admin', 'manager', 'auditor'].includes(accessLevel),
+      canViewVoteCounts: showVoteCounts,
+      canViewResultsBreakdown: showResultsBreakdown,
+      canViewParticipantNames: settings.showParticipantNames && accessLevel === 'participant',
+      canViewVoteWeights: settings.showVoteWeights && accessLevel === 'participant',
+    },
+  };
+}
+
 export { publicPollRoutes };
 export default pollRoutes;

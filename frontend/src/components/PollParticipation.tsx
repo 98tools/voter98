@@ -201,7 +201,7 @@ const PollParticipation: React.FC = () => {
           <p className="text-gray-500 mb-6">Thank you for participating in "{poll?.title}". Your vote has been recorded.</p>
           {poll?.settings.allowResultsView && (
             <button
-              onClick={() => {/* Navigate to results view */}}
+              onClick={() => navigate(`/poll/${pollId}/results/${sessionToken}`)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 mr-3"
             >
               View Results

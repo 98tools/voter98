@@ -71,3 +71,66 @@ export interface AuthResponse {
   user: User;
   token: string;
 }
+
+export interface PollOptionResult {
+  optionId: string;
+  title: string;
+  voteCount: number;
+  weightedVoteCount: number;
+  percentage: number;
+  weightedPercentage: number;
+}
+
+export interface PollQuestionResult {
+  questionId: string;
+  title: string;
+  totalVotes?: number;
+  totalWeightedVotes?: number;
+  options: PollOptionResult[];
+}
+
+export interface PollResultParticipant {
+  id?: string;
+  name?: string;
+  email?: string;
+  isUser?: boolean;
+  voteWeight?: number;
+  hasVoted: boolean;
+  votedAt?: number;
+}
+
+export interface PollResults {
+  poll: {
+    id: string;
+    title: string;
+    description?: string;
+    startDate: number;
+    endDate: number;
+    status: string;
+    manager: {
+      name?: string;
+      email?: string;
+    };
+    auditors: Array<{
+      id: string;
+      name: string;
+      email: string;
+    }>;
+    voteWeightEnabled: boolean;
+  };
+  statistics: {
+    totalParticipants: number;
+    votedParticipants: number;
+    participationRate: number;
+    totalVoteWeight?: number;
+  };
+  questions: PollQuestionResult[];
+  participants: PollResultParticipant[];
+  permissions: {
+    canViewFullResults: boolean;
+    canViewVoteCounts: boolean;
+    canViewResultsBreakdown: boolean;
+    canViewParticipantNames: boolean;
+    canViewVoteWeights: boolean;
+  };
+}

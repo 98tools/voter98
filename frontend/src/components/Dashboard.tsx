@@ -41,8 +41,8 @@ const Dashboard: React.FC = () => {
     if (canEdit) {
       navigate(`/polls/${poll.id}/settings`);
     } else {
-      // TODO: Navigate to poll view/voting page when implemented
-      alert('Poll viewing functionality coming soon!');
+      // Navigate to poll participation for regular users
+      navigate(`/poll/${poll.id}`);
     }
   };
 
@@ -323,18 +323,28 @@ const Dashboard: React.FC = () => {
                           </svg>
                           {(user?.role === 'admin' || poll.managerId === user?.id) ? 'Settings' : 'View'}
                         </button>
-                        {(user?.role === 'admin' || poll.managerId === user?.id) && poll.status === 'active' && (
+                        {/* Results button for admins, managers, and auditors */}
+                        {(user?.role === 'admin' || poll.managerId === user?.id) && (
                           <button 
-                            onClick={() => {
-                              // TODO: Navigate to poll results page when implemented
-                              alert('Poll results functionality coming soon!');
-                            }}
+                            onClick={() => navigate(`/polls/${poll.id}/results`)}
                             className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
                           >
                             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                             Results
+                          </button>
+                        )}
+                        {/* Results button for participants (if poll allows) */}
+                        {user?.role === 'user' && poll.settings?.allowResultsView && (poll.status === 'completed' || poll.status === 'active') && (
+                          <button 
+                            onClick={() => navigate(`/polls/${poll.id}/results`)}
+                            className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            View Results
                           </button>
                         )}
                       </div>

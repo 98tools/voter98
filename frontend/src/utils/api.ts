@@ -66,6 +66,10 @@ export const pollApi = {
     token?: string;
   }) =>
     api.put<{ message: string; participant: any }>(`/polls/${pollId}/participants/${participantId}`, updateData),
+  
+  // Results API
+  getResults: (pollId: string) => 
+    api.get<{ results: any }>(`/polls/${pollId}/results`),
 };
 
 // Public Poll API (no authentication required)
@@ -78,6 +82,8 @@ export const publicPollApi = {
     axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { sessionToken, votes }),
   getVoteStatus: (id: string, sessionToken: string) =>
     axios.get<{ hasVoted: boolean; participant: any }>(`${API_BASE_URL}/poll/${id}/vote-status/${sessionToken}`),
+  getResults: (id: string, sessionToken?: string) =>
+    axios.get<{ results: any }>(`${API_BASE_URL}/poll/${id}/results${sessionToken ? `/${sessionToken}` : ''}`),
 };
 
 export default api;
