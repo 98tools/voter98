@@ -766,70 +766,54 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
   });
 
   useEffect(() => {
-    loadParticipants();
-  }, []);
+    if (poll?.id) {
+      loadParticipants();
+    }
+  }, [poll?.id]);
 
   const loadParticipants = async () => {
-    // TODO: Implement API call to fetch participants
-    // For now, using mock data that represents the different participant types
-    setParticipants([
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        isUser: true,
-        voteWeight: 1.0,
-        status: 'approved',
-        hasVoted: false,
-        token: null
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        isUser: true,
-        voteWeight: 1.5,
-        status: 'approved',
-        hasVoted: true,
-        token: null
-      },
-      {
-        id: '3',
-        name: 'Bob Wilson',
-        email: 'bob.wilson@external.com',
-        isUser: false,
-        voteWeight: 1.0,
-        status: 'approved',
-        hasVoted: false,
-        token: 'tok_abc123def456'
-      }
-    ]);
-    setLoading(false);
+    if (!poll?.id) return;
+    
+    try {
+      const response = await pollApi.getParticipants(poll.id);
+      setParticipants(response.data.participants);
+    } catch (error) {
+      console.error('Failed to load participants:', error);
+      setParticipants([]); // fallback to empty array on error
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Generate token for non-user participants if not provided
-    const token = !newParticipant.isUser && !newParticipant.token 
-      ? `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      : newParticipant.token || null;
-
-    const newPart = {
-      id: Date.now().toString(),
-      ...newParticipant,
-      status: 'approved',
-      hasVoted: false,
-      token
-    };
+    if (!poll?.id) return;
     
-    setParticipants([...participants, newPart]);
-    setNewParticipant({ name: '', email: '', isUser: false, voteWeight: 1.0, token: '' });
-    setShowAddModal(false);
+    try {
+      const response = await pollApi.addParticipant(poll.id, {
+        name: newParticipant.name,
+        email: newParticipant.email,
+        isUser: newParticipant.isUser,
+        voteWeight: newParticipant.voteWeight,
+        token: newParticipant.token || undefined
+      });
+      
+      // Add the new participant to the local state
+      setParticipants([...participants, response.data.participant]);
+      setNewParticipant({ name: '', email: '', isUser: false, voteWeight: 1.0, token: '' });
+      setShowAddModal(false);
+    } catch (error: any) {
+      console.error('Failed to add participant:', error);
+      // You might want to show an error message to the user here
+      alert(error.response?.data?.error || 'Failed to add participant');
+    }
   };
 
-  const handleCsvUpload = () => {
+  const handleCsvUpload = async () => {
     setCsvError('');
+    
+    if (!poll?.id) return;
     
     try {
       const lines = csvData.trim().split('\n');
@@ -861,18 +845,22 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
 
         const isUser = row.is_user === 'true' || row.is_user === '1';
         const voteWeight = parseFloat(row.vote_weight) || 1.0;
-        const token = !isUser ? (row.token || `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`) : null;
+        const token = !isUser ? row.token || undefined : undefined;
 
-        newParticipants.push({
-          id: `csv_${Date.now()}_${i}`,
-          name: row.name,
-          email: row.email,
-          isUser,
-          voteWeight,
-          token,
-          status: 'approved',
-          hasVoted: false
-        });
+        try {
+          const response = await pollApi.addParticipant(poll.id, {
+            name: row.name,
+            email: row.email,
+            isUser,
+            voteWeight,
+            token
+          });
+          
+          newParticipants.push(response.data.participant);
+        } catch (error: any) {
+          setCsvError(`Row ${i + 1}: ${error.response?.data?.error || 'Failed to add participant'}`);
+          return;
+        }
       }
 
       setParticipants([...participants, ...newParticipants]);
@@ -884,21 +872,45 @@ const ParticipantsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) =
     }
   };
 
-  const handleRemoveParticipant = (participantId: string) => {
-    setParticipants(participants.filter(p => p.id !== participantId));
+  const handleRemoveParticipant = async (participantId: string) => {
+    if (!poll?.id) return;
+    
+    try {
+      await pollApi.removeParticipant(poll.id, participantId);
+      setParticipants(participants.filter(p => p.id !== participantId));
+    } catch (error: any) {
+      console.error('Failed to remove participant:', error);
+      alert(error.response?.data?.error || 'Failed to remove participant');
+    }
   };
 
-  const handleUpdateWeight = (participantId: string, newWeight: number) => {
-    setParticipants(participants.map(p => 
-      p.id === participantId ? { ...p, voteWeight: newWeight } : p
-    ));
+  const handleUpdateWeight = async (participantId: string, newWeight: number) => {
+    if (!poll?.id) return;
+    
+    try {
+      await pollApi.updateParticipant(poll.id, participantId, { voteWeight: newWeight });
+      setParticipants(participants.map(p => 
+        p.id === participantId ? { ...p, voteWeight: newWeight } : p
+      ));
+    } catch (error: any) {
+      console.error('Failed to update participant weight:', error);
+      alert(error.response?.data?.error || 'Failed to update participant weight');
+    }
   };
 
-  const handleRegenerateToken = (participantId: string) => {
-    const newToken = `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    setParticipants(participants.map(p => 
-      p.id === participantId ? { ...p, token: newToken } : p
-    ));
+  const handleRegenerateToken = async (participantId: string) => {
+    if (!poll?.id) return;
+    
+    try {
+      const newToken = `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await pollApi.updateParticipant(poll.id, participantId, { token: newToken });
+      setParticipants(participants.map(p => 
+        p.id === participantId ? { ...p, token: newToken } : p
+      ));
+    } catch (error: any) {
+      console.error('Failed to regenerate token:', error);
+      alert(error.response?.data?.error || 'Failed to regenerate token');
+    }
   };
 
   const downloadCsvTemplate = () => {

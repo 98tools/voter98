@@ -17,8 +17,11 @@ seedRoutes.post('/seed', async (c) => {
   const db = getDb(c.env.DB);
   
   try {
-    // Clear existing data first (for development)
+    // Clear existing data first (for development) - order matters for foreign keys
+    await db.run(sql`DELETE FROM poll_votes`);
     await db.run(sql`DELETE FROM poll_participants`);
+    await db.run(sql`DELETE FROM poll_auditors`);
+    await db.run(sql`DELETE FROM poll_editors`);
     await db.run(sql`DELETE FROM polls`);  
     await db.run(sql`DELETE FROM users`);
     

@@ -6,7 +6,7 @@ import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes } 
 import { AppBindings, JWTPayload } from '../types';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware } from '../middleware/auth';
-import { verifyPassword } from '../utils/auth';
+import { verifyPassword, generateRandomToken } from '../utils/auth';
 
 const pollRoutes = new Hono<{ Bindings: AppBindings; Variables: { user?: JWTPayload } }>();
 
@@ -287,6 +287,213 @@ pollRoutes.delete('/:id', adminMiddleware, async (c) => {
   }
 });
 
+// Get participants for a poll (poll manager or admin)
+pollRoutes.get('/:id/participants', async (c) => {
+  const pollId = c.req.param('id');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only poll manager or admin can view participants
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Get all participants for this poll
+    const participants = await db.select().from(pollParticipants)
+      .where(eq(pollParticipants.pollId, pollId))
+      .all();
+
+    return c.json({ participants });
+  } catch (error) {
+    console.error('Get participants error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Add participant to poll (poll manager or admin)
+const addParticipantSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  isUser: z.boolean().optional().default(false),
+  voteWeight: z.number().positive().optional().default(1.0),
+  token: z.string().optional(),
+});
+
+pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema), async (c) => {
+  const pollId = c.req.param('id');
+  const { email, name, isUser, voteWeight, token } = c.req.valid('json');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only poll manager or admin can add participants
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Check if participant already exists for this poll
+    const existingParticipant = await db.select()
+      .from(pollParticipants)
+      .where(and(eq(pollParticipants.pollId, pollId), eq(pollParticipants.email, email)))
+      .get();
+    
+    if (existingParticipant) {
+      return c.json({ error: 'Participant already exists for this poll' }, 400);
+    }
+
+    // For user participants, check if user exists
+    let userId = null;
+    if (isUser) {
+      const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+      if (!existingUser) {
+        return c.json({ error: 'User with this email does not exist' }, 400);
+      }
+      userId = existingUser.id;
+    }
+
+    // Generate token for non-user participants
+    const participantToken = !isUser ? (token || generateRandomToken()) : null;
+
+    // Create participant with all required fields
+    const participant = await db.insert(pollParticipants)
+      .values({
+        pollId,
+        userId,
+        email,
+        name,
+        isUser,
+        token: participantToken,
+        tokenUsed: false,
+        voteWeight,
+        status: 'approved', // Auto-approve for manager-created participants
+        hasVoted: false,
+      })
+      .returning()
+      .get();
+
+    return c.json({
+      message: 'Participant added successfully',
+      participant: {
+        id: participant.id,
+        email: participant.email,
+        name: participant.name,
+        isUser: participant.isUser,
+        token: participant.token,
+        voteWeight: participant.voteWeight,
+        status: participant.status,
+        hasVoted: participant.hasVoted,
+      },
+    });
+  } catch (error) {
+    console.error('Add participant error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Remove participant from poll (poll manager or admin)
+pollRoutes.delete('/:id/participants/:participantId', async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only poll manager or admin can remove participants
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Remove participant
+    const deletedParticipant = await db.delete(pollParticipants)
+      .where(and(
+        eq(pollParticipants.id, participantId),
+        eq(pollParticipants.pollId, pollId)
+      ))
+      .returning()
+      .get();
+
+    if (!deletedParticipant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    return c.json({ message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Remove participant error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Update participant (poll manager or admin)
+const updateParticipantSchema = z.object({
+  voteWeight: z.number().positive().optional(),
+  token: z.string().optional(),
+});
+
+pollRoutes.put('/:id/participants/:participantId', zValidator('json', updateParticipantSchema), async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const updateData = c.req.valid('json');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only poll manager or admin can update participants
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Update participant
+    const updatedParticipant = await db.update(pollParticipants)
+      .set({
+        ...updateData,
+        updatedAt: Date.now(),
+      })
+      .where(and(
+        eq(pollParticipants.id, participantId),
+        eq(pollParticipants.pollId, pollId)
+      ))
+      .returning()
+      .get();
+
+    if (!updatedParticipant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    return c.json({ 
+      message: 'Participant updated successfully',
+      participant: updatedParticipant
+    });
+  } catch (error) {
+    console.error('Update participant error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // Public poll access endpoint - no auth middleware
 const publicPollRoutes = new Hono<{ Bindings: AppBindings }>();
 
@@ -364,23 +571,22 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
 
     if (token) {
       // Token-based access (non-user participants)
+      console.log(`Looking for participant with token: ${token} in poll: ${pollId}`);
       participant = await db.select().from(pollParticipants)
         .where(and(
           eq(pollParticipants.pollId, pollId),
           eq(pollParticipants.token, token),
-          eq(pollParticipants.tokenUsed, false),
           eq(pollParticipants.status, 'approved')
         ))
         .get();
 
       if (!participant) {
-        return c.json({ error: 'Invalid or expired token' }, 401);
+        console.log(`No participant found with token: ${token}`);
+        return c.json({ error: 'Invalid token or not authorized for this poll' }, 401);
       }
 
-      // Mark token as used
-      await db.update(pollParticipants)
-        .set({ tokenUsed: true, updatedAt: Date.now() })
-        .where(eq(pollParticipants.id, participant.id));
+      console.log(`Found participant: ${participant.name}, hasVoted: ${participant.hasVoted}`);
+      // Don't mark token as used yet - only mark it when vote is submitted
 
     } else if (email && password) {
       // User login-based access
@@ -413,7 +619,16 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
     }
 
     if (participant.hasVoted) {
-      return c.json({ error: 'You have already voted in this poll' }, 403);
+      return c.json({ 
+        success: true,
+        hasVoted: true,
+        participant: {
+          id: participant.id,
+          name: participant.name,
+          email: participant.email,
+          voteWeight: participant.voteWeight
+        }
+      });
     }
 
     // Generate a temporary session token for voting
@@ -520,8 +735,14 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       await db.insert(pollVotes).values(vote);
     }
     
+    // Mark participant as voted and token as used (if token-based)
+    const updateData: any = { hasVoted: true, updatedAt: Date.now() };
+    if (!participant.isUser && participant.token) {
+      updateData.tokenUsed = true;
+    }
+    
     await db.update(pollParticipants)
-      .set({ hasVoted: true, updatedAt: Date.now() })
+      .set(updateData)
       .where(eq(pollParticipants.id, participant.id));
 
     // Clean up session

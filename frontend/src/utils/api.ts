@@ -47,6 +47,25 @@ export const pollApi = {
   updatePoll: (id: string, pollData: Partial<Poll>) => 
     api.put<{ message: string; poll: Poll }>(`/polls/${id}`, pollData),
   deletePoll: (id: string) => api.delete<{ message: string }>(`/polls/${id}`),
+  
+  // Participant management
+  getParticipants: (pollId: string) => 
+    api.get<{ participants: any[] }>(`/polls/${pollId}/participants`),
+  addParticipant: (pollId: string, participantData: {
+    email: string;
+    name: string;
+    isUser?: boolean;
+    voteWeight?: number;
+    token?: string;
+  }) => 
+    api.post<{ message: string; participant: any }>(`/polls/${pollId}/participants`, participantData),
+  removeParticipant: (pollId: string, participantId: string) =>
+    api.delete<{ message: string }>(`/polls/${pollId}/participants/${participantId}`),
+  updateParticipant: (pollId: string, participantId: string, updateData: {
+    voteWeight?: number;
+    token?: string;
+  }) =>
+    api.put<{ message: string; participant: any }>(`/polls/${pollId}/participants/${participantId}`, updateData),
 };
 
 // Public Poll API (no authentication required)
