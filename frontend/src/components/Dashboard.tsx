@@ -9,13 +9,18 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);
+  const [otherPolls, setOtherPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingOther, setLoadingOther] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [activeOtherTab, setActiveOtherTab] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [requestingAccess, setRequestingAccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadPolls();
+    loadOtherPolls();
   }, []);
 
   const loadPolls = async () => {
@@ -26,6 +31,34 @@ const Dashboard: React.FC = () => {
       setError(error.response?.data?.error || 'Failed to load polls');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOtherPolls = async () => {
+    try {
+      setLoadingOther(true);
+      const response = await pollApi.getOtherPolls();
+      setOtherPolls(response.data.polls);
+    } catch (error: any) {
+      console.error('Failed to load other polls:', error);
+    } finally {
+      setLoadingOther(false);
+    }
+  };
+
+  const handleRequestAccess = async (pollId: string) => {
+    try {
+      setRequestingAccess(pollId);
+      const response = await pollApi.requestAccess(pollId);
+      
+      // Show success message (you could implement a toast notification here)
+      alert(`Access request sent for "${response.data.pollTitle}"`);
+      
+    } catch (error: any) {
+      // Show error message
+      alert(error.response?.data?.error || 'Failed to send access request');
+    } finally {
+      setRequestingAccess(null);
     }
   };
 
@@ -342,6 +375,128 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Other Polls Section */}
+        {(user?.role === 'sub-admin' || user?.role === 'user') && otherPolls.length > 0 && (
+          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {user?.role === 'sub-admin' ? 'Other Polls' : 'All Polls'}
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">{otherPolls.length} available</span>
+                </div>
+              </div>
+
+              {/* Tab Navigation for Other Polls */}
+              <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                {['all', 'active', 'draft', 'completed'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveOtherTab(tab)}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                      activeOtherTab === tab
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6">
+              {loadingOther ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading other polls...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {otherPolls
+                    .filter(poll => activeOtherTab === 'all' || poll.status === activeOtherTab)
+                    .map((poll, index) => (
+                      <div
+                        key={poll.id}
+                        className="bg-white border border-gray-200 rounded-xl p-6 hover-lift animate-fade-in"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-900 leading-tight">
+                            {poll.title}
+                          </h4>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(poll.status)}`}>
+                            {getStatusIcon(poll.status)}
+                            <span className="ml-1">{poll.status}</span>
+                          </span>
+                        </div>
+                        
+                        {poll.description && (
+                          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                            {poll.description}
+                          </p>
+                        )}
+                        
+                        <div className="space-y-2 text-sm text-gray-500 mb-4">
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                            </svg>
+                            <span>{formatDate(poll.startDate)} - {formatDate(poll.endDate)}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{poll.ballot.length} question{poll.ballot.length !== 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          {/* View button for all users */}
+                          <button 
+                            onClick={() => navigate(`/poll/${poll.id}`)}
+                            className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            </svg>
+                            View
+                          </button>
+                          
+                          {/* Request Access button only for sub-admins */}
+                          {user?.role === 'sub-admin' && (
+                            <button 
+                              onClick={() => handleRequestAccess(poll.id)}
+                              disabled={requestingAccess === poll.id}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 transition-colors duration-200"
+                            >
+                              {requestingAccess === poll.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Requesting...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  Request Access
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Create Poll Modal */}

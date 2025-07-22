@@ -41,12 +41,15 @@ export const userApi = {
 // Poll API
 export const pollApi = {
   getPolls: () => api.get<{ polls: Poll[] }>('/polls'),
+  getOtherPolls: () => api.get<{ polls: Poll[] }>('/polls/other'),
   getPoll: (id: string) => api.get<{ poll: Poll }>(`/polls/${id}`),
   createPoll: (pollData: { title: string; managerId: string; description?: string }) => 
     api.post<{ message: string; poll: Poll }>('/polls', pollData),
   updatePoll: (id: string, pollData: Partial<Poll>) => 
     api.put<{ message: string; poll: Poll }>(`/polls/${id}`, pollData),
   deletePoll: (id: string) => api.delete<{ message: string }>(`/polls/${id}`),
+  requestAccess: (id: string) => 
+    api.post<{ message: string; pollTitle: string; requestedBy: string }>(`/polls/${id}/request-access`),
   
   // Participant management
   getParticipants: (pollId: string) => 
