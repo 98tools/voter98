@@ -1078,8 +1078,8 @@ async function calculatePollResults(db: any, poll: any, accessLevel: string, par
       canViewFullResults: ['admin', 'manager', 'auditor'].includes(accessLevel),
       canViewVoteCounts: showVoteCounts,
       canViewResultsBreakdown: showResultsBreakdown,
-      canViewParticipantNames: settings.showParticipantNames && accessLevel === 'participant',
-      canViewVoteWeights: settings.showVoteWeights && accessLevel === 'participant',
+      canViewParticipantNames: ['admin', 'manager', 'auditor'].includes(accessLevel) || (accessLevel === 'participant' && settings.showParticipantNames),
+      canViewVoteWeights: ['admin', 'manager', 'auditor'].includes(accessLevel) || (accessLevel === 'participant' && settings.showVoteWeights),
     },
   };
 }

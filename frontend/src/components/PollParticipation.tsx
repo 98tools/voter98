@@ -440,6 +440,73 @@ const PollParticipation: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Participants List */}
+                  {results.participants.length > 0 && results.permissions.canViewParticipantNames && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-6">Participants</h3>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Participant
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                              </th>
+                              {results.poll.voteWeightEnabled && results.permissions.canViewVoteWeights && (
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Vote Weight
+                                </th>
+                              )}
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Voted At
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {results.participants.map((participant, index) => (
+                              <tr key={participant.id || index}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900">{participant.name}</div>
+                                    <div className="text-sm text-gray-500">{participant.email}</div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    participant.isUser 
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-orange-100 text-orange-800'
+                                  }`}>
+                                    {participant.isUser ? 'Registered User' : 'External'}
+                                  </span>
+                                </td>
+                                {results.poll.voteWeightEnabled && results.permissions.canViewVoteWeights && typeof participant.voteWeight !== 'undefined' && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {participant.voteWeight}
+                                  </td>
+                                )}
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    Voted
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {participant.votedAt ? formatDate(participant.votedAt) : 'N/A'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Access Notice */}
                   {!results.permissions.canViewResultsBreakdown && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
