@@ -715,6 +715,26 @@ const SettingsTab: React.FC<{ poll: Poll; onSave: (updates: Partial<Poll>) => vo
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="allowVoteChanges"
+                    type="checkbox"
+                    checked={settings.allowVoteChanges || false}
+                    onChange={(e) => handleSettingChange('allowVoteChanges', e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="allowVoteChanges" className="font-medium text-gray-700">
+                    Allow participants to change their votes
+                  </label>
+                  <p className="text-gray-500">
+                    When enabled, participants can revote and change their selections while the poll is active. Previous votes will be replaced.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2413,18 +2433,12 @@ const ResultsTab: React.FC<{ poll: Poll }> = ({ poll }) => {
         </svg>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Poll Results</h3>
         <p className="text-gray-500 mb-6">
-          For detailed poll results and analytics, visit the dedicated results page.
+          Poll results are now integrated into the poll participation page. Participants can view results directly after voting.
         </p>
         <div className="space-y-3">
-          <a
-            href={`/polls/${poll.id}/results`}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-          >
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            View Full Results
-          </a>
+          <p className="text-sm text-gray-600">
+            To view poll results as an administrator, access the full results through your poll management interface or visit the poll participation page.
+          </p>
           
           {poll.status === 'active' && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">

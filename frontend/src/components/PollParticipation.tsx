@@ -28,6 +28,10 @@ const PollParticipation: React.FC = () => {
   const [votes, setVotes] = useState<Record<string, string[]>>({});
   const [hasVoted, setHasVoted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [allowVoteChanges, setAllowVoteChanges] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [results, setResults] = useState<any>(null);
+  const [loadingResults, setLoadingResults] = useState(false);
 
   useEffect(() => {
     if (pollId) {
@@ -65,6 +69,9 @@ const PollParticipation: React.FC = () => {
         // User has already voted
         setParticipant((response.data as any).participant);
         setHasVoted(true);
+        setAllowVoteChanges((response.data as any).allowVoteChanges || false);
+        setIsAuthenticated(true);
+        setSessionToken(response.data.sessionToken);
       } else {
         // User can vote
         setIsAuthenticated(true);
@@ -122,11 +129,33 @@ const PollParticipation: React.FC = () => {
     try {
       await publicPollApi.submitVote(pollId, sessionToken, votes);
       setHasVoted(true);
+      setShowResults(false); // Hide results after voting
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to submit vote');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const loadResults = async () => {
+    if (!pollId || !sessionToken) return;
+
+    setLoadingResults(true);
+    try {
+      const response = await publicPollApi.getResults(pollId, sessionToken);
+      setResults(response.data.results);
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Failed to load results');
+    } finally {
+      setLoadingResults(false);
+    }
+  };
+
+  const handleChangeVote = () => {
+    setHasVoted(false);
+    setVotes({});
+    setShowResults(false);
+    setError('');
   };
 
   const isVoteValid = () => {
@@ -190,30 +219,120 @@ const PollParticipation: React.FC = () => {
     );
   }
 
-  if (hasVoted) {
+  if (hasVoted && isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <svg className="mx-auto h-16 w-16 text-green-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Vote Submitted Successfully!</h3>
-          <p className="text-gray-500 mb-6">Thank you for participating in "{poll?.title}". Your vote has been recorded.</p>
-          {poll?.settings.allowResultsView && (
-            <button
-              onClick={() => navigate(`/poll/${pollId}/results/${sessionToken}`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 mr-3"
-            >
-              View Results
-            </button>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{poll?.title}</h1>
+              {poll?.description && (
+                <p className="text-gray-600 mb-4">{poll.description}</p>
+              )}
+              <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(poll?.status || '')}`}>
+                  {poll?.status.toUpperCase()}
+                </span>
+                <span>Ends: {poll && formatDate(poll.endDate)}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          {/* Vote Status Banner */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center">
+              <svg className="w-8 h-8 text-green-400 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-green-900">Vote Submitted Successfully!</h3>
+                <p className="text-green-700 mt-1">Thank you for participating in "{poll?.title}". Your vote has been recorded.</p>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              {allowVoteChanges && (
+                <button
+                  onClick={handleChangeVote}
+                  className="inline-flex items-center px-4 py-2 border border-orange-300 text-sm font-medium rounded-lg text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors duration-200"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  Change Vote
+                </button>
+              )}
+              
+              {poll?.settings.allowResultsView && (
+                <button
+                  onClick={() => {
+                    setShowResults(!showResults);
+                    if (!showResults && !results) {
+                      loadResults();
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  {showResults ? 'Hide Results' : 'View Results'}
+                </button>
+              )}
+              
+              <button
+                onClick={() => navigate('/')}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+                Go Home
+              </button>
+            </div>
+          </div>
+
+          {/* Results Section */}
+          {showResults && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Poll Results</h2>
+                <button
+                  onClick={() => setShowResults(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              
+              {loadingResults ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading results...</p>
+                </div>
+              ) : results ? (
+                <div className="space-y-6">
+                  {/* Results content - will be implemented similar to PollResults component */}
+                  <div className="text-center py-8 text-gray-600">
+                    <p>Results will be displayed here once implemented</p>
+                    <p className="text-sm mt-2">Participation Rate: {results.statistics?.participationRate}%</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-600">
+                  <p>Click "View Results" to load the poll results</p>
+                </div>
+              )}
+            </div>
           )}
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
-          >
-            Go Home
-          </button>
-        </div>
+        </main>
       </div>
     );
   }

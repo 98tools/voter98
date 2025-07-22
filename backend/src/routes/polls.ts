@@ -40,6 +40,7 @@ const pollSettingsSchema = z.object({
   showResultsBeforeEnd: z.boolean().optional().default(false),
   allowResultsView: z.boolean().optional().default(true),
   voteWeightEnabled: z.boolean().optional().default(false),
+  allowVoteChanges: z.boolean().optional().default(false),
 });
 
 // Create poll schema
@@ -619,9 +620,23 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
     }
 
     if (participant.hasVoted) {
+      const pollSettings = poll.settings as any;
+      
+      // Generate session token even for voted users (for results and potential re-voting)
+      const sessionToken = crypto.randomUUID();
+      
+      // Store session in KV for 1 hour
+      await c.env.VOTER_KV.put(`vote_session:${sessionToken}`, JSON.stringify({
+        pollId: pollId,
+        participantId: participant.id,
+        expires: Date.now() + (60 * 60 * 1000) // 1 hour
+      }), { expirationTtl: 3600 });
+      
       return c.json({ 
         success: true,
         hasVoted: true,
+        allowVoteChanges: pollSettings.allowVoteChanges || false,
+        sessionToken,
         participant: {
           id: participant.id,
           name: participant.name,
@@ -693,8 +708,9 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       return c.json({ error: 'Participant not found' }, 404);
     }
 
-    if (participant.hasVoted) {
-      return c.json({ error: 'Vote already submitted' }, 403);
+    const pollSettings = poll.settings as any;
+    if (participant.hasVoted && !pollSettings.allowVoteChanges) {
+      return c.json({ error: 'Vote already submitted and changes are not allowed' }, 403);
     }
 
     // Validate votes against ballot
@@ -716,6 +732,15 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       if (invalidSelections.length > 0) {
         return c.json({ error: `Invalid option selections for "${question.title}"` }, 400);
       }
+    }
+
+    // If re-voting, delete existing votes first
+    if (participant.hasVoted && pollSettings.allowVoteChanges) {
+      await db.delete(pollVotes)
+        .where(and(
+          eq(pollVotes.pollId, pollId),
+          eq(pollVotes.participantId, participant.id)
+        ));
     }
 
     // Store votes

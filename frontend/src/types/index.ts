@@ -33,6 +33,7 @@ export interface PollSettings {
   showResultsBeforeEnd?: boolean;
   allowResultsView?: boolean;
   voteWeightEnabled?: boolean;
+  allowVoteChanges?: boolean;
 }
 
 export interface Poll {
