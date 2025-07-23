@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Poll } from '../../types';
+import { pollApi } from '../../utils/api';
 
 interface AuditorsTabProps {
   poll: Poll;
@@ -7,153 +8,132 @@ interface AuditorsTabProps {
   saving: boolean;
 }
 
-const AuditorsTab: React.FC<AuditorsTabProps> = () => {
+const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
   const [auditors, setAuditors] = useState<any[]>([]);
   const [editors, setEditors] = useState<any[]>([]);
+  const [availableSubAdmins, setAvailableSubAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSubAdmins, setLoadingSubAdmins] = useState(false);
   const [showAddAuditorModal, setShowAddAuditorModal] = useState(false);
   const [showAddEditorModal, setShowAddEditorModal] = useState(false);
-  const [newAuditor, setNewAuditor] = useState({
-    name: '',
-    email: '',
-    permissions: {
-      viewResults: true,
-      viewParticipants: true,
-      viewAuditLog: true,
-      downloadResults: false
-    }
-  });
-  const [newEditor, setNewEditor] = useState({
-    name: '',
-    email: '',
-    permissions: {
-      editQuestions: true,
-      editSettings: true,
-      managePoll: false,
-      deleteQuestions: false
-    }
-  });
+  const [addingAuditor, setAddingAuditor] = useState(false);
+  const [addingEditor, setAddingEditor] = useState(false);
+  const [selectedAuditorId, setSelectedAuditorId] = useState('');
+  const [selectedEditorId, setSelectedEditorId] = useState('');
 
   useEffect(() => {
     loadAuditorsAndEditors();
-  }, []);
+  }, [poll.id]);
 
   const loadAuditorsAndEditors = async () => {
-    // TODO: Implement API call to fetch auditors and editors
-    // For now, using mock data
-    setAuditors([
-      {
-        id: '1',
-        name: 'Alice Johnson',
-        email: 'alice@company.com',
-        role: 'auditor',
-        status: 'active',
-        permissions: {
-          viewResults: true,
-          viewParticipants: true,
-          viewAuditLog: true,
-          downloadResults: true
-        },
-        addedAt: '2024-01-15',
-        lastAccess: '2024-01-20'
-      }
-    ]);
-    
-    setEditors([
-      {
-        id: '1',
-        name: 'Bob Chen',
-        email: 'bob@company.com',
-        role: 'editor',
-        status: 'active',
-        permissions: {
-          editQuestions: true,
-          editSettings: true,
-          managePoll: false,
-          deleteQuestions: false
-        },
-        addedAt: '2024-01-16',
-        lastAccess: '2024-01-19'
-      }
-    ]);
-    
-    setLoading(false);
+    try {
+      setLoading(true);
+      const response = await pollApi.getAuditorsAndEditors(poll.id);
+      setAuditors(response.data.auditors);
+      setEditors(response.data.editors);
+    } catch (error) {
+      console.error('Error loading auditors and editors:', error);
+      // Keep empty arrays on error
+      setAuditors([]);
+      setEditors([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAvailableSubAdmins = async () => {
+    try {
+      setLoadingSubAdmins(true);
+      const response = await pollApi.getAvailableSubAdmins(poll.id);
+      setAvailableSubAdmins(response.data.availableSubAdmins);
+    } catch (error) {
+      console.error('Error loading available sub-admins:', error);
+      setAvailableSubAdmins([]);
+    } finally {
+      setLoadingSubAdmins(false);
+    }
   };
 
   const handleAddAuditor = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const auditor = {
-      id: Date.now().toString(),
-      ...newAuditor,
-      role: 'auditor',
-      status: 'active',
-      addedAt: new Date().toISOString().split('T')[0],
-      lastAccess: null
-    };
+    if (!selectedAuditorId) {
+      alert('Please select a sub-admin to add as auditor');
+      return;
+    }
     
-    setAuditors([...auditors, auditor]);
-    setNewAuditor({
-      name: '',
-      email: '',
-      permissions: {
-        viewResults: true,
-        viewParticipants: true,
-        viewAuditLog: true,
-        downloadResults: false
-      }
-    });
-    setShowAddAuditorModal(false);
+    try {
+      setAddingAuditor(true);
+      const response = await pollApi.addAuditor(poll.id, {
+        userId: selectedAuditorId
+      });
+      
+      // Add the new auditor to the list
+      setAuditors([...auditors, response.data.auditor]);
+      
+      // Reset form
+      setSelectedAuditorId('');
+      setShowAddAuditorModal(false);
+      
+      // Reload available sub-admins
+      loadAvailableSubAdmins();
+    } catch (error: any) {
+      console.error('Error adding auditor:', error);
+      alert(error.response?.data?.error || 'Failed to add auditor');
+    } finally {
+      setAddingAuditor(false);
+    }
   };
 
   const handleAddEditor = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const editor = {
-      id: Date.now().toString(),
-      ...newEditor,
-      role: 'editor',
-      status: 'active',
-      addedAt: new Date().toISOString().split('T')[0],
-      lastAccess: null
-    };
+    if (!selectedEditorId) {
+      alert('Please select a sub-admin to add as editor');
+      return;
+    }
     
-    setEditors([...editors, editor]);
-    setNewEditor({
-      name: '',
-      email: '',
-      permissions: {
-        editQuestions: true,
-        editSettings: true,
-        managePoll: false,
-        deleteQuestions: false
-      }
-    });
-    setShowAddEditorModal(false);
+    try {
+      setAddingEditor(true);
+      const response = await pollApi.addEditor(poll.id, {
+        userId: selectedEditorId
+      });
+      
+      // Add the new editor to the list
+      setEditors([...editors, response.data.editor]);
+      
+      // Reset form
+      setSelectedEditorId('');
+      setShowAddEditorModal(false);
+      
+      // Reload available sub-admins
+      loadAvailableSubAdmins();
+    } catch (error: any) {
+      console.error('Error adding editor:', error);
+      alert(error.response?.data?.error || 'Failed to add editor');
+    } finally {
+      setAddingEditor(false);
+    }
   };
 
-  const handleRemoveAuditor = (auditorId: string) => {
-    setAuditors(auditors.filter(a => a.id !== auditorId));
+  const handleRemoveAuditor = async (auditorId: string) => {
+    try {
+      await pollApi.removeAuditor(poll.id, auditorId);
+      setAuditors(auditors.filter(a => a.id !== auditorId));
+    } catch (error: any) {
+      console.error('Error removing auditor:', error);
+      alert(error.response?.data?.error || 'Failed to remove auditor');
+    }
   };
 
-  const handleRemoveEditor = (editorId: string) => {
-    setEditors(editors.filter(e => e.id !== editorId));
-  };
-
-  const handleUpdateAuditorPermissions = (auditorId: string, permission: string, value: boolean) => {
-    setAuditors(auditors.map(a => 
-      a.id === auditorId 
-        ? { ...a, permissions: { ...a.permissions, [permission]: value } }
-        : a
-    ));
-  };
-
-  const handleUpdateEditorPermissions = (editorId: string, permission: string, value: boolean) => {
-    setEditors(editors.map(e => 
-      e.id === editorId 
-        ? { ...e, permissions: { ...e.permissions, [permission]: value } }
-        : e
-    ));
+  const handleRemoveEditor = async (editorId: string) => {
+    try {
+      await pollApi.removeEditor(poll.id, editorId);
+      setEditors(editors.filter(e => e.id !== editorId));
+    } catch (error: any) {
+      console.error('Error removing editor:', error);
+      alert(error.response?.data?.error || 'Failed to remove editor');
+    }
   };
 
   if (loading) {
@@ -174,7 +154,10 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
             <p className="text-sm text-gray-500">Users who can monitor and audit poll activity</p>
           </div>
           <button
-            onClick={() => setShowAddAuditorModal(true)}
+            onClick={() => {
+              setShowAddAuditorModal(true);
+              loadAvailableSubAdmins();
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
           >
             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -233,8 +216,8 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
                                 <input
                                   type="checkbox"
                                   checked={value as boolean}
-                                  onChange={(e) => handleUpdateAuditorPermissions(auditor.id, key, e.target.checked)}
-                                  className="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded mr-2"
+                                  disabled={true}
+                                  className="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded mr-2 opacity-50 cursor-not-allowed"
                                 />
                                 <span className="text-gray-700">
                                   {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
@@ -281,7 +264,10 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
             <p className="text-sm text-gray-500">Users who can modify poll content and settings</p>
           </div>
           <button
-            onClick={() => setShowAddEditorModal(true)}
+            onClick={() => {
+              setShowAddEditorModal(true);
+              loadAvailableSubAdmins();
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
           >
             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -339,8 +325,8 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
                                 <input
                                   type="checkbox"
                                   checked={value as boolean}
-                                  onChange={(e) => handleUpdateEditorPermissions(editor.id, key, e.target.checked)}
-                                  className="h-3 w-3 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mr-2"
+                                  disabled={true}
+                                  className="h-3 w-3 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mr-2 opacity-50 cursor-not-allowed"
                                 />
                                 <span className="text-gray-700">
                                   {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
@@ -399,52 +385,41 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
               <form onSubmit={handleAddAuditor} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    Select Sub-Admin
                   </label>
-                  <input
-                    type="text"
-                    value={newAuditor.name}
-                    onChange={(e) => setNewAuditor({ ...newAuditor, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  />
+                  {loadingSubAdmins ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-center">
+                      Loading sub-admins...
+                    </div>
+                  ) : availableSubAdmins.length === 0 ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                      No available sub-admins
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedAuditorId}
+                      onChange={(e) => setSelectedAuditorId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      required
+                    >
+                      <option value="">Choose a sub-admin...</option>
+                      {availableSubAdmins.map((subAdmin) => (
+                        <option key={subAdmin.id} value={subAdmin.id}>
+                          {subAdmin.name} ({subAdmin.email})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={newAuditor.email}
-                    onChange={(e) => setNewAuditor({ ...newAuditor, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Permissions
-                  </label>
-                  <div className="space-y-2">
-                    {Object.entries(newAuditor.permissions).map(([key, value]) => (
-                      <label key={key} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={(e) => setNewAuditor({
-                            ...newAuditor,
-                            permissions: { ...newAuditor.permissions, [key]: e.target.checked }
-                          })}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <strong>Auditor Permissions:</strong>
+                  <ul className="mt-1 space-y-1 list-disc list-inside">
+                    <li>View Results</li>
+                    <li>View Participants</li>
+                    <li>View Audit Log</li>
+                    <li>Download Results</li>
+                  </ul>
                 </div>
 
                 <div className="flex space-x-3 pt-4">
@@ -457,9 +432,10 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    disabled={addingAuditor}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add Auditor
+                    {addingAuditor ? 'Adding...' : 'Add Auditor'}
                   </button>
                 </div>
               </form>
@@ -488,52 +464,41 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
               <form onSubmit={handleAddEditor} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    Select Sub-Admin
                   </label>
-                  <input
-                    type="text"
-                    value={newEditor.name}
-                    onChange={(e) => setNewEditor({ ...newEditor, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  />
+                  {loadingSubAdmins ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-center">
+                      Loading sub-admins...
+                    </div>
+                  ) : availableSubAdmins.length === 0 ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                      No available sub-admins
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedEditorId}
+                      onChange={(e) => setSelectedEditorId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required
+                    >
+                      <option value="">Choose a sub-admin...</option>
+                      {availableSubAdmins.map((subAdmin) => (
+                        <option key={subAdmin.id} value={subAdmin.id}>
+                          {subAdmin.name} ({subAdmin.email})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={newEditor.email}
-                    onChange={(e) => setNewEditor({ ...newEditor, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Permissions
-                  </label>
-                  <div className="space-y-2">
-                    {Object.entries(newEditor.permissions).map(([key, value]) => (
-                      <label key={key} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={(e) => setNewEditor({
-                            ...newEditor,
-                            permissions: { ...newEditor.permissions, [key]: e.target.checked }
-                          })}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <strong>Editor Permissions:</strong>
+                  <ul className="mt-1 space-y-1 list-disc list-inside">
+                    <li>Edit Questions</li>
+                    <li>Edit Settings</li>
+                    <li>Manage Poll (limited)</li>
+                    <li>Delete Questions (limited)</li>
+                  </ul>
                 </div>
 
                 <div className="flex space-x-3 pt-4">
@@ -546,9 +511,10 @@ const AuditorsTab: React.FC<AuditorsTabProps> = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                    disabled={addingEditor}
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add Editor
+                    {addingEditor ? 'Adding...' : 'Add Editor'}
                   </button>
                 </div>
               </form>

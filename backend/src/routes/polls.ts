@@ -1133,5 +1133,359 @@ async function calculatePollResults(db: any, poll: any, accessLevel: string, par
   };
 }
 
+// Get available sub-admins for auditor/editor assignment (manager, admin only)
+pollRoutes.get('/:id/available-subadmins', async (c) => {
+  const pollId = c.req.param('id');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only admin or poll manager can view/manage
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Get all sub-admins
+    const allSubAdmins = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+    }).from(users).where(eq(users.role, 'sub-admin'));
+
+    // Get currently assigned auditors and editors for this poll
+    const assignedAuditors = await db.select({ userId: pollAuditors.userId })
+      .from(pollAuditors)
+      .where(eq(pollAuditors.pollId, pollId));
+
+    const assignedEditors = await db.select({ userId: pollEditors.userId })
+      .from(pollEditors)
+      .where(eq(pollEditors.pollId, pollId));
+
+    // Create set of assigned user IDs
+    const assignedUserIds = new Set([
+      ...assignedAuditors.map(a => a.userId),
+      ...assignedEditors.map(e => e.userId)
+    ]);
+
+    // Filter out already assigned sub-admins
+    const availableSubAdmins = allSubAdmins.filter(subAdmin => 
+      !assignedUserIds.has(subAdmin.id)
+    );
+
+    return c.json({
+      availableSubAdmins
+    });
+  } catch (error) {
+    console.error('Error fetching available sub-admins:', error);
+    return c.json({ error: 'Failed to fetch available sub-admins' }, 500);
+  }
+});
+
+// Get poll auditors and editors (manager, admin only)
+pollRoutes.get('/:id/auditors-editors', async (c) => {
+  const pollId = c.req.param('id');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only admin or poll manager can view/manage
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Get auditors with user details
+    const auditors = await db.select({
+      id: pollAuditors.id,
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      status: users.role, // Using role as status for now
+      addedAt: pollAuditors.createdAt,
+      lastAccess: users.updatedAt,
+    }).from(pollAuditors)
+      .innerJoin(users, eq(pollAuditors.userId, users.id))
+      .where(eq(pollAuditors.pollId, pollId));
+
+    // Get editors with user details
+    const editors = await db.select({
+      id: pollEditors.id,
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      status: users.role, // Using role as status for now
+      addedAt: pollEditors.createdAt,
+      lastAccess: users.updatedAt,
+    }).from(pollEditors)
+      .innerJoin(users, eq(pollEditors.userId, users.id))
+      .where(eq(pollEditors.pollId, pollId));
+
+    return c.json({
+      auditors: auditors.map(a => ({
+        id: a.id,
+        userId: a.userId,
+        name: a.name,
+        email: a.email,
+        role: 'auditor',
+        status: 'active',
+        permissions: {
+          viewResults: true,
+          viewParticipants: true,
+          viewAuditLog: true,
+          downloadResults: true
+        },
+        addedAt: new Date(a.addedAt).toISOString().split('T')[0],
+        lastAccess: new Date(a.lastAccess).toISOString().split('T')[0]
+      })),
+      editors: editors.map(e => ({
+        id: e.id,
+        userId: e.userId,
+        name: e.name,
+        email: e.email,
+        role: 'editor',
+        status: 'active',
+        permissions: {
+          editQuestions: true,
+          editSettings: true,
+          managePoll: false,
+          deleteQuestions: false
+        },
+        addedAt: new Date(e.addedAt).toISOString().split('T')[0],
+        lastAccess: new Date(e.lastAccess).toISOString().split('T')[0]
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching auditors and editors:', error);
+    return c.json({ error: 'Failed to fetch auditors and editors' }, 500);
+  }
+});
+
+// Add auditor to poll (manager, admin only)
+pollRoutes.post('/:id/auditors', zValidator('json', z.object({
+  userId: z.string().min(1),
+})), async (c) => {
+  const pollId = c.req.param('id');
+  const { userId } = c.req.valid('json');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Find target user and verify they are a sub-admin
+    const targetUser = await db.select().from(users).where(eq(users.id, userId)).get();
+    if (!targetUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    if (targetUser.role !== 'sub-admin') {
+      return c.json({ error: 'Only sub-admins can be assigned as auditors' }, 400);
+    }
+
+    // Check if already an auditor
+    const existingAuditor = await db.select().from(pollAuditors)
+      .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, targetUser.id)))
+      .get();
+
+    if (existingAuditor) {
+      return c.json({ error: 'User is already an auditor for this poll' }, 400);
+    }
+
+    // Add as auditor
+    const newAuditor = await db.insert(pollAuditors).values({
+      pollId,
+      userId: targetUser.id,
+    }).returning().get();
+
+    return c.json({
+      message: 'Auditor added successfully',
+      auditor: {
+        id: newAuditor.id,
+        userId: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: 'auditor',
+        status: 'active',
+        permissions: {
+          viewResults: true,
+          viewParticipants: true,
+          viewAuditLog: true,
+          downloadResults: true
+        },
+        addedAt: new Date(newAuditor.createdAt).toISOString().split('T')[0],
+        lastAccess: null
+      }
+    });
+  } catch (error) {
+    console.error('Error adding auditor:', error);
+    return c.json({ error: 'Failed to add auditor' }, 500);
+  }
+});
+
+// Add editor to poll (manager, admin only)
+pollRoutes.post('/:id/editors', zValidator('json', z.object({
+  userId: z.string().min(1),
+})), async (c) => {
+  const pollId = c.req.param('id');
+  const { userId } = c.req.valid('json');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Find target user and verify they are a sub-admin
+    const targetUser = await db.select().from(users).where(eq(users.id, userId)).get();
+    if (!targetUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    if (targetUser.role !== 'sub-admin') {
+      return c.json({ error: 'Only sub-admins can be assigned as editors' }, 400);
+    }
+
+    // Check if already an editor
+    const existingEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, targetUser.id)))
+      .get();
+
+    if (existingEditor) {
+      return c.json({ error: 'User is already an editor for this poll' }, 400);
+    }
+
+    // Add as editor
+    const newEditor = await db.insert(pollEditors).values({
+      pollId,
+      userId: targetUser.id,
+    }).returning().get();
+
+    return c.json({
+      message: 'Editor added successfully',
+      editor: {
+        id: newEditor.id,
+        userId: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: 'editor',
+        status: 'active',
+        permissions: {
+          editQuestions: true,
+          editSettings: true,
+          managePoll: false,
+          deleteQuestions: false
+        },
+        addedAt: new Date(newEditor.createdAt).toISOString().split('T')[0],
+        lastAccess: null
+      }
+    });
+  } catch (error) {
+    console.error('Error adding editor:', error);
+    return c.json({ error: 'Failed to add editor' }, 500);
+  }
+});
+
+// Remove auditor from poll (manager, admin only)
+pollRoutes.delete('/:id/auditors/:auditorId', async (c) => {
+  const pollId = c.req.param('id');
+  const auditorId = c.req.param('auditorId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Remove auditor
+    const deletedAuditor = await db.delete(pollAuditors)
+      .where(and(eq(pollAuditors.id, auditorId), eq(pollAuditors.pollId, pollId)))
+      .returning()
+      .get();
+
+    if (!deletedAuditor) {
+      return c.json({ error: 'Auditor not found' }, 404);
+    }
+
+    return c.json({ message: 'Auditor removed successfully' });
+  } catch (error) {
+    console.error('Error removing auditor:', error);
+    return c.json({ error: 'Failed to remove auditor' }, 500);
+  }
+});
+
+// Remove editor from poll (manager, admin only)
+pollRoutes.delete('/:id/editors/:editorId', async (c) => {
+  const pollId = c.req.param('id');
+  const editorId = c.req.param('editorId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Remove editor
+    const deletedEditor = await db.delete(pollEditors)
+      .where(and(eq(pollEditors.id, editorId), eq(pollEditors.pollId, pollId)))
+      .returning()
+      .get();
+
+    if (!deletedEditor) {
+      return c.json({ error: 'Editor not found' }, 404);
+    }
+
+    return c.json({ message: 'Editor removed successfully' });
+  } catch (error) {
+    console.error('Error removing editor:', error);
+    return c.json({ error: 'Failed to remove editor' }, 500);
+  }
+});
+
 export { publicPollRoutes };
 export default pollRoutes;

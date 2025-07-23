@@ -70,6 +70,20 @@ export const pollApi = {
   // Results API
   getResults: (pollId: string) => 
     api.get<{ results: any }>(`/polls/${pollId}/results`),
+  
+  // Auditors and Editors API
+  getAuditorsAndEditors: (pollId: string) =>
+    api.get<{ auditors: any[]; editors: any[] }>(`/polls/${pollId}/auditors-editors`),
+  getAvailableSubAdmins: (pollId: string) =>
+    api.get<{ availableSubAdmins: any[] }>(`/polls/${pollId}/available-subadmins`),
+  addAuditor: (pollId: string, auditorData: { userId: string }) =>
+    api.post<{ message: string; auditor: any }>(`/polls/${pollId}/auditors`, auditorData),
+  addEditor: (pollId: string, editorData: { userId: string }) =>
+    api.post<{ message: string; editor: any }>(`/polls/${pollId}/editors`, editorData),
+  removeAuditor: (pollId: string, auditorId: string) =>
+    api.delete<{ message: string }>(`/polls/${pollId}/auditors/${auditorId}`),
+  removeEditor: (pollId: string, editorId: string) =>
+    api.delete<{ message: string }>(`/polls/${pollId}/editors/${editorId}`),
 };
 
 // Public Poll API (no authentication required)
