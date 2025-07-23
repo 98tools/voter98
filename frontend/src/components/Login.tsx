@@ -199,7 +199,7 @@ const Login: React.FC = () => {
               <h4 className="text-sm font-semibold text-blue-800 mb-2">Demo Credentials</h4>
               <div className="text-xs text-blue-700 space-y-1">
                 <p><strong>Email:</strong> admin@example.com</p>
-                <p><strong>Password:</strong> admin123</p>
+                <p><strong>Password:</strong> password123</p>
               </div>
             </div>
           )}

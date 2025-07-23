@@ -8,7 +8,7 @@ async function seed(db: any) {
   
   try {
     // Create test users
-    const hashedPassword = await hashPassword('admin123');
+    const hashedPassword = await hashPassword('password123');
     
     const adminUser = await db.insert(users).values({
       email: 'admin@example.com',
@@ -161,9 +161,9 @@ async function seed(db: any) {
 
     console.log('Seed data created successfully!');
     console.log('Test accounts:');
-    console.log('Admin: admin@example.com / admin123');
-    console.log('Sub-admin: subadmin@example.com / admin123');
-    console.log('User: user@example.com / admin123');
+    console.log('Admin: admin@example.com / password123');
+    console.log('Sub-admin: subadmin@example.com / password123');
+    console.log('User: user@example.com / password123');
     console.log(`Poll ID: ${samplePoll.id}`);
     console.log(`Token for John Doe: ${tokenParticipant1}`);
     console.log(`Token for Jane Smith: ${tokenParticipant2}`);
