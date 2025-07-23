@@ -1205,6 +1205,18 @@ pollRoutes.get('/:id/auditors-editors', async (c) => {
       return c.json({ error: 'Insufficient permissions' }, 403);
     }
 
+    // Get poll manager details
+    const manager = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    }).from(users)
+      .where(eq(users.id, poll.managerId))
+      .get();
+
     // Get auditors with user details
     const auditors = await db.select({
       id: pollAuditors.id,
@@ -1234,6 +1246,26 @@ pollRoutes.get('/:id/auditors-editors', async (c) => {
       .where(eq(pollEditors.pollId, pollId));
 
     return c.json({
+      manager: manager ? {
+        id: manager.id,
+        name: manager.name,
+        email: manager.email,
+        role: 'manager',
+        status: 'active',
+        permissions: {
+          managePoll: true,
+          editQuestions: true,
+          editSettings: true,
+          viewResults: true,
+          viewParticipants: true,
+          viewAuditLog: true,
+          downloadResults: true,
+          manageAuditors: true,
+          manageEditors: true
+        },
+        assignedAt: new Date(poll.createdAt).toISOString().split('T')[0],
+        lastAccess: new Date(manager.updatedAt).toISOString().split('T')[0]
+      } : null,
       auditors: auditors.map(a => ({
         id: a.id,
         userId: a.userId,

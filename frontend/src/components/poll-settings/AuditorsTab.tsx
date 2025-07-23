@@ -12,6 +12,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
   const [auditors, setAuditors] = useState<any[]>([]);
   const [editors, setEditors] = useState<any[]>([]);
   const [availableSubAdmins, setAvailableSubAdmins] = useState<any[]>([]);
+  const [pollManager, setPollManager] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSubAdmins, setLoadingSubAdmins] = useState(false);
   const [showAddAuditorModal, setShowAddAuditorModal] = useState(false);
@@ -29,11 +30,13 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
     try {
       setLoading(true);
       const response = await pollApi.getAuditorsAndEditors(poll.id);
+      setPollManager(response.data.manager);
       setAuditors(response.data.auditors);
       setEditors(response.data.editors);
     } catch (error) {
       console.error('Error loading auditors and editors:', error);
       // Keep empty arrays on error
+      setPollManager(null);
       setAuditors([]);
       setEditors([]);
     } finally {
@@ -146,6 +149,68 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
 
   return (
     <div className="space-y-8">
+      {/* Poll Manager Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Poll Manager</h3>
+            <p className="text-sm text-gray-500">User responsible for managing this poll</p>
+          </div>
+        </div>
+
+        {pollManager ? (
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{pollManager.name}</p>
+                      <p className="text-sm text-gray-500">{pollManager.email}</p>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        Manager
+                      </span>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Assigned</p>
+                        <p className="text-xs text-gray-900">{pollManager.assignedAt}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Last Access</p>
+                        <p className="text-xs text-gray-900">{pollManager.lastAccess}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(pollManager.permissions)
+                        .filter(([, value]) => value)
+                        .map(([key]) => (
+                          <span key={key} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
+                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+            <div className="text-sm text-gray-500">No manager assigned</div>
+          </div>
+        )}
+      </div>
+
       {/* Auditors Section */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">

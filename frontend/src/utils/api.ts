@@ -73,7 +73,7 @@ export const pollApi = {
   
   // Auditors and Editors API
   getAuditorsAndEditors: (pollId: string) =>
-    api.get<{ auditors: any[]; editors: any[] }>(`/polls/${pollId}/auditors-editors`),
+    api.get<{ manager: any; auditors: any[]; editors: any[] }>(`/polls/${pollId}/auditors-editors`),
   getAvailableSubAdmins: (pollId: string) =>
     api.get<{ availableSubAdmins: any[] }>(`/polls/${pollId}/available-subadmins`),
   addAuditor: (pollId: string, auditorData: { userId: string }) =>
