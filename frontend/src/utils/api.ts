@@ -47,10 +47,7 @@ export const pollApi = {
     api.post<{ message: string; poll: Poll }>('/polls', pollData),
   updatePoll: (id: string, pollData: Partial<Poll>) => 
     api.put<{ message: string; poll: Poll }>(`/polls/${id}`, pollData),
-  deletePoll: (id: string) => api.delete<{ message: string }>(`/polls/${id}`),
-  requestAccess: (id: string) => 
-    api.post<{ message: string; pollTitle: string; requestedBy: string }>(`/polls/${id}/request-access`),
-  
+  deletePoll: (id: string) => api.delete<{ message: string }>(`/polls/${id}`),  
   // Participant management
   getParticipants: (pollId: string) => 
     api.get<{ participants: any[] }>(`/polls/${pollId}/participants`),

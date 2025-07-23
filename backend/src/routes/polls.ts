@@ -172,14 +172,14 @@ pollRoutes.get('/', async (c) => {
   }
 });
 
-// Get other polls (polls user doesn't manage/audit - for access requests)
+// Get other polls (polls user doesn't manage/audit)
 pollRoutes.get('/other', async (c) => {
   const user = c.get('user')!;
   const db = getDb(c.env.DB);
 
   try {
     if (user.role === 'admin') {
-      // Admin doesn't need to request access - they have access to all polls
+      // Admins have access to all polls
       return c.json({ polls: [] });
     }
 
@@ -1132,48 +1132,6 @@ async function calculatePollResults(db: any, poll: any, accessLevel: string, par
     },
   };
 }
-
-// Request access to a poll (for sub-admins)
-pollRoutes.post('/:id/request-access', authMiddleware, async (c) => {
-  const pollId = c.req.param('id');
-  const user = c.get('user')!;
-  const db = getDb(c.env.DB);
-
-  try {
-    // Only sub-admins can request access
-    if (user.role !== 'sub-admin') {
-      return c.json({ error: 'Only sub-admins can request access to polls' }, 403);
-    }
-
-    // Check if poll exists
-    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
-    if (!poll) {
-      return c.json({ error: 'Poll not found' }, 404);
-    }
-
-    // Check if user already has access
-    const isManager = poll.managerId === user.userId;
-    const isAuditor = await db.select().from(pollAuditors)
-      .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
-      .get();
-
-    if (isManager || isAuditor) {
-      return c.json({ error: 'You already have access to this poll' }, 400);
-    }
-
-    // Here you would typically create a notification/request record
-    // For now, we'll just return success - you can extend this later with a notifications system
-    
-    return c.json({ 
-      message: 'Access request sent successfully',
-      pollTitle: poll.title,
-      requestedBy: user.email
-    });
-  } catch (error) {
-    console.error('Request access error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
 
 export { publicPollRoutes };
 export default pollRoutes;
