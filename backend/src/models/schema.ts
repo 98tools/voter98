@@ -72,31 +72,6 @@ export const pollVotes = sqliteTable('poll_votes', {
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
 });
 
-// Poll requests table (for sub-admin requests)
-export const pollRequests = sqliteTable('poll_requests', {
-  id: text('id').primaryKey().$defaultFn(() => createId()),
-  requesterId: text('requester_id').notNull().references(() => users.id),
-  pollId: text('poll_id').references(() => polls.id), // null for new poll requests
-  requestType: text('request_type').notNull(), // 'create_poll', 'become_auditor'
-  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
-  requestData: text('request_data', { mode: 'json' }).notNull().default('{}'), // JSON object with request details
-  reviewedBy: text('reviewed_by').references(() => users.id),
-  reviewedAt: integer('reviewed_at'),
-  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
-  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
-});
-
-// Participation requests table
-export const participationRequests = sqliteTable('participation_requests', {
-  id: text('id').primaryKey().$defaultFn(() => createId()),
-  pollId: text('poll_id').notNull().references(() => polls.id),
-  userId: text('user_id').notNull().references(() => users.id),
-  status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
-  reviewedBy: text('reviewed_by').references(() => users.id),
-  reviewedAt: integer('reviewed_at'),
-  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
-  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
-});
 
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
@@ -107,10 +82,6 @@ export type PollParticipant = typeof pollParticipants.$inferSelect;
 export type NewPollParticipant = typeof pollParticipants.$inferInsert;
 export type PollVote = typeof pollVotes.$inferSelect;
 export type NewPollVote = typeof pollVotes.$inferInsert;
-export type PollRequest = typeof pollRequests.$inferSelect;
-export type NewPollRequest = typeof pollRequests.$inferInsert;
-export type ParticipationRequest = typeof participationRequests.$inferSelect;
-export type NewParticipationRequest = typeof participationRequests.$inferInsert;
 
 // Ballot question and option types
 export interface BallotOption {
