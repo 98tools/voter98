@@ -471,7 +471,7 @@ Bob Wilson,bob@example.com,true,2.0,`;
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Voted
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-18 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Token/Access
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
