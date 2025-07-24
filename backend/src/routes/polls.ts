@@ -573,7 +573,7 @@ pollRoutes.get('/:id/permissions', async (c) => {
 // Add participant to poll (poll manager, admin, or editors)
 const addParticipantSchema = z.object({
   email: z.string().email('Invalid email format'),
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().optional(), // Optional - will use email if not provided, or system name if user exists
   isUser: z.boolean().optional(), // Optional - will be auto-detected if not provided
   voteWeight: z.number().positive('Vote weight must be positive').optional().default(1.0),
   token: z.string().optional(),
@@ -630,6 +630,8 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
     // Auto-detect if user exists in the system if isUser is not explicitly provided
     let userId = null;
     let finalIsUser = isUser;
+    let finalName = name;
+    let systemNameUsed = false;
     
     // Check if user exists in the database
     const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
@@ -644,6 +646,16 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
         return c.json({ error: 'User with this email does not exist in the system' }, 400);
       }
       userId = existingUser.id;
+      // For system users, always use the system name regardless of provided name
+      if (finalName !== existingUser.name) {
+        systemNameUsed = true;
+      }
+      finalName = existingUser.name;
+    } else {
+      // For non-users, use provided name or email as fallback
+      if (!finalName || finalName.trim() === '') {
+        finalName = email;
+      }
     }
 
     // Generate token for non-user participants
@@ -655,7 +667,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
         pollId,
         userId,
         email,
-        name,
+        name: finalName,
         isUser: finalIsUser,
         token: participantToken,
         tokenUsed: false,
@@ -678,6 +690,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
         status: participant.status,
         hasVoted: participant.hasVoted,
       },
+      systemNameUsed, // Indicate if system name was used instead of provided name
     });
   } catch (error) {
     console.error('Add participant error:', error);

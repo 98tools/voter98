@@ -58,7 +58,7 @@ export const pollApi = {
     voteWeight?: number;
     token?: string;
   }) => 
-    api.post<{ message: string; participant: any }>(`/polls/${pollId}/participants`, participantData),
+    api.post<{ message: string; participant: any; systemNameUsed?: boolean }>(`/polls/${pollId}/participants`, participantData),
   removeParticipant: (pollId: string, participantId: string) =>
     api.delete<{ message: string }>(`/polls/${pollId}/participants/${participantId}`),
   updateParticipant: (pollId: string, participantId: string, updateData: {

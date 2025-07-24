@@ -133,7 +133,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
       }
       
       const headers = rawData[0].map((h: string) => h.toString().toLowerCase().trim());
-      const requiredHeaders = ['name', 'email'];
+      const requiredHeaders = ['email'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       
       if (missingHeaders.length > 0) {
@@ -154,40 +154,38 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
         
         const rowResult = {
           rowNumber: i + 1,
-          name: row.name || '',
+          name: row.name || row.email || '',
           email: row.email || '',
           isUser: 'Auto-detected', // Will be determined by backend
           voteWeight: parseFloat(row.vote_weight) || 1.0,
           token: '',
           status: '',
           message: '',
-          success: false
+          success: false,
+          systemNameUsed: false
         };
         
-        if (!row.name || !row.email) {
+        if (!row.email) {
           rowResult.status = 'Error';
-          rowResult.message = 'Name and email are required';
+          rowResult.message = 'Email is required';
           results.push(rowResult);
           continue;
         }
         
         const voteWeight = parseFloat(row.vote_weight) || 1.0;
-        // Only include isUser if explicitly provided in the file
-        const isUser = row.is_user !== undefined ? (row.is_user === 'true' || row.is_user === '1' || row.is_user === 'TRUE') : undefined;
         const token = row.token || undefined;
         rowResult.token = token || 'Auto-generated if needed';
         
         try {
           const participantData: any = {
-            name: row.name,
+            name: row.name || row.email,
             email: row.email,
-            voteWeight,
-            token
+            voteWeight
           };
           
-          // Only include isUser if explicitly provided
-          if (isUser !== undefined) {
-            participantData.isUser = isUser;
+          // Only include token if explicitly provided
+          if (token) {
+            participantData.token = token;
           }
           
           const response = await pollApi.addParticipant(poll.id, participantData);
@@ -198,6 +196,13 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
           rowResult.success = true;
           rowResult.isUser = response.data.participant.isUser ? 'Yes (Registered User)' : 'No (External)';
           rowResult.token = response.data.participant.token || 'N/A';
+          
+          // Handle system name usage
+          if (response.data.systemNameUsed) {
+            rowResult.systemNameUsed = true;
+            rowResult.name = response.data.participant.name; // Use the actual system name
+            rowResult.message = `User already exists, system name '${response.data.participant.name}' will be used`;
+          }
         } catch (error: any) {
           rowResult.status = 'Error';
           rowResult.message = error.response?.data?.message || error.response?.data?.error || 'Failed to add participant';
@@ -242,15 +247,14 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
     
     try {
       const participantData: any = {
-        name: newParticipant.name,
+        name: newParticipant.name || newParticipant.email,
         email: newParticipant.email,
-        voteWeight: newParticipant.voteWeight,
-        token: newParticipant.token || undefined
+        voteWeight: newParticipant.voteWeight
       };
       
-      // Only include isUser if explicitly set
-      if (newParticipant.isUser !== undefined) {
-        participantData.isUser = newParticipant.isUser;
+      // Only include token if provided
+      if (newParticipant.token) {
+        participantData.token = newParticipant.token;
       }
       
       const response = await pollApi.addParticipant(poll.id, participantData);
@@ -292,7 +296,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
       const lines = csvData.trim().split('\n');
       const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
       
-      const requiredHeaders = ['name', 'email'];
+      const requiredHeaders = ['email'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       if (missingHeaders.length > 0) {
         setCsvError(`Missing required headers: ${missingHeaders.join(', ')}`);
@@ -312,40 +316,39 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
 
         const rowResult = {
           rowNumber: i + 1,
-          name: row.name || '',
+          name: row.name || row.email || '',
           email: row.email || '',
           isUser: 'Auto-detected', // Will be determined by backend
           voteWeight: parseFloat(row.vote_weight) || 1.0,
           token: '',
           status: '',
           message: '',
-          success: false
+          success: false,
+          systemNameUsed: false
         };
 
-        if (!row.name || !row.email) {
+        if (!row.email) {
           rowResult.status = 'Error';
-          rowResult.message = 'Name and email are required';
+          rowResult.message = 'Email is required';
           results.push(rowResult);
           continue;
         }
 
         // Only include isUser if explicitly provided in the CSV
-        const isUser = row.is_user !== undefined ? (row.is_user === 'true' || row.is_user === '1') : undefined;
         const voteWeight = parseFloat(row.vote_weight) || 1.0;
         const token = row.token || undefined;
         rowResult.token = token || 'Auto-generated if needed';
 
         try {
           const participantData: any = {
-            name: row.name,
+            name: row.name || row.email,
             email: row.email,
-            voteWeight,
-            token
+            voteWeight
           };
           
-          // Only include isUser if explicitly provided
-          if (isUser !== undefined) {
-            participantData.isUser = isUser;
+          // Only include token if explicitly provided
+          if (token) {
+            participantData.token = token;
           }
           
           const response = await pollApi.addParticipant(poll.id, participantData);
@@ -356,6 +359,13 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
           rowResult.success = true;
           rowResult.isUser = response.data.participant.isUser ? 'Yes (Registered User)' : 'No (External)';
           rowResult.token = response.data.participant.token || 'N/A';
+          
+          // Handle system name usage
+          if (response.data.systemNameUsed) {
+            rowResult.systemNameUsed = true;
+            rowResult.name = response.data.participant.name; // Use the actual system name
+            rowResult.message = `User already exists, system name '${response.data.participant.name}' will be used`;
+          }
         } catch (error: any) {
           rowResult.status = 'Error';
           rowResult.message = error.response?.data?.message || error.response?.data?.error || 'Failed to add participant';
@@ -433,11 +443,11 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   };
 
   const downloadCsvTemplate = () => {
-    const csvTemplate = `name,email,vote_weight,token
-John Doe,john@example.com,1.0,
-Jane Smith External,jane@external.com,1.5,custom_token_123
-Bob Wilson,bob@example.com,2.0,
-Sarah Connor,sarah@external.com,1.0,sarah_token_456`;
+    const csvTemplate = `email,name,vote_weight,token
+john@example.com,John Doe,1.0,
+jane@external.com,,1.5,custom_token_123
+bob@example.com,Bob Wilson,2.0,
+sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
     
     const blob = new Blob([csvTemplate], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -766,14 +776,14 @@ Sarah Connor,sarah@external.com,1.0,sarah_token_456`;
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
+                    Name <span className="text-gray-500 text-xs">(optional, defaults to email)</span>
                   </label>
                   <input
                     type="text"
                     value={newParticipant.name}
                     onChange={(e) => setNewParticipant({ ...newParticipant, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
+                    placeholder="Leave blank to use email as name"
                   />
                 </div>
 
@@ -999,12 +1009,24 @@ Sarah Connor,sarah@external.com,1.0,sarah_token_456`;
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {result.success ? (
-                                <div className="flex items-center">
-                                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                  <span className="text-sm text-green-600 font-medium">Success</span>
-                                </div>
+                                result.systemNameUsed ? (
+                                  <div className="flex items-start">
+                                    <svg className="w-4 h-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <div>
+                                      <span className="text-sm text-yellow-600 font-medium">Success (System Name Used)</span>
+                                      <p className="text-xs text-yellow-500 mt-1">{result.message}</p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center">
+                                    <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-sm text-green-600 font-medium">Success</span>
+                                  </div>
+                                )
                               ) : (
                                 <div className="flex items-start">
                                   <svg className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1075,7 +1097,7 @@ Sarah Connor,sarah@external.com,1.0,sarah_token_456`;
                         <h3 className="text-sm font-medium text-blue-800">Auto-Detection Feature</h3>
                         <p className="mt-1 text-sm text-blue-700">
                           User type is now automatically detected! If an email exists in the system, the participant will be marked as a registered user. 
-                          Only name and email are required - vote_weight and token are optional.
+                          Only email is required - name, vote_weight and token are optional.
                         </p>
                       </div>
                     </div>
@@ -1168,7 +1190,7 @@ Sarah Connor,sarah@external.com,1.0,sarah_token_456`;
                           disabled={isUploading}
                         />
                         <p className="mt-1 text-sm text-gray-500">
-                          Required columns: name, email. Optional: vote_weight (default 1.0), token (for external participants). User type will be auto-detected from email.
+                          Required columns: email. Optional: name (falls back to email if not provided), vote_weight (default 1.0), token (for external participants). User type will be auto-detected from email.
                         </p>
                       </div>
 
