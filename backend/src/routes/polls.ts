@@ -1376,7 +1376,7 @@ pollRoutes.get('/:id/available-subadmins', async (c) => {
   }
 });
 
-// Get poll auditors and editors (manager, admin only)
+// Get poll auditors and editors (manager, admin, editors, auditors can view)
 pollRoutes.get('/:id/auditors-editors', async (c) => {
   const pollId = c.req.param('id');
   const user = c.get('user')!;
@@ -1389,8 +1389,21 @@ pollRoutes.get('/:id/auditors-editors', async (c) => {
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Check permissions - only admin or poll manager can view/manage
-    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+    // Check permissions - admin, poll manager, editors, or auditors can view
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+    
+    // Check if user is an auditor
+    const isAuditor = await db.select().from(pollAuditors)
+      .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor && !isAuditor) {
       return c.json({ error: 'Insufficient permissions' }, 403);
     }
 
