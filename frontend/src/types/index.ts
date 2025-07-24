@@ -6,6 +6,19 @@ export interface User {
   createdAt: number;
 }
 
+export interface PollPermissions {
+  canView: boolean;
+  canEdit: boolean;
+  canManage: boolean;
+  canAudit: boolean;
+  canViewResults: boolean;
+  canViewParticipants: boolean;
+  canManageParticipants: boolean;
+  canViewSettings: boolean;
+  canEditSettings: boolean;
+  canDelete: boolean;
+}
+
 export interface BallotOption {
   id: string;
   title: string;

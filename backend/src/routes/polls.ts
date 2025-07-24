@@ -5,8 +5,124 @@ import { getDb } from '../models/db';
 import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
 import { eq, and, not, inArray } from 'drizzle-orm';
-import { authMiddleware, adminMiddleware, subAdminMiddleware } from '../middleware/auth';
+import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
 import { verifyPassword, generateRandomToken } from '../utils/auth';
+
+// Permission types for different poll roles
+type PollPermissions = {
+  canView: boolean;
+  canEdit: boolean;
+  canManage: boolean;
+  canAudit: boolean;
+  canViewResults: boolean;
+  canViewParticipants: boolean;
+  canManageParticipants: boolean;
+  canViewSettings: boolean;
+  canEditSettings: boolean;
+  canDelete: boolean;
+};
+
+// Helper function to check user permissions for a specific poll
+async function getUserPollPermissions(
+  db: any,
+  userId: string,
+  userRole: string,
+  pollId: string
+): Promise<PollPermissions> {
+  const permissions: PollPermissions = {
+    canView: false,
+    canEdit: false,
+    canManage: false,
+    canAudit: false,
+    canViewResults: false,
+    canViewParticipants: false,
+    canManageParticipants: false,
+    canViewSettings: false,
+    canEditSettings: false,
+    canDelete: false,
+  };
+
+  // Get poll details
+  const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+  if (!poll) return permissions;
+
+  // Admin has all permissions
+  if (userRole === 'admin') {
+    return {
+      canView: true,
+      canEdit: true,
+      canManage: true,
+      canAudit: true,
+      canViewResults: true,
+      canViewParticipants: true,
+      canManageParticipants: true,
+      canViewSettings: true,
+      canEditSettings: true,
+      canDelete: true,
+    };
+  }
+
+  // Check if user is the poll manager
+  if (poll.managerId === userId) {
+    return {
+      canView: true,
+      canEdit: true,
+      canManage: true,
+      canAudit: true,
+      canViewResults: true,
+      canViewParticipants: true,
+      canManageParticipants: true,
+      canViewSettings: true,
+      canEditSettings: true,
+      canDelete: false, // Only admin can delete
+    };
+  }
+
+  // Check if user is an auditor
+  const auditor = await db.select().from(pollAuditors)
+    .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, userId)))
+    .get();
+  
+  if (auditor) {
+    permissions.canView = true;
+    permissions.canAudit = true;
+    permissions.canViewResults = true;
+    permissions.canViewParticipants = true;
+    permissions.canViewSettings = true;
+    // Auditors can view but not edit
+  }
+
+  // Check if user is an editor
+  const editor = await db.select().from(pollEditors)
+    .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, userId)))
+    .get();
+  
+  if (editor) {
+    permissions.canView = true;
+    permissions.canEdit = true;
+    permissions.canViewResults = true;
+    permissions.canViewParticipants = true;
+    permissions.canViewSettings = true;
+    permissions.canEditSettings = true;
+    // Editors can edit poll content and some settings
+  }
+
+  // Check if user is a participant
+  const participant = await db.select().from(pollParticipants)
+    .where(and(
+      eq(pollParticipants.pollId, pollId), 
+      eq(pollParticipants.userId, userId),
+      eq(pollParticipants.status, 'approved')
+    ))
+    .get();
+  
+  if (participant) {
+    permissions.canView = true;
+    permissions.canViewResults = true; // Depends on poll settings
+  }
+
+  return permissions;
+}
 
 const pollRoutes = new Hono<{ Bindings: AppBindings; Variables: { user?: JWTPayload } }>();
 
@@ -108,7 +224,7 @@ pollRoutes.post('/', adminMiddleware, zValidator('json', createPollSchema), asyn
   }
 });
 
-// Get all polls (admin sees all, sub-admin sees assigned and auditing)
+// Get all polls (admin sees all, sub-admin sees assigned, auditing, and editing)
 pollRoutes.get('/', async (c) => {
   const user = c.get('user')!;
   const db = getDb(c.env.DB);
@@ -120,8 +236,9 @@ pollRoutes.get('/', async (c) => {
       // Admin sees all polls
       userPolls = await db.select().from(polls).all();
     } else if (user.role === 'sub-admin') {
-      // Sub-admin sees polls they manage or audit
+      // Sub-admin sees polls they manage, audit, or edit
       const managedPolls = await db.select().from(polls).where(eq(polls.managerId, user.userId)).all();
+      
       const auditedPolls = await db.select({
         id: polls.id,
         title: polls.title,
@@ -140,7 +257,30 @@ pollRoutes.get('/', async (c) => {
         .where(eq(pollAuditors.userId, user.userId))
         .all();
 
-      userPolls = [...managedPolls, ...auditedPolls];
+      const editedPolls = await db.select({
+        id: polls.id,
+        title: polls.title,
+        description: polls.description,
+        startDate: polls.startDate,
+        endDate: polls.endDate,
+        status: polls.status,
+        managerId: polls.managerId,
+        createdById: polls.createdById,
+        settings: polls.settings,
+        ballot: polls.ballot,
+        createdAt: polls.createdAt,
+        updatedAt: polls.updatedAt,
+      }).from(polls)
+        .innerJoin(pollEditors, eq(pollEditors.pollId, polls.id))
+        .where(eq(pollEditors.userId, user.userId))
+        .all();
+
+      // Combine and deduplicate polls
+      const allPolls = [...managedPolls, ...auditedPolls, ...editedPolls];
+      const uniquePolls = allPolls.filter((poll, index, self) => 
+        index === self.findIndex(p => p.id === poll.id)
+      );
+      userPolls = uniquePolls;
     } else {
       // Regular users see polls they're participating in
       userPolls = await db.select({
@@ -172,7 +312,7 @@ pollRoutes.get('/', async (c) => {
   }
 });
 
-// Get other polls (polls user doesn't manage/audit)
+// Get other polls (polls user doesn't manage/audit/edit)
 pollRoutes.get('/other', async (c) => {
   const user = c.get('user')!;
   const db = getDb(c.env.DB);
@@ -184,7 +324,7 @@ pollRoutes.get('/other', async (c) => {
     }
 
     if (user.role === 'sub-admin') {
-      // Get polls the sub-admin doesn't manage or audit
+      // Get polls the sub-admin doesn't manage, audit, or edit
       const managedPollIds = await db.select({ id: polls.id })
         .from(polls)
         .where(eq(polls.managerId, user.userId))
@@ -195,9 +335,15 @@ pollRoutes.get('/other', async (c) => {
         .where(eq(pollAuditors.userId, user.userId))
         .all();
 
+      const editedPollIds = await db.select({ pollId: pollEditors.pollId })
+        .from(pollEditors)
+        .where(eq(pollEditors.userId, user.userId))
+        .all();
+
       const excludedIds = [
         ...managedPollIds.map(p => p.id),
-        ...auditedPollIds.map(p => p.pollId)
+        ...auditedPollIds.map(p => p.pollId),
+        ...editedPollIds.map(p => p.pollId)
       ];
 
       let otherPolls;
@@ -267,7 +413,7 @@ pollRoutes.get('/:id', async (c) => {
   }
 });
 
-// Update poll (admin or assigned sub-admin)
+// Update poll (admin, manager, or editor with appropriate permissions)
 pollRoutes.put('/:id', zValidator('json', updatePollSchema), async (c) => {
   const pollId = c.req.param('id');
   const updateData = c.req.valid('json');
@@ -280,9 +426,34 @@ pollRoutes.put('/:id', zValidator('json', updatePollSchema), async (c) => {
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Check permissions
-    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+    // Check permissions using the new permission system
+    const permissions = await getUserPollPermissions(db, user.userId, user.role, pollId);
+    
+    if (!permissions.canEdit) {
       return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Check if poll has started (only certain updates allowed)
+    if (poll.status === 'active' && poll.startDate <= Date.now()) {
+      // Only allow specific updates after poll has started
+      const allowedUpdates = ['settings'];
+      const updateKeys = Object.keys(updateData);
+      const hasRestrictedUpdates = updateKeys.some(key => !allowedUpdates.includes(key));
+      
+      if (hasRestrictedUpdates && !permissions.canManage) {
+        return c.json({ error: 'Cannot modify poll details after it has started' }, 400);
+      }
+    }
+
+    // Editors can only update certain fields
+    if (!permissions.canManage) {
+      const editorAllowedFields = ['title', 'description', 'ballot', 'settings'];
+      const updateKeys = Object.keys(updateData);
+      const hasRestrictedUpdates = updateKeys.some(key => !editorAllowedFields.includes(key));
+      
+      if (hasRestrictedUpdates) {
+        return c.json({ error: 'Insufficient permissions to modify these fields' }, 403);
+      }
     }
 
     // Check if poll has started (only certain updates allowed)
@@ -363,6 +534,21 @@ pollRoutes.get('/:id/participants', async (c) => {
     return c.json({ participants });
   } catch (error) {
     console.error('Get participants error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Get user permissions for a specific poll
+pollRoutes.get('/:id/permissions', async (c) => {
+  const pollId = c.req.param('id');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    const permissions = await getUserPollPermissions(db, user.userId, user.role, pollId);
+    return c.json({ permissions });
+  } catch (error) {
+    console.error('Get permissions error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

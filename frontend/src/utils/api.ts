@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AuthResponse, User, Poll } from '../types';
+import type { AuthResponse, User, Poll, PollPermissions } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787/api';
 
@@ -84,6 +84,10 @@ export const pollApi = {
     api.delete<{ message: string }>(`/polls/${pollId}/auditors/${auditorId}`),
   removeEditor: (pollId: string, editorId: string) =>
     api.delete<{ message: string }>(`/polls/${pollId}/editors/${editorId}`),
+  
+  // Permissions API
+  getUserPollPermissions: (pollId: string) =>
+    api.get<{ permissions: PollPermissions }>(`/polls/${pollId}/permissions`),
 };
 
 // Public Poll API (no authentication required)
