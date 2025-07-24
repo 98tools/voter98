@@ -572,14 +572,26 @@ pollRoutes.get('/:id/permissions', async (c) => {
 
 // Add participant to poll (poll manager, admin, or editors)
 const addParticipantSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
+  email: z.string().email('Invalid email format'),
+  name: z.string().min(1, 'Name is required'),
   isUser: z.boolean().optional().default(false),
-  voteWeight: z.number().positive().optional().default(1.0),
+  voteWeight: z.number().positive('Vote weight must be positive').optional().default(1.0),
   token: z.string().optional(),
 });
 
-pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema), async (c) => {
+pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (result, c) => {
+  if (!result.success) {
+    const errors = result.error.errors.map(err => ({
+      field: err.path.join('.'),
+      message: err.message
+    }));
+    return c.json({ 
+      error: 'Validation failed', 
+      details: errors,
+      message: errors[0]?.message || 'Invalid input data'
+    }, 400);
+  }
+}), async (c) => {
   const pollId = c.req.param('id');
   const { email, name, isUser, voteWeight, token } = c.req.valid('json');
   const user = c.get('user')!;

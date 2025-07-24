@@ -17,6 +17,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvData, setCsvData] = useState('');
   const [csvError, setCsvError] = useState('');
+  const [addParticipantError, setAddParticipantError] = useState('');
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
   const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -24,6 +25,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   const [uploadResults, setUploadResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAddingParticipant, setIsAddingParticipant] = useState(false);
   const [newParticipant, setNewParticipant] = useState({
     name: '',
     email: '',
@@ -226,6 +228,9 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
     
     if (!poll?.id) return;
     
+    setAddParticipantError('');
+    setIsAddingParticipant(true);
+    
     try {
       const response = await pollApi.addParticipant(poll.id, {
         name: newParticipant.name,
@@ -240,7 +245,24 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
       setShowAddModal(false);
     } catch (error: any) {
       console.error('Failed to add participant:', error);
-      alert(error.response?.data?.error || 'Failed to add participant');
+      
+      // Extract error message properly
+      let errorMessage = 'Failed to add participant';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
+          errorMessage = errorData.details[0].message || errorMessage;
+        }
+      }
+      
+      setAddParticipantError(errorMessage);
+    } finally {
+      setIsAddingParticipant(false);
     }
   };
 
@@ -416,7 +438,10 @@ Bob Wilson,bob@example.com,true,2.0,`;
         {permissions.canManageParticipants && (
           <div className="flex space-x-3">
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setShowAddModal(true);
+                setAddParticipantError('');
+              }}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -508,7 +533,10 @@ Bob Wilson,bob@example.com,true,2.0,`;
           {permissions.canManageParticipants && (
             <div className="flex items-center justify-center space-x-3">
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setShowAddModal(true);
+                  setAddParticipantError('');
+                }}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
               >
                 Add Individual Participant
@@ -683,7 +711,10 @@ Bob Wilson,bob@example.com,true,2.0,`;
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Add Participant</h3>
                 <button
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setAddParticipantError('');
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -693,6 +724,21 @@ Bob Wilson,bob@example.com,true,2.0,`;
               </div>
 
               <form onSubmit={handleAddParticipant} className="space-y-4">
+                {addParticipantError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-red-700">{addParticipantError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Name
@@ -764,16 +810,30 @@ Bob Wilson,bob@example.com,true,2.0,`;
                 <div className="flex space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setAddParticipantError('');
+                    }}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    disabled={isAddingParticipant}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
-                    Add Participant
+                    {isAddingParticipant ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Adding...
+                      </>
+                    ) : (
+                      'Add Participant'
+                    )}
                   </button>
                 </div>
               </form>
