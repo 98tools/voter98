@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Poll, PollPermissions } from '../../types';
 import { pollApi } from '../../utils/api';
+import * as XLSX from 'xlsx';
 
 interface ParticipantsTabProps {
   poll: Poll;
@@ -17,6 +18,9 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   const [csvData, setCsvData] = useState('');
   const [csvError, setCsvError] = useState('');
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
+  const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState('');
   const [newParticipant, setNewParticipant] = useState({
     name: '',
     email: '',
@@ -42,6 +46,134 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
       setParticipants([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.oasis.opendocument.spreadsheet'
+    ];
+
+    const allowedExtensions = ['.csv', '.xls', '.xlsx', '.ods'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      setFileError('Please select a CSV, XLS, XLSX, or ODS file.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileError('');
+  };
+
+  const parseFileData = async (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          let workbook: XLSX.WorkBook;
+          
+          if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+            // For CSV files
+            workbook = XLSX.read(data, { type: 'string' });
+          } else {
+            // For Excel and ODS files
+            workbook = XLSX.read(data, { type: 'array' });
+          }
+          
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          resolve(jsonData as any[]);
+        } catch (error) {
+          reject(new Error('Failed to parse file. Please check the file format.'));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file.'));
+      };
+      
+      if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    });
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !poll?.id) return;
+    
+    setFileError('');
+    
+    try {
+      const rawData = await parseFileData(selectedFile);
+      
+      if (rawData.length < 2) {
+        setFileError('File must contain at least a header row and one data row.');
+        return;
+      }
+      
+      const headers = rawData[0].map((h: string) => h.toString().toLowerCase().trim());
+      const requiredHeaders = ['name', 'email', 'is_user'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      
+      if (missingHeaders.length > 0) {
+        setFileError(`Missing required headers: ${missingHeaders.join(', ')}`);
+        return;
+      }
+      
+      const newParticipants = [];
+      
+      for (let i = 1; i < rawData.length; i++) {
+        const values = rawData[i];
+        const row: any = {};
+        
+        headers.forEach((header: string, index: number) => {
+          row[header] = values[index]?.toString().trim() || '';
+        });
+        
+        if (!row.name || !row.email) {
+          setFileError(`Row ${i + 1}: Name and email are required`);
+          return;
+        }
+        
+        const isUser = row.is_user === 'true' || row.is_user === '1' || row.is_user === 'TRUE';
+        const voteWeight = parseFloat(row.vote_weight) || 1.0;
+        const token = !isUser ? row.token || undefined : undefined;
+        
+        try {
+          const response = await pollApi.addParticipant(poll.id, {
+            name: row.name,
+            email: row.email,
+            isUser,
+            voteWeight,
+            token
+          });
+          
+          newParticipants.push(response.data.participant);
+        } catch (error: any) {
+          setFileError(`Row ${i + 1}: ${error.response?.data?.error || 'Failed to add participant'}`);
+          return;
+        }
+      }
+      
+      setParticipants([...participants, ...newParticipants]);
+      setSelectedFile(null);
+      setShowCsvModal(false);
+      
+    } catch (error: any) {
+      setFileError(error.message || 'Failed to process file.');
     }
   };
 
@@ -223,7 +355,7 @@ Bob Wilson,bob@example.com,true,2.0,`;
               onClick={() => setShowCsvModal(true)}
               className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
             >
-              Upload CSV
+              Upload File
             </button>
           </div>
         )}
@@ -312,7 +444,7 @@ Bob Wilson,bob@example.com,true,2.0,`;
                 onClick={() => setShowCsvModal(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
               >
-                Upload CSV File
+                Upload File
               </button>
             </div>
           )}
@@ -583,7 +715,7 @@ Bob Wilson,bob@example.com,true,2.0,`;
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Upload CSV File</h3>
+                <h3 className="text-lg font-medium text-gray-900">Upload Participants</h3>
                 <button
                   onClick={() => setShowCsvModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -595,6 +727,33 @@ Bob Wilson,bob@example.com,true,2.0,`;
               </div>
 
               <div className="space-y-4">
+                {/* Upload Mode Tabs */}
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setUploadMode('file')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        uploadMode === 'file'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      onClick={() => setUploadMode('text')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        uploadMode === 'text'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Paste Data
+                    </button>
+                  </nav>
+                </div>
+
+                {/* Download Template Button */}
                 <div>
                   <button
                     onClick={downloadCsvTemplate}
@@ -607,40 +766,108 @@ Bob Wilson,bob@example.com,true,2.0,`;
                   </button>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CSV Data
-                  </label>
-                  <textarea
-                    value={csvData}
-                    onChange={(e) => setCsvData(e.target.value)}
-                    rows={10}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    placeholder="name,email,is_user,vote_weight,token&#10;John Doe,john@example.com,true,1.0,&#10;Jane Smith,jane@external.com,false,1.5,custom_token_123"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Required columns: name, email, is_user. Optional: vote_weight (default 1.0), token (for external users)
-                  </p>
-                </div>
+                {uploadMode === 'file' ? (
+                  /* File Upload Mode */
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select File
+                      </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          <svg
+                            className="mx-auto h-12 w-12 text-gray-400"
+                            stroke="currentColor"
+                            fill="none"
+                            viewBox="0 0 48 48"
+                          >
+                            <path
+                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="file-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                            >
+                              <span>Upload a file</span>
+                              <input
+                                id="file-upload"
+                                name="file-upload"
+                                type="file"
+                                className="sr-only"
+                                accept=".csv,.xls,.xlsx,.ods"
+                                onChange={handleFileSelect}
+                              />
+                            </label>
+                            <p className="pl-1">or drag and drop</p>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            CSV, XLS, XLSX, or ODS files only
+                          </p>
+                          {selectedFile && (
+                            <p className="text-sm text-green-600 mt-2">
+                              Selected: {selectedFile.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-                {csvError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                    {csvError}
+                    {fileError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        {fileError}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Manual Text Input Mode */
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        CSV Data
+                      </label>
+                      <textarea
+                        value={csvData}
+                        onChange={(e) => setCsvData(e.target.value)}
+                        rows={10}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        placeholder="name,email,is_user,vote_weight,token&#10;John Doe,john@example.com,true,1.0,&#10;Jane Smith,jane@external.com,false,1.5,custom_token_123"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        Required columns: name, email, is_user. Optional: vote_weight (default 1.0), token (for external users)
+                      </p>
+                    </div>
+
+                    {csvError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        {csvError}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className="flex space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowCsvModal(false)}
+                    onClick={() => {
+                      setShowCsvModal(false);
+                      setSelectedFile(null);
+                      setCsvData('');
+                      setFileError('');
+                      setCsvError('');
+                    }}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleCsvUpload}
+                    onClick={uploadMode === 'file' ? handleFileUpload : handleCsvUpload}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    disabled={!csvData.trim()}
+                    disabled={uploadMode === 'file' ? !selectedFile : !csvData.trim()}
                   >
                     Upload Participants
                   </button>
