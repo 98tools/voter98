@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { userApi } from '../utils/api';
 import type { User } from '../types';
+import * as XLSX from 'xlsx';
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAuth();
@@ -24,6 +25,14 @@ const AdminPanel: React.FC = () => {
     password: '',
     role: 'user' as 'admin' | 'sub-admin' | 'user'
   });
+
+  // Bulk upload states
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState('');
+  const [csvData, setCsvData] = useState('');
+  const [csvError, setCsvError] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -63,6 +72,202 @@ const AdminPanel: React.FC = () => {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create user';
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     }
+  };
+
+  // Bulk upload functions
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.oasis.opendocument.spreadsheet'
+    ];
+
+    const allowedExtensions = ['.csv', '.xls', '.xlsx', '.ods'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      setFileError('Please select a CSV, XLS, XLSX, or ODS file.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileError('');
+  };
+
+  const parseFileData = async (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          let workbook: XLSX.WorkBook;
+          
+          if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+            workbook = XLSX.read(data, { type: 'string' });
+          } else {
+            workbook = XLSX.read(data, { type: 'array' });
+          }
+          
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          resolve(jsonData as any[]);
+        } catch (error) {
+          reject(new Error('Failed to parse file. Please check the file format.'));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file.'));
+      };
+      
+      if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    });
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+    
+    setFileError('');
+    
+    try {
+      const rawData = await parseFileData(selectedFile);
+      
+      if (rawData.length < 2) {
+        setFileError('File must contain at least a header row and one data row.');
+        return;
+      }
+      
+      const headers = rawData[0].map((h: string) => h.toString().toLowerCase().trim());
+      const requiredHeaders = ['name', 'email', 'password', 'role'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      
+      if (missingHeaders.length > 0) {
+        setFileError(`Missing required headers: ${missingHeaders.join(', ')}`);
+        return;
+      }
+      
+      const newUsers = [];
+      
+      for (let i = 1; i < rawData.length; i++) {
+        const values = rawData[i];
+        const row: any = {};
+        
+        headers.forEach((header: string, index: number) => {
+          row[header] = values[index]?.toString().trim() || '';
+        });
+        
+        if (!row.name || !row.email || !row.password) {
+          setFileError(`Row ${i + 1}: Name, email, and password are required`);
+          return;
+        }
+
+        const role = ['admin', 'sub-admin', 'user'].includes(row.role) ? row.role : 'user';
+        
+        try {
+          const response = await userApi.createUser({
+            name: row.name,
+            email: row.email,
+            password: row.password,
+            role
+          });
+          
+          newUsers.push(response.data.user);
+        } catch (error: any) {
+          setFileError(`Row ${i + 1}: ${error.response?.data?.error || 'Failed to create user'}`);
+          return;
+        }
+      }
+      
+      setUsers([...users, ...newUsers]);
+      setSelectedFile(null);
+      setShowUploadModal(false);
+      loadUsers(); // Reload to get updated stats
+      
+    } catch (error: any) {
+      setFileError(error.message || 'Failed to process file.');
+    }
+  };
+
+  const handleCsvUpload = async () => {
+    setCsvError('');
+    
+    try {
+      const lines = csvData.trim().split('\n');
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      
+      const requiredHeaders = ['name', 'email', 'password', 'role'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      if (missingHeaders.length > 0) {
+        setCsvError(`Missing required headers: ${missingHeaders.join(', ')}`);
+        return;
+      }
+
+      const newUsers = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row: any = {};
+        
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+
+        if (!row.name || !row.email || !row.password) {
+          setCsvError(`Row ${i + 1}: Name, email, and password are required`);
+          return;
+        }
+
+        const role = ['admin', 'sub-admin', 'user'].includes(row.role) ? row.role : 'user';
+
+        try {
+          const response = await userApi.createUser({
+            name: row.name,
+            email: row.email,
+            password: row.password,
+            role
+          });
+          
+          newUsers.push(response.data.user);
+        } catch (error: any) {
+          setCsvError(`Row ${i + 1}: ${error.response?.data?.error || 'Failed to create user'}`);
+          return;
+        }
+      }
+
+      setUsers([...users, ...newUsers]);
+      setCsvData('');
+      setShowUploadModal(false);
+      loadUsers(); // Reload to get updated stats
+      
+    } catch (error) {
+      setCsvError('Invalid CSV format. Please check your data.');
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    const csvTemplate = `name,email,password,role
+John Doe,john@example.com,password123,user
+Jane Smith,jane@example.com,admin123,admin
+Bob Wilson,bob@example.com,subadmin123,sub-admin`;
+    
+    const blob = new Blob([csvTemplate], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'users_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const getRoleColor = (role: string) => {
@@ -295,15 +500,26 @@ const AdminPanel: React.FC = () => {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-900">User Management</h3>
-                  <button
-                    onClick={() => setShowCreateUser(!showCreateUser)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    Create New User
-                  </button>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setShowCreateUser(!showCreateUser)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                      Create New User
+                    </button>
+                    <button
+                      onClick={() => setShowUploadModal(true)}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      Upload Users
+                    </button>
+                  </div>
                 </div>
 
                 {/* Create User Form */}
@@ -463,6 +679,175 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Upload Users Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Upload Users</h3>
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Upload Mode Tabs */}
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setUploadMode('file')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        uploadMode === 'file'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      onClick={() => setUploadMode('text')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        uploadMode === 'text'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Paste Data
+                    </button>
+                  </nav>
+                </div>
+
+                {/* Download Template Button */}
+                <div>
+                  <button
+                    onClick={downloadCsvTemplate}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Download CSV Template
+                  </button>
+                </div>
+
+                {uploadMode === 'file' ? (
+                  /* File Upload Mode */
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select File
+                      </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          <svg
+                            className="mx-auto h-12 w-12 text-gray-400"
+                            stroke="currentColor"
+                            fill="none"
+                            viewBox="0 0 48 48"
+                          >
+                            <path
+                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="file-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                            >
+                              <span>Upload a file</span>
+                              <input
+                                id="file-upload"
+                                name="file-upload"
+                                type="file"
+                                className="sr-only"
+                                accept=".csv,.xls,.xlsx,.ods"
+                                onChange={handleFileSelect}
+                              />
+                            </label>
+                            <p className="pl-1">or drag and drop</p>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            CSV, XLS, XLSX, or ODS files only
+                          </p>
+                          {selectedFile && (
+                            <p className="text-sm text-green-600 mt-2">
+                              Selected: {selectedFile.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {fileError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        {fileError}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Manual Text Input Mode */
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        CSV Data
+                      </label>
+                      <textarea
+                        value={csvData}
+                        onChange={(e) => setCsvData(e.target.value)}
+                        rows={10}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        placeholder="name,email,password,role&#10;John Doe,john@example.com,password123,user&#10;Jane Smith,jane@example.com,admin123,admin&#10;Bob Wilson,bob@example.com,subadmin123,sub-admin"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        Required columns: name, email, password, role. Allowed roles: user, sub-admin, admin
+                      </p>
+                    </div>
+
+                    {csvError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        {csvError}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUploadModal(false);
+                      setSelectedFile(null);
+                      setCsvData('');
+                      setFileError('');
+                      setCsvError('');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={uploadMode === 'file' ? handleFileUpload : handleCsvUpload}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    disabled={uploadMode === 'file' ? !selectedFile : !csvData.trim()}
+                  >
+                    Upload Users
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
