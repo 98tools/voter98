@@ -43,7 +43,9 @@ const AdminPanel: React.FC = () => {
         activePolls: 0 // This would come from polls API
       });
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to load users');
+      console.error('Load users error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to load users';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,9 @@ const AdminPanel: React.FC = () => {
       setShowCreateUser(false);
       loadUsers();
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to create user');
+      console.error('Create user error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create user';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     }
   };
 

@@ -384,12 +384,15 @@ pollRoutes.get('/:id', async (c) => {
     if (user.role === 'admin') {
       hasAccess = true;
     } else if (user.role === 'sub-admin') {
-      // Check if user is manager or auditor
+      // Check if user is manager, auditor, or editor
       const isManager = poll.managerId === user.userId;
       const isAuditor = await db.select().from(pollAuditors)
         .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
         .get();
-      hasAccess = isManager || !!isAuditor;
+      const isEditor = await db.select().from(pollEditors)
+        .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+        .get();
+      hasAccess = isManager || !!isAuditor || !!isEditor;
     } else {
       // Check if user is a participant
       const isParticipant = await db.select().from(pollParticipants)

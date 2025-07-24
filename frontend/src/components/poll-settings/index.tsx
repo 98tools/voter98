@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { pollApi } from '../../utils/api';
-import type { Poll } from '../../types';
+import type { Poll, PollPermissions } from '../../types';
 import BasicInfoTab from './BasicInfoTab';
 import ScheduleTab from './ScheduleTab';
 import QuestionsTab from './QuestionsTab';
@@ -17,6 +17,7 @@ const PollSettings: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [poll, setPoll] = useState<Poll | null>(null);
+  const [permissions, setPermissions] = useState<PollPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -24,16 +25,20 @@ const PollSettings: React.FC = () => {
 
   useEffect(() => {
     if (pollId) {
-      loadPoll();
+      loadPollAndPermissions();
     }
   }, [pollId]);
 
-  const loadPoll = async () => {
+  const loadPollAndPermissions = async () => {
     if (!pollId) return;
     
     try {
-      const response = await pollApi.getPoll(pollId);
-      setPoll(response.data.poll);
+      const [pollResponse, permissionsResponse] = await Promise.all([
+        pollApi.getPoll(pollId),
+        pollApi.getUserPollPermissions(pollId)
+      ]);
+      setPoll(pollResponse.data.poll);
+      setPermissions(permissionsResponse.data.permissions);
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to load poll');
     } finally {
@@ -109,7 +114,7 @@ const PollSettings: React.FC = () => {
     );
   }
 
-  if (!poll) {
+  if (!poll || !permissions) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -129,9 +134,8 @@ const PollSettings: React.FC = () => {
     );
   }
 
-  // Check permissions
-  const canEdit = user?.role === 'admin' || poll.managerId === user?.id;
-  if (!canEdit) {
+  // Check permissions using the new permission system
+  if (!permissions.canView) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -139,7 +143,7 @@ const PollSettings: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-          <p className="text-gray-500 mb-6">You don't have permission to edit this poll.</p>
+          <p className="text-gray-500 mb-6">You don't have permission to view this poll.</p>
           <button
             onClick={() => navigate('/dashboard')}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
@@ -221,6 +225,24 @@ const PollSettings: React.FC = () => {
         </div>
       )}
 
+      {/* Permissions Info */}
+      {(!permissions.canEdit || !permissions.canManage) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-blue-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <span className="text-blue-700 font-medium">
+                {permissions.canEdit && !permissions.canManage ? 'You are viewing as an Editor - You can modify poll content and settings' : 
+                 !permissions.canEdit && permissions.canAudit ? 'You are viewing as an Auditor - You have read-only access' :
+                 'You have limited access to this poll'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
@@ -254,22 +276,22 @@ const PollSettings: React.FC = () => {
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'basic' && (
-              <BasicInfoTab poll={poll} onSave={handleSave} saving={saving} />
+              <BasicInfoTab poll={poll} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'schedule' && (
-              <ScheduleTab poll={poll} onSave={handleSave} saving={saving} />
+              <ScheduleTab poll={poll} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'questions' && (
-              <QuestionsTab poll={poll} onSave={handleSave} saving={saving} />
+              <QuestionsTab poll={poll} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'settings' && (
-              <SettingsTab poll={poll} onSave={handleSave} saving={saving} />
+              <SettingsTab poll={poll} onSave={permissions.canEditSettings ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'participants' && (
-              <ParticipantsTab poll={poll} onSave={handleSave} saving={saving} />
+              <ParticipantsTab poll={poll} onSave={permissions.canManageParticipants ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'auditors' && (
-              <AuditorsTab poll={poll} onSave={handleSave} saving={saving} />
+              <AuditorsTab poll={poll} onSave={permissions.canManage ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'results' && (
               <ResultsTab poll={poll} />

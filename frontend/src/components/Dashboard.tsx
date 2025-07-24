@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { pollApi } from '../utils/api';
-import type { Poll } from '../types';
+import type { Poll, PollPermissions } from '../types';
 import CreatePollModal from './CreatePollModal';
 
 const Dashboard: React.FC = () => {
@@ -10,6 +10,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [otherPolls, setOtherPolls] = useState<Poll[]>([]);
+  const [pollPermissions, setPollPermissions] = useState<Record<string, PollPermissions>>({});
   const [loading, setLoading] = useState(true);
   const [loadingOther, setLoadingOther] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +26,24 @@ const Dashboard: React.FC = () => {
   const loadPolls = async () => {
     try {
       const response = await pollApi.getPolls();
-      setPolls(response.data.polls);
+      const pollsData = response.data.polls;
+      setPolls(pollsData);
+      
+      // Load permissions for each poll
+      const permissionsPromises = pollsData.map(poll =>
+        pollApi.getUserPollPermissions(poll.id).then(res => ({
+          pollId: poll.id,
+          permissions: res.data.permissions
+        }))
+      );
+      
+      const permissionsResults = await Promise.all(permissionsPromises);
+      const permissionsMap = permissionsResults.reduce((acc, { pollId, permissions }) => {
+        acc[pollId] = permissions;
+        return acc;
+      }, {} as Record<string, PollPermissions>);
+      
+      setPollPermissions(permissionsMap);
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to load polls');
     } finally {
@@ -52,9 +70,9 @@ const Dashboard: React.FC = () => {
   };
 
   const handlePollClick = (poll: Poll) => {
-    // Navigate to poll settings if user can edit, otherwise to poll view
-    const canEdit = user?.role === 'admin' || poll.managerId === user?.id;
-    if (canEdit) {
+    // Navigate to poll settings if user can view/edit, otherwise to poll participation
+    const permissions = pollPermissions[poll.id];
+    if (permissions?.canView) {
       navigate(`/polls/${poll.id}/settings`);
     } else {
       // Navigate to poll participation for regular users
@@ -337,7 +355,7 @@ const Dashboard: React.FC = () => {
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                             <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                           </svg>
-                          {(user?.role === 'admin' || poll.managerId === user?.id) ? 'Settings' : 'View'}
+                          {pollPermissions[poll.id]?.canView ? 'Settings' : 'View'}
                         </button>
                         {/* Participate button for users */}
                         {user?.role === 'user' && (poll.status === 'completed' || poll.status === 'active') && (
