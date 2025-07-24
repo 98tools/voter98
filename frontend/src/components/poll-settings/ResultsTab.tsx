@@ -78,6 +78,25 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
     );
   }
 
+  // Additional safety check for essential data structure
+  if (!results.poll || !results.statistics) {
+    return (
+      <div className="text-center py-12">
+        <svg className="mx-auto h-16 w-16 text-yellow-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Incomplete Results Data</h3>
+        <p className="text-gray-500 mb-4">The results data is incomplete or malformed.</p>
+        <button
+          onClick={loadResults}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Poll Info */}
@@ -89,21 +108,21 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
               <div>
                 <span className="font-medium text-gray-700">Status: </span>
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  results.poll.status === 'active' ? 'bg-green-100 text-green-800' :
-                  results.poll.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                  results.poll.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                  results.poll?.status === 'active' ? 'bg-green-100 text-green-800' :
+                  results.poll?.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                  results.poll?.status === 'draft' ? 'bg-gray-100 text-gray-800' :
                   'bg-red-100 text-red-800'
                 }`}>
-                  {results.poll.status.toUpperCase()}
+                  {results.poll?.status?.toUpperCase() || 'UNKNOWN'}
                 </span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Start Date: </span>
-                <span className="text-gray-600">{formatDate(results.poll.startDate)}</span>
+                <span className="text-gray-600">{results.poll?.startDate ? formatDate(results.poll.startDate) : 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">End Date: </span>
-                <span className="text-gray-600">{formatDate(results.poll.endDate)}</span>
+                <span className="text-gray-600">{results.poll?.endDate ? formatDate(results.poll.endDate) : 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -113,9 +132,9 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
             <div className="space-y-2 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Manager: </span>
-                <span className="text-gray-600">{results.poll.manager.name || 'N/A'}</span>
+                <span className="text-gray-600">{results.poll?.manager?.name || 'N/A'}</span>
               </div>
-              {results.poll.auditors.length > 0 && (
+              {results.poll?.auditors && results.poll.auditors.length > 0 && (
                 <div>
                   <span className="font-medium text-gray-700">Auditors: </span>
                   <span className="text-gray-600">{results.poll.auditors.length} assigned</span>
@@ -137,7 +156,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-blue-600">Total Participants</p>
-              <p className="text-lg font-semibold text-blue-900">{results.statistics.totalParticipants}</p>
+              <p className="text-lg font-semibold text-blue-900">{results.statistics?.totalParticipants || 0}</p>
             </div>
           </div>
         </div>
@@ -151,7 +170,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-green-600">Voted</p>
-              <p className="text-lg font-semibold text-green-900">{results.statistics.votedParticipants}</p>
+              <p className="text-lg font-semibold text-green-900">{results.statistics?.votedParticipants || 0}</p>
             </div>
           </div>
         </div>
@@ -165,12 +184,12 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-purple-600">Participation Rate</p>
-              <p className="text-lg font-semibold text-purple-900">{formatPercentage(results.statistics.participationRate)}</p>
+              <p className="text-lg font-semibold text-purple-900">{formatPercentage(results.statistics?.participationRate || 0)}</p>
             </div>
           </div>
         </div>
 
-        {results.poll.voteWeightEnabled && results.statistics.totalVoteWeight && (
+        {results.poll && results.poll.voteWeightEnabled && results.statistics && results.statistics.totalVoteWeight && (
           <div className="bg-orange-50 rounded-lg p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -180,7 +199,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-orange-600">Total Vote Weight</p>
-                <p className="text-lg font-semibold text-orange-900">{results.statistics.totalVoteWeight}</p>
+                <p className="text-lg font-semibold text-orange-900">{results.statistics?.totalVoteWeight || 0}</p>
               </div>
             </div>
           </div>
@@ -188,7 +207,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
       </div>
 
       {/* Question Results */}
-      {results.questions.length > 0 && (
+      {results.questions && results.questions.length > 0 && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold text-gray-900">Results by Question</h2>
           
@@ -201,34 +220,34 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
                 
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                   <span>Total Votes: {question.totalVotes || 0}</span>
-                  {results.poll.voteWeightEnabled && question.totalWeightedVotes && (
+                  {results.poll && results.poll.voteWeightEnabled && question.totalWeightedVotes && (
                     <span>Weighted Votes: {question.totalWeightedVotes}</span>
                   )}
                 </div>
               </div>
 
               <div className="space-y-4">
-                {question.options.map((option) => (
+                {question.options && question.options.map((option) => (
                   <div key={option.optionId} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900">{option.title}</span>
                       <div className="flex items-center space-x-3 text-sm text-gray-600">
-                        <span>{option.voteCount} votes</span>
-                        <span className="font-medium">{formatPercentage(option.percentage)}</span>
+                        <span>{option.voteCount || 0} votes</span>
+                        <span className="font-medium">{formatPercentage(option.percentage || 0)}</span>
                       </div>
                     </div>
                     
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(option.percentage, 2)}%` }}
+                        style={{ width: `${Math.max(option.percentage || 0, 2)}%` }}
                       ></div>
                     </div>
                     
-                    {results.poll.voteWeightEnabled && (
+                    {results.poll && results.poll.voteWeightEnabled && (
                       <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Weighted: {option.weightedVoteCount}</span>
-                        <span>{formatPercentage(option.weightedPercentage)}</span>
+                        <span>Weighted: {option.weightedVoteCount || 0}</span>
+                        <span>{formatPercentage(option.weightedPercentage || 0)}</span>
                       </div>
                     )}
                   </div>
@@ -240,7 +259,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
       )}
 
       {/* Participants List */}
-      {results.participants.length > 0 && results.permissions.canViewFullResults && (
+      {results.participants && results.participants.length > 0 && results.permissions && results.permissions.canViewFullResults && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Participants</h2>
           
@@ -254,7 +273,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
-                  {results.poll.voteWeightEnabled && (
+                  {results.poll && results.poll.voteWeightEnabled && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Vote Weight
                     </th>
@@ -272,8 +291,8 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
                   <tr key={participant.id || index}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{participant.name}</div>
-                        <div className="text-sm text-gray-500">{participant.email}</div>
+                        <div className="text-sm font-medium text-gray-900">{participant.name || 'N/A'}</div>
+                        <div className="text-sm text-gray-500">{participant.email || 'N/A'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -285,9 +304,9 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ poll }) => {
                         {participant.isUser ? 'Registered User' : 'External'}
                       </span>
                     </td>
-                    {results.poll.voteWeightEnabled && typeof participant.voteWeight !== 'undefined' && (
+                    {results.poll && results.poll.voteWeightEnabled && typeof participant.voteWeight !== 'undefined' && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {participant.voteWeight}
+                        {participant.voteWeight || 0}
                       </td>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap">

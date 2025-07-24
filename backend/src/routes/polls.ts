@@ -102,6 +102,7 @@ async function getUserPollPermissions(
     permissions.canEdit = true;
     permissions.canViewResults = true;
     permissions.canViewParticipants = true;
+    permissions.canManageParticipants = true;
     permissions.canViewSettings = true;
     permissions.canEditSettings = true;
     // Editors can edit poll content and some settings
