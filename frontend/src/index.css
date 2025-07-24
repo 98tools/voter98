@@ -76,6 +76,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+/* Modal backdrop with blur effect */
+.modal-backdrop {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 .card-shadow {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
