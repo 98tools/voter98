@@ -569,7 +569,7 @@ pollRoutes.get('/:id/permissions', async (c) => {
   }
 });
 
-// Add participant to poll (poll manager or admin)
+// Add participant to poll (poll manager, admin, or editors)
 const addParticipantSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
@@ -591,8 +591,16 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema), a
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Check permissions - only poll manager or admin can add participants
-    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+    // Check permissions - admin, poll manager, or editors can add participants
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor) {
       return c.json({ error: 'Access denied' }, 403);
     }
 
@@ -655,7 +663,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema), a
   }
 });
 
-// Remove participant from poll (poll manager or admin)
+// Remove participant from poll (poll manager, admin, or editors)
 pollRoutes.delete('/:id/participants/:participantId', async (c) => {
   const pollId = c.req.param('id');
   const participantId = c.req.param('participantId');
@@ -669,8 +677,16 @@ pollRoutes.delete('/:id/participants/:participantId', async (c) => {
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Check permissions - only poll manager or admin can remove participants
-    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+    // Check permissions - admin, poll manager, or editors can remove participants
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor) {
       return c.json({ error: 'Access denied' }, 403);
     }
 
@@ -714,8 +730,16 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Check permissions - only poll manager or admin can update participants
-    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+    // Check permissions - admin, poll manager, or editors can update participants
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor) {
       return c.json({ error: 'Access denied' }, 403);
     }
 
