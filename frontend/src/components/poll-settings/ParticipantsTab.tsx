@@ -922,7 +922,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
       {/* CSV Upload Modal */}
       {showCsvModal && (
         <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
@@ -1149,10 +1149,15 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                         </svg>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">Auto-Detection Feature</h3>
+                        <h3 className="text-sm font-medium text-blue-800">File input requirements:</h3>
                         <p className="mt-1 text-sm text-blue-700">
-                          User type is now automatically detected! If an email exists in the system, the participant will be marked as a registered user. 
-                          Only email is required - name, vote_weight and token are optional.
+                          <strong>Only email is required</strong> - name, vote_weight and token are optional. <br></br><br></br>
+                          User type is automatically detected! If an email exists in the system, the participant will be marked as a registered user.<br></br>
+                          If the email does not exist, the participant will be marked as an external participant.<br></br>
+                          For external participants, you can optionally provide a custom token.<br></br>
+                          If no token is provided, one will be generated automatically.<br></br>
+                          You can optionally add vote_weight to any user, otherwise the default value (1) will be used.<br></br>
+                          You can optionally add the name, otherwise the email will be displayed as participant's name.
                         </p>
                       </div>
                     </div>
