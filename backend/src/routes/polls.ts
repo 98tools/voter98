@@ -511,7 +511,7 @@ pollRoutes.delete('/:id', adminMiddleware, async (c) => {
   }
 });
 
-// Get participants for a poll (poll manager or admin)
+// Get participants for a poll (poll manager, admin, editors, auditors)
 pollRoutes.get('/:id/participants', async (c) => {
   const pollId = c.req.param('id');
   const user = c.get('user')!;
@@ -524,8 +524,21 @@ pollRoutes.get('/:id/participants', async (c) => {
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Check permissions - only poll manager or admin can view participants
-    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+    // Check permissions - admin, poll manager, editors, or auditors can view participants
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+    
+    // Check if user is an auditor
+    const isAuditor = await db.select().from(pollAuditors)
+      .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor && !isAuditor) {
       return c.json({ error: 'Access denied' }, 403);
     }
 
