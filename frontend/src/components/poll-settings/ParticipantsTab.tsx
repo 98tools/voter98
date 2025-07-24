@@ -155,6 +155,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
         const rowResult = {
           rowNumber: i + 1,
           name: row.name || row.email || '',
+          originalName: row.name || row.email || '', // Keep track of original name
           email: row.email || '',
           isUser: 'Auto-detected', // Will be determined by backend
           voteWeight: parseFloat(row.vote_weight) || 1.0,
@@ -200,7 +201,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
           // Handle system name usage
           if (response.data.systemNameUsed) {
             rowResult.systemNameUsed = true;
-            rowResult.name = response.data.participant.name; // Use the actual system name
+            // Keep the original name for display, but note that system name was used
             rowResult.message = `User already exists, system name '${response.data.participant.name}' will be used`;
           }
         } catch (error: any) {
@@ -317,6 +318,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
         const rowResult = {
           rowNumber: i + 1,
           name: row.name || row.email || '',
+          originalName: row.name || row.email || '', // Keep track of original name
           email: row.email || '',
           isUser: 'Auto-detected', // Will be determined by backend
           voteWeight: parseFloat(row.vote_weight) || 1.0,
@@ -363,7 +365,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
           // Handle system name usage
           if (response.data.systemNameUsed) {
             rowResult.systemNameUsed = true;
-            rowResult.name = response.data.participant.name; // Use the actual system name
+            // Keep the original name for display, but note that system name was used
             rowResult.message = `User already exists, system name '${response.data.participant.name}' will be used`;
           }
         } catch (error: any) {
@@ -986,19 +988,21 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {result.rowNumber}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {result.name}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span className={result.systemNameUsed ? 'text-yellow-600 font-medium' : 'text-gray-900'}>
+                                {result.originalName || result.name}
+                              </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {result.email}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                result.isUser 
+                                result.isUser && result.isUser.includes('Registered User')
                                   ? 'bg-blue-100 text-blue-800'
                                   : 'bg-orange-100 text-orange-800'
                               }`}>
-                                {result.isUser ? 'Registered User' : 'External'}
+                                {result.isUser && result.isUser.includes('Registered User') ? 'Registered User' : 'External'}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
