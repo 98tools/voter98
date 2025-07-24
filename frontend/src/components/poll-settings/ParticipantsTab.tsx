@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import type { Poll } from '../../types';
+import type { Poll, PollPermissions } from '../../types';
 import { pollApi } from '../../utils/api';
 
 interface ParticipantsTabProps {
   poll: Poll;
+  permissions: PollPermissions;
   onSave: (updates: Partial<Poll>) => void;
   saving: boolean;
 }
 
-const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll }) => {
+const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) => {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -207,23 +208,25 @@ Bob Wilson,bob@example.com,true,2.0,`;
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">Participants Management</h3>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-          >
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add Participant
-          </button>
-          <button
-            onClick={() => setShowCsvModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
-          >
-            Upload CSV
-          </button>
-        </div>
+        {permissions.canManageParticipants && (
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Participant
+            </button>
+            <button
+              onClick={() => setShowCsvModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+            >
+              Upload CSV
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Participants Summary */}
@@ -291,21 +294,28 @@ Bob Wilson,bob@example.com,true,2.0,`;
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
           </svg>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No participants yet</h3>
-          <p className="text-gray-500 mb-4">Add participants who can vote in this poll. You can add them individually or upload a CSV file.</p>
-          <div className="flex items-center justify-center space-x-3">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-            >
-              Add Individual Participant
-            </button>
-            <button
-              onClick={() => setShowCsvModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
-            >
-              Upload CSV File
-            </button>
-          </div>
+          <p className="text-gray-500 mb-4">
+            {permissions.canManageParticipants 
+              ? "Add participants who can vote in this poll. You can add them individually or upload a CSV file."
+              : "No participants have been added to this poll yet."
+            }
+          </p>
+          {permissions.canManageParticipants && (
+            <div className="flex items-center justify-center space-x-3">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+              >
+                Add Individual Participant
+              </button>
+              <button
+                onClick={() => setShowCsvModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+              >
+                Upload CSV File
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -430,22 +440,26 @@ Bob Wilson,bob@example.com,true,2.0,`;
                                 )}
                               </button>
                             </div>
-                            <button
-                              onClick={() => handleRegenerateToken(participant.id)}
-                              className="text-xs text-blue-600 hover:text-blue-800"
-                            >
-                              Regenerate Token
-                            </button>
+                            {permissions.canManageParticipants && (
+                              <button
+                                onClick={() => handleRegenerateToken(participant.id)}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                Regenerate Token
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleRemoveParticipant(participant.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Remove
-                        </button>
+                        {permissions.canManageParticipants && (
+                          <button
+                            onClick={() => handleRemoveParticipant(participant.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Remove
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

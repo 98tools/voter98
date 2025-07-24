@@ -288,7 +288,7 @@ const PollSettings: React.FC = () => {
               <SettingsTab poll={poll} onSave={permissions.canEditSettings ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'participants' && (
-              <ParticipantsTab poll={poll} onSave={permissions.canManageParticipants ? handleSave : () => {}} saving={saving} />
+              <ParticipantsTab poll={poll} permissions={permissions} onSave={permissions.canManageParticipants ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'auditors' && (
               <AuditorsTab poll={poll} onSave={permissions.canManage ? handleSave : () => {}} saving={saving} />
