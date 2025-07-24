@@ -1111,7 +1111,7 @@ pollRoutes.get('/:id/results', async (c) => {
 
     // Check permissions
     let hasAccess = false;
-    let accessLevel = 'none'; // 'admin', 'manager', 'auditor', 'participant'
+    let accessLevel = 'none'; // 'admin', 'manager', 'auditor', 'editor', 'participant'
 
     if (user.role === 'admin') {
       hasAccess = true;
@@ -1128,6 +1128,15 @@ pollRoutes.get('/:id/results', async (c) => {
         if (isAuditor) {
           hasAccess = true;
           accessLevel = 'auditor';
+        } else {
+          // Check if user is an editor
+          const isEditor = await db.select().from(pollEditors)
+            .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+            .get();
+          if (isEditor) {
+            hasAccess = true;
+            accessLevel = 'editor';
+          }
         }
       }
     } else {
