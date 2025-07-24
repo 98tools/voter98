@@ -574,7 +574,7 @@ pollRoutes.get('/:id/permissions', async (c) => {
 const addParticipantSchema = z.object({
   email: z.string().email('Invalid email format'),
   name: z.string().min(1, 'Name is required'),
-  isUser: z.boolean().optional().default(false),
+  isUser: z.boolean().optional(), // Optional - will be auto-detected if not provided
   voteWeight: z.number().positive('Vote weight must be positive').optional().default(1.0),
   token: z.string().optional(),
 });
@@ -627,18 +627,27 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
       return c.json({ error: 'Participant already exists for this poll' }, 400);
     }
 
-    // For user participants, check if user exists
+    // Auto-detect if user exists in the system if isUser is not explicitly provided
     let userId = null;
-    if (isUser) {
-      const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    let finalIsUser = isUser;
+    
+    // Check if user exists in the database
+    const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    
+    if (finalIsUser === undefined) {
+      // Auto-detect: if user exists in database, set as user participant
+      finalIsUser = !!existingUser;
+    }
+    
+    if (finalIsUser) {
       if (!existingUser) {
-        return c.json({ error: 'User with this email does not exist' }, 400);
+        return c.json({ error: 'User with this email does not exist in the system' }, 400);
       }
       userId = existingUser.id;
     }
 
     // Generate token for non-user participants
-    const participantToken = !isUser ? (token || generateRandomToken()) : null;
+    const participantToken = !finalIsUser ? (token || generateRandomToken()) : null;
 
     // Create participant with all required fields
     const participant = await db.insert(pollParticipants)
@@ -647,7 +656,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
         userId,
         email,
         name,
-        isUser,
+        isUser: finalIsUser,
         token: participantToken,
         tokenUsed: false,
         voteWeight,
