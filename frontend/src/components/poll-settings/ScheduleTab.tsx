@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import type { Poll } from '../../types';
+import type { Poll, PollPermissions } from '../../types';
 
 interface ScheduleTabProps {
   poll: Poll;
+  permissions: PollPermissions;
   onSave: (updates: Partial<Poll>) => void;
   saving: boolean;
 }
 
-const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, onSave, saving }) => {
+const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, permissions, onSave, saving }) => {
   const [formData, setFormData] = useState({
     startDate: poll.startDate ? new Date(poll.startDate).toISOString().slice(0, 16) : '',
     endDate: poll.endDate ? new Date(poll.endDate).toISOString().slice(0, 16) : '',
@@ -36,7 +37,10 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, onSave, saving }) => {
                 id="startDate"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  !permissions.canEdit ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                disabled={!permissions.canEdit}
                 required
               />
             </div>
@@ -50,20 +54,25 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, onSave, saving }) => {
                 id="endDate"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  !permissions.canEdit ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                disabled={!permissions.canEdit}
                 required
               />
             </div>
           </div>
 
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Schedule'}
-            </button>
+            {permissions.canEdit && (
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Schedule'}
+              </button>
+            )}
           </div>
         </form>
       </div>

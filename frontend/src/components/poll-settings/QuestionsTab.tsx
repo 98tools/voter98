@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import type { Poll, BallotQuestion, BallotOption } from '../../types';
+import type { Poll, BallotQuestion, BallotOption, PollPermissions } from '../../types';
 import QuestionEditor from './QuestionEditor.tsx';
 
 interface QuestionsTabProps {
   poll: Poll;
+  permissions: PollPermissions;
   onSave: (updates: Partial<Poll>) => void;
   saving: boolean;
 }
 
-const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, onSave, saving }) => {
+const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, permissions, onSave, saving }) => {
   const [questions, setQuestions] = useState(poll.ballot);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
 
@@ -97,16 +98,18 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, onSave, saving }) => 
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">Poll Questions</h3>
         <div className="flex space-x-3">
-          <button
-            onClick={handleAddQuestion}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-          >
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add Question
-          </button>
-          {editingQuestion && (
+          {permissions.canEdit && (
+            <button
+              onClick={handleAddQuestion}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Question
+            </button>
+          )}
+          {editingQuestion && permissions.canEdit && (
             <button
               onClick={handleSaveQuestions}
               disabled={saving}
@@ -125,12 +128,14 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, onSave, saving }) => 
           </svg>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No questions yet</h3>
           <p className="text-gray-500 mb-4">Add your first question to get started.</p>
-          <button
-            onClick={handleAddQuestion}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-          >
-            Add Question
-          </button>
+          {permissions.canEdit && (
+            <button
+              onClick={handleAddQuestion}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+            >
+              Add Question
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -140,6 +145,7 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, onSave, saving }) => 
               question={question}
               index={index}
               isEditing={editingQuestion === question.id}
+              canEdit={permissions.canEdit}
               onEdit={() => setEditingQuestion(question.id)}
               onDelete={() => handleDeleteQuestion(question.id)}
               onUpdate={(updates: Partial<BallotQuestion>) => handleUpdateQuestion(question.id, updates)}

@@ -5,6 +5,7 @@ interface QuestionEditorProps {
   question: BallotQuestion;
   index: number;
   isEditing: boolean;
+  canEdit?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onUpdate: (updates: Partial<BallotQuestion>) => void;
@@ -17,6 +18,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   question,
   index,
   isEditing,
+  canEdit = true,
   onEdit,
   onDelete,
   onUpdate,
@@ -31,7 +33,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           Question {index + 1}
         </h4>
         <div className="flex space-x-2">
-          {!isEditing ? (
+          {canEdit && !isEditing && (
             <button
               onClick={onEdit}
               className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -41,7 +43,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               </svg>
               Edit
             </button>
-          ) : (
+          )}
+          {canEdit && isEditing && (
             <button
               onClick={() => onEdit()}
               className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -49,16 +52,18 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               Done
             </button>
           )}
-          <button
-            onClick={onDelete}
-            className="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
-          >
-            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-              <path fillRule="evenodd" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 112 0v6a1 1 0 11-2 0V9zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V9z" clipRule="evenodd" />
-            </svg>
-            Delete
-          </button>
+          {canEdit && (
+            <button
+              onClick={onDelete}
+              className="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+            >
+              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M4 5a1 1 0 011-1h10a1 1 0 011 1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 112 0v6a1 1 0 11-2 0V9zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V9z" clipRule="evenodd" />
+              </svg>
+              Delete
+            </button>
+          )}
         </div>
       </div>
 

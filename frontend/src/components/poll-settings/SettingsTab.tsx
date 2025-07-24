@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import type { Poll } from '../../types';
+import type { Poll, PollPermissions } from '../../types';
 
 interface SettingsTabProps {
   poll: Poll;
+  permissions: PollPermissions;
   onSave: (updates: Partial<Poll>) => void;
   saving: boolean;
 }
 
-const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
+const SettingsTab: React.FC<SettingsTabProps> = ({ poll, permissions, onSave, saving }) => {
   const [settings, setSettings] = useState(poll.settings);
 
   // Update settings when poll changes
@@ -58,7 +59,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.showParticipantNames || false}
                     onChange={(e) => handleSettingChange('showParticipantNames', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -76,7 +80,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.showVoteWeights || false}
                     onChange={(e) => handleSettingChange('showVoteWeights', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -94,7 +101,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.showVoteCounts || false}
                     onChange={(e) => handleSettingChange('showVoteCounts', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -118,7 +128,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.showResultsBeforeEnd || false}
                     onChange={(e) => handleSettingChange('showResultsBeforeEnd', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -136,7 +149,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.allowResultsView !== false}
                     onChange={(e) => handleSettingChange('allowResultsView', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -160,8 +176,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.voteWeightEnabled || false}
                     onChange={(e) => handleSettingChange('voteWeightEnabled', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    disabled={isPollActive}
+                    disabled={!permissions.canEditSettings || isPollActive}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -182,7 +200,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
                     type="checkbox"
                     checked={settings.allowVoteChanges || false}
                     onChange={(e) => handleSettingChange('allowVoteChanges', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -219,13 +240,15 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, onSave, saving }) => {
           </div>
 
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </button>
+            {permissions.canEditSettings && (
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Settings'}
+              </button>
+            )}
           </div>
         </form>
       </div>

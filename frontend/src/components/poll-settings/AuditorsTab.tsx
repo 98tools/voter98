@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import type { Poll } from '../../types';
+import type { Poll, PollPermissions } from '../../types';
 import { pollApi } from '../../utils/api';
 
 interface AuditorsTabProps {
   poll: Poll;
+  permissions: PollPermissions;
   onSave: (updates: Partial<Poll>) => void;
   saving: boolean;
 }
 
-const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
+const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
   const [auditors, setAuditors] = useState<any[]>([]);
   const [editors, setEditors] = useState<any[]>([]);
   const [availableSubAdmins, setAvailableSubAdmins] = useState<any[]>([]);
@@ -218,18 +219,20 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
             <h3 className="text-lg font-medium text-gray-900">Poll Auditors</h3>
             <p className="text-sm text-gray-500">Users who can monitor and audit poll activity</p>
           </div>
-          <button
-            onClick={() => {
-              setShowAddAuditorModal(true);
-              loadAvailableSubAdmins();
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
-          >
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add Auditor
-          </button>
+          {permissions.canManage && (
+            <button
+              onClick={() => {
+                setShowAddAuditorModal(true);
+                loadAvailableSubAdmins();
+              }}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Auditor
+            </button>
+          )}
         </div>
 
         {auditors.length === 0 ? (
@@ -304,12 +307,14 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
                           {auditor.lastAccess || 'Never'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleRemoveAuditor(auditor.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Remove
-                          </button>
+                          {permissions.canManage && (
+                            <button
+                              onClick={() => handleRemoveAuditor(auditor.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Remove
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -328,18 +333,20 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
             <h3 className="text-lg font-medium text-gray-900">Poll Editors</h3>
             <p className="text-sm text-gray-500">Users who can modify poll content and settings</p>
           </div>
-          <button
-            onClick={() => {
-              setShowAddEditorModal(true);
-              loadAvailableSubAdmins();
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
-          >
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Add Editor
-          </button>
+          {permissions.canManage && (
+            <button
+              onClick={() => {
+                setShowAddEditorModal(true);
+                loadAvailableSubAdmins();
+              }}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Editor
+            </button>
+          )}
         </div>
 
         {editors.length === 0 ? (
@@ -413,12 +420,14 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll }) => {
                           {editor.lastAccess || 'Never'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleRemoveEditor(editor.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Remove
-                          </button>
+                          {permissions.canManage && (
+                            <button
+                              onClick={() => handleRemoveEditor(editor.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Remove
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

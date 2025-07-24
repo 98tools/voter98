@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import type { Poll } from '../../types';
+import type { Poll, PollPermissions } from '../../types';
 
 interface BasicInfoTabProps {
   poll: Poll;
+  permissions: PollPermissions;
   onSave: (updates: Partial<Poll>) => void;
   saving: boolean;
 }
 
-const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ poll, onSave, saving }) => {
+const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ poll, permissions, onSave, saving }) => {
   const [formData, setFormData] = useState({
     title: poll.title,
     description: poll.description || '',
@@ -35,7 +36,10 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ poll, onSave, saving }) => 
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                !permissions.canEdit ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
+              disabled={!permissions.canEdit}
               required
             />
           </div>
@@ -49,19 +53,24 @@ const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ poll, onSave, saving }) => 
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                !permissions.canEdit ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
+              disabled={!permissions.canEdit}
               placeholder="Provide a detailed description of your poll"
             />
           </div>
 
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            {permissions.canEdit && (
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            )}
           </div>
         </form>
       </div>

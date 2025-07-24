@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { pollApi } from '../../utils/api';
 import type { Poll, PollPermissions } from '../../types';
 import BasicInfoTab from './BasicInfoTab';
@@ -15,7 +14,6 @@ import PollUrlDisplay from './PollUrlDisplay';
 const PollSettings: React.FC = () => {
   const { pollId } = useParams<{ pollId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [poll, setPoll] = useState<Poll | null>(null);
   const [permissions, setPermissions] = useState<PollPermissions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -192,7 +190,7 @@ const PollSettings: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              {poll.status === 'draft' ? (
+              {poll.status === 'draft' && permissions.canManage && (
                 <button
                   onClick={handleLaunchPoll}
                   disabled={saving}
@@ -203,7 +201,8 @@ const PollSettings: React.FC = () => {
                   </svg>
                   Launch Poll
                 </button>
-              ) : (poll.status === 'active' || poll.status === 'completed') && (
+              )}
+              {(poll.status === 'active' || poll.status === 'completed') && (
                 <PollUrlDisplay pollId={poll.id} />
               )}
             </div>
@@ -276,22 +275,22 @@ const PollSettings: React.FC = () => {
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'basic' && (
-              <BasicInfoTab poll={poll} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
+              <BasicInfoTab poll={poll} permissions={permissions} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'schedule' && (
-              <ScheduleTab poll={poll} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
+              <ScheduleTab poll={poll} permissions={permissions} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'questions' && (
-              <QuestionsTab poll={poll} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
+              <QuestionsTab poll={poll} permissions={permissions} onSave={permissions.canEdit ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'settings' && (
-              <SettingsTab poll={poll} onSave={permissions.canEditSettings ? handleSave : () => {}} saving={saving} />
+              <SettingsTab poll={poll} permissions={permissions} onSave={permissions.canEditSettings ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'participants' && (
               <ParticipantsTab poll={poll} permissions={permissions} onSave={permissions.canManageParticipants ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'auditors' && (
-              <AuditorsTab poll={poll} onSave={permissions.canManage ? handleSave : () => {}} saving={saving} />
+              <AuditorsTab poll={poll} permissions={permissions} onSave={permissions.canManage ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'results' && (
               <ResultsTab poll={poll} />
