@@ -1041,9 +1041,24 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                               {result.rowNumber}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <span className={result.systemNameUsed ? 'text-yellow-600 font-medium' : 'text-gray-900'}>
-                                {result.originalName || result.name}
-                              </span>
+                              {(() => {
+                                // Show old->new for name if external and changed
+                                let nameChanged = false;
+                                let nameDisplay = null;
+                                if (result.message === 'Participant already exists for this poll') {
+                                  const existing = participants.find(p => p.email === result.email);
+                                  if (existing && !existing.isUser && existing.name !== result.name) {
+                                    nameChanged = true;
+                                    nameDisplay = <span className="text-yellow-600 font-medium">{existing.name} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.name}</span></span>;
+                                  } else if (updatedRows.has(index) && existing && !existing.isUser) {
+                                    nameDisplay = <span className="text-yellow-600 font-medium">{result.name}</span>;
+                                  }
+                                }
+                                if (nameDisplay) {
+                                  return nameDisplay;
+                                }
+                                return <span className={result.systemNameUsed ? 'text-yellow-600 font-medium' : 'text-gray-900'}>{result.originalName || result.name}</span>;
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {result.email}
