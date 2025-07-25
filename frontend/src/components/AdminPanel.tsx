@@ -390,6 +390,17 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await userApi.deleteUser(userId);
+      setUsers(users.filter(u => u.id !== userId));
+      loadUsers();
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Failed to delete user');
+    }
+  };
+
   if (user?.role !== 'admin') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -731,7 +742,10 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                                 <button className="text-blue-600 hover:text-blue-900 font-medium transition-colors duration-200 cursor-pointer">
                                   Edit
                                 </button>
-                                <button className="text-red-600 hover:text-red-900 font-medium transition-colors duration-200 cursor-pointer">
+                                <button
+                                  className="text-red-600 hover:text-red-900 font-medium transition-colors duration-200 cursor-pointer"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                >
                                   Delete
                                 </button>
                               </div>

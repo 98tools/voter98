@@ -165,4 +165,20 @@ userRoutes.get('/sub-admins', adminMiddleware, async (c) => {
   }
 });
 
+// Delete user by ID (admin only)
+userRoutes.delete('/:id', adminMiddleware, async (c) => {
+  const db = getDb(c.env.DB);
+  const userId = c.req.param('id');
+  try {
+    const deleted = await db.delete(users).where(eq(users.id, userId)).run();
+    if (deleted.changes === 0) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    return c.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 export default userRoutes;

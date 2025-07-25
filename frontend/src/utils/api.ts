@@ -36,6 +36,7 @@ export const userApi = {
     api.post<{ message: string; user: User }>('/users/sub-admin', { email, password, name }),
   createUser: (userData: { name: string; email: string; password: string; role: string }) => 
     api.post<{ message: string; user: User }>('/users/create', userData),
+  deleteUser: (id: string) => api.delete<{ message: string }>(`/users/${id}`),
 };
 
 // Poll API
