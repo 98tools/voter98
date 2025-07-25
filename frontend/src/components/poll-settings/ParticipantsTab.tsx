@@ -1122,19 +1122,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {(() => {
-                                // Show old->new for name if external and changed
-                                let nameChanged = false;
-                                let nameDisplay = null;
-                                if (result.message === 'Participant already exists for this poll') {
-                                  const existing = participants.find(p => p.email === result.email);
-                                  if (existing && !existing.isUser && existing.name !== result.name) {
-                                    nameChanged = true;
-                                    nameDisplay = <span className="block text-xs text-yellow-600">Name: {existing.name} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.name}</span></span>;
-                                  } else if (updatedRows.has(index) && existing && !existing.isUser) {
-                                    nameDisplay = <span className="block text-xs text-yellow-600">Name: {result.name}</span>;
-                                  }
-                                }
-                                // Status and update button
+                                // Status and update button (without name change display)
                                 if (result.success) {
                                   return result.systemNameUsed ? (
                                     <div className="flex items-start">
@@ -1168,19 +1156,17 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                                     updatePayload = voteWeightChanged ? { voteWeight: result.voteWeight } : {};
                                   } else {
                                     // For external: only update token if it is non-empty and changed
-                                  let tokenUpdate = {};
-                                  // Only update token if non-empty and changed, and never suggest update if token is empty
-                                  if (tokenChanged) {
-                                    tokenUpdate = { token: result.token };
+                                    let tokenUpdate = {};
+                                    if (tokenChanged) {
+                                      tokenUpdate = { token: result.token };
+                                    }
+                                    canUpdate = (voteWeightChanged || Object.keys(tokenUpdate).length > 0 || nameChangedFinal) && !updatedRows.has(index);
+                                    updatePayload = {
+                                      ...(voteWeightChanged ? { voteWeight: result.voteWeight } : {}),
+                                      ...tokenUpdate,
+                                      ...(nameChangedFinal ? { name: result.name } : {})
+                                    };
                                   }
-                                  canUpdate = (voteWeightChanged || Object.keys(tokenUpdate).length > 0 || nameChangedFinal) && !updatedRows.has(index);
-                                  updatePayload = {
-                                    ...(voteWeightChanged ? { voteWeight: result.voteWeight } : {}),
-                                    ...tokenUpdate,
-                                    ...(nameChangedFinal ? { name: result.name } : {})
-                                  };
-                                  }
-                                  // If only token changed for Registered User, do not show update button
                                   if (isRegisteredUser && !voteWeightChanged) canUpdate = false;
                                   return (
                                     <div>
@@ -1191,7 +1177,6 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                                         <div>
                                           <span className="text-sm text-red-600 font-medium">Error</span>
                                           <p className="text-xs text-red-500 mt-1">{result.message}</p>
-                                          {nameDisplay}
                                           {updatedRows.has(index) && (
                                             <span className="block text-xs text-yellow-600 font-medium mt-1">Values updated</span>
                                           )}
