@@ -23,6 +23,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
   const [uploadResults, setUploadResults] = useState<any[]>([]);
+  const [updatedRows, setUpdatedRows] = useState<Set<number>>(new Set());
   const [showResults, setShowResults] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAddingParticipant, setIsAddingParticipant] = useState(false);
@@ -1049,7 +1050,6 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {(() => {
-                                // If error is 'Participant already exists for this poll', check if participant is registered user
                                 let isRegisteredUser = false;
                                 if (
                                   result.message === 'Participant already exists for this poll' &&
@@ -1071,42 +1071,141 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                               })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {result.voteWeight}
+                              {(() => {
+                                // Show old->new if changed
+                                let display = result.voteWeight;
+                                let changed = false;
+                                if (result.message === 'Participant already exists for this poll') {
+                                  const existing = participants.find(p => p.email === result.email);
+                                  if (existing && existing.voteWeight !== result.voteWeight) {
+                                    display = <span>{existing.voteWeight} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.voteWeight}</span></span>;
+                                    changed = true;
+                                  } else if (updatedRows.has(index)) {
+                                    display = <span className="text-yellow-600 font-semibold">{result.voteWeight}</span>;
+                                  }
+                                }
+                                return display;
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                              {result.token}
+                              {(() => {
+                                let display = result.token;
+                                let changed = false;
+                                if (result.message === 'Participant already exists for this poll') {
+                                  const existing = participants.find(p => p.email === result.email);
+                                  if (existing && existing.token !== result.token) {
+                                    display = <span>{existing.token || <span className="text-gray-400">(none)</span>} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.token}</span></span>;
+                                    changed = true;
+                                  } else if (updatedRows.has(index)) {
+                                    display = <span className="text-yellow-600 font-semibold">{result.token}</span>;
+                                  }
+                                }
+                                return display;
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {result.success ? (
-                                result.systemNameUsed ? (
-                                  <div className="flex items-start">
-                                    <svg className="w-4 h-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                    </svg>
-                                    <div>
-                                      <span className="text-sm text-yellow-600 font-medium">Success (System Name Used)</span>
-                                      <p className="text-xs text-yellow-500 mt-1">{result.message}</p>
+                              {(() => {
+                                // Show old->new for name if external and changed
+                                let nameChanged = false;
+                                let nameDisplay = null;
+                                if (result.message === 'Participant already exists for this poll') {
+                                  const existing = participants.find(p => p.email === result.email);
+                                  if (existing && !existing.isUser && existing.name !== result.name) {
+                                    nameChanged = true;
+                                    nameDisplay = <span className="block text-xs text-yellow-600">Name: {existing.name} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.name}</span></span>;
+                                  } else if (updatedRows.has(index) && existing && !existing.isUser) {
+                                    nameDisplay = <span className="block text-xs text-yellow-600">Name: {result.name}</span>;
+                                  }
+                                }
+                                // Status and update button
+                                if (result.success) {
+                                  return result.systemNameUsed ? (
+                                    <div className="flex items-start">
+                                      <svg className="w-4 h-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                      </svg>
+                                      <div>
+                                        <span className="text-sm text-yellow-600 font-medium">Success (System Name Used)</span>
+                                        <p className="text-xs text-yellow-500 mt-1">{result.message}</p>
+                                      </div>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center">
-                                    <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="text-sm text-green-600 font-medium">Success</span>
-                                  </div>
-                                )
-                              ) : (
-                                <div className="flex items-start">
-                                  <svg className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                  </svg>
-                                  <div>
-                                    <span className="text-sm text-red-600 font-medium">Error</span>
-                                    <p className="text-xs text-red-500 mt-1">{result.message}</p>
-                                  </div>
-                                </div>
-                              )}
+                                  ) : (
+                                    <div className="flex items-center">
+                                      <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="text-sm text-green-600 font-medium">Success</span>
+                                    </div>
+                                  );
+                                } else if (result.message === 'Participant already exists for this poll') {
+                                  const existing = participants.find(p => p.email === result.email);
+                                  const voteWeightChanged = existing && existing.voteWeight !== result.voteWeight;
+                                  const tokenChanged = existing && existing.token !== result.token;
+                                  const nameChangedFinal = existing && !existing.isUser && existing.name !== result.name;
+                                  const canUpdate = (voteWeightChanged || tokenChanged || nameChangedFinal) && !updatedRows.has(index);
+                                  return (
+                                    <div>
+                                      <div className="flex items-start">
+                                        <svg className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                        <div>
+                                          <span className="text-sm text-red-600 font-medium">Error</span>
+                                          <p className="text-xs text-red-500 mt-1">{result.message}</p>
+                                          {nameDisplay}
+                                          {updatedRows.has(index) && (
+                                            <span className="block text-xs text-yellow-600 font-medium mt-1">Values updated</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {canUpdate && (
+                                        <button
+                                          className="mt-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50"
+                                          disabled={updatedRows.has(index)}
+                                          onClick={async () => {
+                                            // Update participant
+                                            if (!poll?.id || !existing) return;
+                                            try {
+                                              await pollApi.updateParticipant(poll.id, existing.id, {
+                                                voteWeight: result.voteWeight,
+                                                token: result.token,
+                                                ...(nameChangedFinal ? { name: result.name } : {})
+                                              });
+                                              setParticipants(participants.map(p =>
+                                                p.id === existing.id
+                                                  ? {
+                                                      ...p,
+                                                      voteWeight: result.voteWeight,
+                                                      token: result.token,
+                                                      ...(nameChangedFinal ? { name: result.name } : {})
+                                                    }
+                                                  : p
+                                              ));
+                                              setUpdatedRows(prev => new Set(prev).add(index));
+                                            } catch (err) {
+                                              alert('Failed to update participant values');
+                                            }
+                                          }}
+                                        >
+                                          Update Values
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                } else {
+                                  return (
+                                    <div className="flex items-start">
+                                      <svg className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                      </svg>
+                                      <div>
+                                        <span className="text-sm text-red-600 font-medium">Error</span>
+                                        <p className="text-xs text-red-500 mt-1">{result.message}</p>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              })()}
                             </td>
                           </tr>
                         ))}

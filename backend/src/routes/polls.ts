@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getDb } from '../models/db';
 import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
-import { eq, and, not, inArray } from 'drizzle-orm';
+import { eq, and, not, inArray, ne } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
 import { verifyPassword, generateRandomToken } from '../utils/auth';
 
@@ -776,6 +776,20 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
 
     if (!isAdmin && !isManager && !isEditor) {
       return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // If token is being updated, check for uniqueness (excluding current participant)
+    if (updateData.token) {
+      const tokenConflict = await db.select().from(pollParticipants)
+        .where(and(
+          eq(pollParticipants.pollId, pollId),
+          eq(pollParticipants.token, updateData.token),
+          ne(pollParticipants.id, participantId)
+        ))
+        .get();
+      if (tokenConflict) {
+        return c.json({ error: 'Token already in use by another participant' }, 409);
+      }
     }
 
     // Update participant
