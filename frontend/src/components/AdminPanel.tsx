@@ -16,7 +16,7 @@ const AdminPanel: React.FC = () => {
     totalUsers: 0,
     admins: 0,
     subAdmins: 0,
-    activePolls: 0
+    regularUsers: 0
   });
 
   const [newUser, setNewUser] = useState({
@@ -52,7 +52,7 @@ const AdminPanel: React.FC = () => {
         totalUsers: userData.length,
         admins: userData.filter((u: User) => u.role === 'admin').length,
         subAdmins: userData.filter((u: User) => u.role === 'sub-admin').length,
-        activePolls: 0 // This would come from polls API
+        regularUsers: userData.filter((u: User) => u.role === 'user').length
       });
     } catch (error: any) {
       console.error('Load users error:', error);
@@ -546,12 +546,12 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
             <div className="flex items-center">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{stats.activePolls}</p>
-                <p className="text-gray-600 text-sm">Active Polls</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.regularUsers}</p>
+                <p className="text-gray-600 text-sm">Regular Users</p>
               </div>
             </div>
           </div>
