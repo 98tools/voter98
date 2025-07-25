@@ -119,46 +119,40 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
 
   const handleFileUpload = async () => {
     if (!selectedFile || !poll?.id) return;
-    
     setFileError('');
     setIsUploading(true);
     const results: any[] = [];
-    
     try {
       const rawData = await parseFileData(selectedFile);
-      
       if (rawData.length < 2) {
         setFileError('File must contain at least a header row and one data row.');
         setIsUploading(false);
         return;
       }
-      
       const headers = rawData[0].map((h: string) => h.toString().toLowerCase().trim());
       const requiredHeaders = ['email'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-      
       if (missingHeaders.length > 0) {
         setFileError(`Missing required headers: ${missingHeaders.join(', ')}`);
         setIsUploading(false);
         return;
       }
-      
       const addedParticipants = [];
-      
+      // --- PATCH: Detect repeated emails in the file ---
+      const seenEmails = new Map(); // email -> row index (first occurrence)
       for (let i = 1; i < rawData.length; i++) {
         const values = rawData[i];
         const row: any = {};
-        
         headers.forEach((header: string, index: number) => {
           row[header] = values[index]?.toString().trim() || '';
         });
-        
+        const email = row.email?.toLowerCase().trim();
         const rowResult = {
           rowNumber: i + 1,
           name: row.name || row.email || '',
-          originalName: row.name || row.email || '', // Keep track of original name
+          originalName: row.name || row.email || '',
           email: row.email || '',
-          isUser: 'Auto-detected', // Will be determined by backend
+          isUser: 'Auto-detected',
           voteWeight: parseFloat(row.vote_weight) || 1.0,
           token: '',
           status: '',
@@ -166,61 +160,56 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
           success: false,
           systemNameUsed: false
         };
-        
         if (!row.email) {
           rowResult.status = 'Error';
           rowResult.message = 'Email is required';
           results.push(rowResult);
           continue;
         }
-        
+        if (seenEmails.has(email)) {
+          // Repeated email, mark as error
+          const firstRow = seenEmails.get(email);
+          rowResult.status = 'Error';
+          rowResult.message = `Email already exists on row ${firstRow + 1}, this row will not be processed`;
+          results.push(rowResult);
+          continue;
+        }
+        seenEmails.set(email, i);
         const voteWeight = parseFloat(row.vote_weight) || 1.0;
         const token = row.token || undefined;
         rowResult.token = token || 'Auto-generated if needed';
-        
         try {
           const participantData: any = {
             name: row.name || row.email,
             email: row.email,
             voteWeight
           };
-          
-          // Only include token if explicitly provided
           if (token) {
             participantData.token = token;
           }
-          
           const response = await pollApi.addParticipant(poll.id, participantData);
-          
           addedParticipants.push(response.data.participant);
           rowResult.status = 'Success';
           rowResult.message = 'Participant added successfully';
           rowResult.success = true;
           rowResult.isUser = response.data.participant.isUser ? 'Yes (Registered User)' : 'No (External)';
           rowResult.token = response.data.participant.token || 'N/A';
-          
-          // Handle system name usage
           if (response.data.systemNameUsed) {
             rowResult.systemNameUsed = true;
-            // Keep the original name for display, but note that system name was used
             rowResult.message = `User already exists, system name '${response.data.participant.name}' will be used`;
           }
         } catch (error: any) {
           rowResult.status = 'Error';
           rowResult.message = error.response?.data?.message || error.response?.data?.error || 'Failed to add participant';
         }
-        
         results.push(rowResult);
       }
-      
-      // Update participants list with successfully added ones
+      // --- END PATCH ---
       if (addedParticipants.length > 0) {
         setParticipants([...participants, ...addedParticipants]);
       }
-      
       setUploadResults(results);
       setShowResults(true);
-      
     } catch (error: any) {
       setFileError(error.message || 'Failed to process file.');
     } finally {
