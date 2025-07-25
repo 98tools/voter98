@@ -985,11 +985,67 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                     </div>
                     {/* Red Card: Errors */}
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-center mb-2">
-                        <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-semibold text-red-800">Errors</span>
+                      <div className="flex items-center mb-2 justify-between">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <span className="font-semibold text-red-800">Errors</span>
+                        </div>
+                        <button
+                          className="ml-4 px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50"
+                          onClick={async () => {
+                            // Find all eligible rows for update
+                            if (!poll?.id) return;
+                            const updates = [];
+                            for (let index = 0; index < uploadResults.length; index++) {
+                              const result = uploadResults[index];
+                              if (result.message === 'Participant already exists for this poll') {
+                                const existing = participants.find(p => p.email === result.email);
+                                if (!existing) continue;
+                                const isRegisteredUser = existing.isUser;
+                                const voteWeightChanged = existing.voteWeight !== result.voteWeight;
+                                const tokenChanged = result.token && result.token.trim() !== '' && result.token !== 'Auto-generated if needed' && existing.token !== result.token;
+                                const nameChangedFinal = !existing.isUser && existing.name !== result.name;
+                                let canUpdate = false;
+                                let updatePayload = {};
+                                if (isRegisteredUser) {
+                                  canUpdate = voteWeightChanged && !updatedRows.has(index);
+                                  updatePayload = voteWeightChanged ? { voteWeight: result.voteWeight } : {};
+                                } else {
+                                  let tokenUpdate = {};
+                                  if (tokenChanged) {
+                                    tokenUpdate = { token: result.token };
+                                  }
+                                  canUpdate = (voteWeightChanged || Object.keys(tokenUpdate).length > 0 || nameChangedFinal) && !updatedRows.has(index);
+                                  updatePayload = {
+                                    ...(voteWeightChanged ? { voteWeight: result.voteWeight } : {}),
+                                    ...tokenUpdate,
+                                    ...(nameChangedFinal ? { name: result.name } : {})
+                                  };
+                                }
+                                if (isRegisteredUser && !voteWeightChanged) canUpdate = false;
+                                if (canUpdate) {
+                                  updates.push({ pollId: poll.id, participantId: existing.id, updatePayload, index });
+                                }
+                              }
+                            }
+                            // Run all updates in parallel
+                            try {
+                              await Promise.all(updates.map(async ({ pollId, participantId, updatePayload, index }) => {
+                                await pollApi.updateParticipant(pollId, participantId, updatePayload);
+                                setParticipants(prev => prev.map(p =>
+                                  p.id === participantId ? { ...p, ...updatePayload } : p
+                                ));
+                                setUpdatedRows(prev => new Set(prev).add(index));
+                              }));
+                            } catch (err) {
+                              alert('Failed to update one or more participant values');
+                            }
+                          }}
+                        >
+                          Update All Values
+                        </button>
                       </div>
                       <ul className="text-sm text-red-700 list-disc ml-6">
                         {(() => {
