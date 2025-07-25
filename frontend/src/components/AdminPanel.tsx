@@ -437,7 +437,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
               
               <button
                 onClick={logout}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover-lift"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover-lift cursor-pointer"
               >
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
@@ -557,7 +557,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer ${
                     activeTab === tab.id
                       ? 'border-purple-500 text-purple-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -578,7 +578,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                   <div className="flex space-x-3">
                     <button
                       onClick={() => setShowCreateUser(!showCreateUser)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift cursor-pointer"
                     >
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -587,7 +587,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                     </button>
                     <button
                       onClick={() => setShowUploadModal(true)}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                     >
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -655,14 +655,14 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                       <div className="flex space-x-3">
                         <button
                           type="submit"
-                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift cursor-pointer"
                         >
                           Create User
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowCreateUser(false)}
-                          className="flex-1 bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+                          className="flex-1 bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -714,10 +714,10 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end space-x-2">
-                                <button className="text-blue-600 hover:text-blue-900 font-medium transition-colors duration-200">
+                                <button className="text-blue-600 hover:text-blue-900 font-medium transition-colors duration-200 cursor-pointer">
                                   Edit
                                 </button>
-                                <button className="text-red-600 hover:text-red-900 font-medium transition-colors duration-200">
+                                <button className="text-red-600 hover:text-red-900 font-medium transition-colors duration-200 cursor-pointer">
                                   Delete
                                 </button>
                               </div>
@@ -766,7 +766,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                 </h3>
                 <button
                   onClick={handleCloseUploadModal}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -856,7 +856,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                   <div className="flex justify-end pt-4">
                     <button
                       onClick={handleCloseUploadModal}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
                     >
                       Close
                     </button>
@@ -870,7 +870,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                     <nav className="-mb-px flex space-x-8">
                       <button
                         onClick={() => setUploadMode('file')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
                           uploadMode === 'file'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -881,7 +881,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                       </button>
                       <button
                         onClick={() => setUploadMode('text')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
                           uploadMode === 'text'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -897,7 +897,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                   <div>
                     <button
                       onClick={downloadCsvTemplate}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
                       disabled={isUploading}
                     >
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -997,14 +997,14 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                     <button
                       type="button"
                       onClick={handleCloseUploadModal}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer"
                       disabled={isUploading}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={uploadMode === 'file' ? handleFileUpload : handleCsvUpload}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       disabled={isUploading || (uploadMode === 'file' ? !selectedFile : !csvData.trim())}
                     >
                       {isUploading ? (
