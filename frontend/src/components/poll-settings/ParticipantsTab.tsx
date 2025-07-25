@@ -1038,15 +1038,19 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                       </div>
                       <ul className="text-sm text-red-700 list-disc ml-6">
                         {(() => {
-                          // Error breakdown
-                          const errorGroups: Record<string, number> = {};
+                          // Only show total count of repeated email errors
+                          let repeatedEmailCount = 0;
                           uploadResults.filter(r => !r.success).forEach(r => {
-                            const msg = r.message || 'Unknown error';
-                            errorGroups[msg] = (errorGroups[msg] || 0) + 1;
+                            const msg = r.message || '';
+                            if (msg.startsWith('Email already exists on row')) {
+                              repeatedEmailCount++;
+                            }
                           });
-                          return (Object.entries(errorGroups) as [string, number][]).map(([msg, count], idx) => (
-                            <li key={idx}>{count} {msg} (not added)</li>
-                          ));
+                          if (repeatedEmailCount > 0) {
+                            return [<li key="repeats">{repeatedEmailCount} rows with repeated emails (not processed)</li>];
+                          }
+                          // If no repeated emails, show nothing (or optionally other errors)
+                          return null;
                         })()}
                       </ul>
                     </div>
