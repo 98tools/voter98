@@ -1048,13 +1048,27 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                               {result.email}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                result.isUser && result.isUser.includes('Registered User')
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-orange-100 text-orange-800'
-                              }`}>
-                                {result.isUser && result.isUser.includes('Registered User') ? 'Registered User' : 'External'}
-                              </span>
+                              {(() => {
+                                // If error is 'Participant already exists for this poll', check if participant is registered user
+                                let isRegisteredUser = false;
+                                if (
+                                  result.message === 'Participant already exists for this poll' &&
+                                  participants.some(p => p.email === result.email && p.isUser)
+                                ) {
+                                  isRegisteredUser = true;
+                                } else if (result.isUser && result.isUser.includes('Registered User')) {
+                                  isRegisteredUser = true;
+                                }
+                                return (
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    isRegisteredUser
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-orange-100 text-orange-800'
+                                  }`}>
+                                    {isRegisteredUser ? 'Registered User' : 'External'}
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {result.voteWeight}
