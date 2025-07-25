@@ -1093,11 +1093,13 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                                 let changed = false;
                                 if (result.message === 'Participant already exists for this poll') {
                                   const existing = participants.find(p => p.email === result.email);
-                                  if (existing && existing.token !== result.token) {
+                                  if (existing && result.token && result.token.trim() !== '' && result.token !== 'Auto-generated if needed' && existing.token !== result.token) {
                                     display = <span>{existing.token || <span className="text-gray-400">(none)</span>} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.token}</span></span>;
                                     changed = true;
                                   } else if (updatedRows.has(index)) {
                                     display = <span className="text-yellow-600 font-semibold">{result.token}</span>;
+                                  } else {
+                                    display = <span className="text-gray-400">(none)</span>;
                                   }
                                 }
                                 return display;
@@ -1139,10 +1141,32 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                                   );
                                 } else if (result.message === 'Participant already exists for this poll') {
                                   const existing = participants.find(p => p.email === result.email);
+                                  const isRegisteredUser = existing && existing.isUser;
                                   const voteWeightChanged = existing && existing.voteWeight !== result.voteWeight;
-                                  const tokenChanged = existing && existing.token !== result.token;
+                                  const tokenChanged = existing && result.token && result.token.trim() !== '' && result.token !== 'Auto-generated if needed' && existing.token !== result.token;
                                   const nameChangedFinal = existing && !existing.isUser && existing.name !== result.name;
-                                  const canUpdate = (voteWeightChanged || tokenChanged || nameChangedFinal) && !updatedRows.has(index);
+                                  // For Registered User, only allow voteWeight update, ignore token/name
+                                  let canUpdate = false;
+                                  let updatePayload = {};
+                                  if (isRegisteredUser) {
+                                    canUpdate = voteWeightChanged && !updatedRows.has(index);
+                                    updatePayload = voteWeightChanged ? { voteWeight: result.voteWeight } : {};
+                                  } else {
+                                    // For external: only update token if it is non-empty and changed
+                                  let tokenUpdate = {};
+                                  // Only update token if non-empty and changed, and never suggest update if token is empty
+                                  if (tokenChanged) {
+                                    tokenUpdate = { token: result.token };
+                                  }
+                                  canUpdate = (voteWeightChanged || Object.keys(tokenUpdate).length > 0 || nameChangedFinal) && !updatedRows.has(index);
+                                  updatePayload = {
+                                    ...(voteWeightChanged ? { voteWeight: result.voteWeight } : {}),
+                                    ...tokenUpdate,
+                                    ...(nameChangedFinal ? { name: result.name } : {})
+                                  };
+                                  }
+                                  // If only token changed for Registered User, do not show update button
+                                  if (isRegisteredUser && !voteWeightChanged) canUpdate = false;
                                   return (
                                     <div>
                                       <div className="flex items-start">
@@ -1166,18 +1190,12 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                                             // Update participant
                                             if (!poll?.id || !existing) return;
                                             try {
-                                              await pollApi.updateParticipant(poll.id, existing.id, {
-                                                voteWeight: result.voteWeight,
-                                                token: result.token,
-                                                ...(nameChangedFinal ? { name: result.name } : {})
-                                              });
+                                              await pollApi.updateParticipant(poll.id, existing.id, updatePayload);
                                               setParticipants(participants.map(p =>
                                                 p.id === existing.id
                                                   ? {
                                                       ...p,
-                                                      voteWeight: result.voteWeight,
-                                                      token: result.token,
-                                                      ...(nameChangedFinal ? { name: result.name } : {})
+                                                      ...updatePayload
                                                     }
                                                   : p
                                               ));

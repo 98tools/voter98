@@ -779,16 +779,21 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
     }
 
     // If token is being updated, check for uniqueness (excluding current participant)
-    if (updateData.token) {
-      const tokenConflict = await db.select().from(pollParticipants)
-        .where(and(
-          eq(pollParticipants.pollId, pollId),
-          eq(pollParticipants.token, updateData.token),
-          ne(pollParticipants.id, participantId)
-        ))
-        .get();
-      if (tokenConflict) {
-        return c.json({ error: 'Token already in use by another participant' }, 409);
+    if (typeof updateData.token === 'string') {
+      // If token is empty or only whitespace, remove from updateData
+      if (updateData.token.trim() === '') {
+        delete updateData.token;
+      } else {
+        const tokenConflict = await db.select().from(pollParticipants)
+          .where(and(
+            eq(pollParticipants.pollId, pollId),
+            eq(pollParticipants.token, updateData.token),
+            ne(pollParticipants.id, participantId)
+          ))
+          .get();
+        if (tokenConflict) {
+          return c.json({ error: 'Token already in use by another participant' }, 409);
+        }
       }
     }
 
