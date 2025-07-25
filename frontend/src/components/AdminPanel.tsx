@@ -803,76 +803,70 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
               </div>
 
               {showResults ? (
-                /* Results Table */
                 <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <svg className="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    {/* Success Card */}
+                    <div className="bg-green-50 rounded-lg p-4 flex items-center">
+                      <svg className="h-6 w-6 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-green-600">Success</p>
+                        <p className="text-lg font-semibold text-green-900">{uploadResults.filter(r => r.success).length}</p>
+                        <p className="text-xs text-green-700">Users created successfully</p>
+                      </div>
+                    </div>
+                    {/* Alert Card */}
+                    <div className="bg-yellow-50 rounded-lg p-4 flex items-center">
+                      <svg className="h-6 w-6 text-yellow-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                       <div>
-                        <h4 className="font-medium text-blue-900">Upload Complete</h4>
-                        <p className="text-sm text-blue-700">
-                          {uploadResults.filter(r => r.success).length} out of {uploadResults.length} users created successfully.
-                        </p>
+                        <p className="text-sm font-medium text-yellow-600">Alerts</p>
+                        <p className="text-lg font-semibold text-yellow-900">{uploadResults.filter(r => r.status === 'error' && r.message && r.message.toLowerCase().includes('already exists')).length}</p>
+                        <p className="text-xs text-yellow-700">Users already existed</p>
+                      </div>
+                    </div>
+                    {/* Error Card */}
+                    <div className="bg-red-50 rounded-lg p-4 flex items-center">
+                      <svg className="h-6 w-6 text-red-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-red-600">Errors</p>
+                        <p className="text-lg font-semibold text-red-900">{uploadResults.filter(r => r.status === 'error' && (!r.message || !r.message.toLowerCase().includes('already exists'))).length}</p>
+                        <p className="text-xs text-red-700">Other errors</p>
                       </div>
                     </div>
                   </div>
 
+                  {/* Results Table */}
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Row
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Email
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Role
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {uploadResults.map((result, index) => (
                           <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {result.rowNumber}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {result.name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {result.email}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {result.role}
-                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">{result.rowNumber || index + 1}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{result.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{result.email}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{result.role || '-'}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {result.success ? (
-                                <div className="flex items-center">
-                                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                  <span className="text-sm text-green-600 font-medium">Success</span>
-                                </div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Success</span>
+                              ) : result.status === 'error' && result.message && result.message.toLowerCase().includes('already exists') ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Alert: {result.message}</span>
                               ) : (
-                                <div className="flex items-start">
-                                  <svg className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                  </svg>
-                                  <div>
-                                    <span className="text-sm text-red-600 font-medium">Error</span>
-                                    <p className="text-xs text-red-500 mt-1">{result.message}</p>
-                                  </div>
-                                </div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Error: {result.message}</span>
                               )}
                             </td>
                           </tr>
@@ -880,7 +874,6 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                       </tbody>
                     </table>
                   </div>
-
                   <div className="flex justify-end pt-4">
                     <button
                       onClick={handleCloseUploadModal}
