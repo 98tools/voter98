@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
-import AdminPanel from './components/AdminPanel';
+import AdminPanel from './components/admin-panel/AdminPanel';
 import PollSettings from './components/poll-settings/index';
 import PollParticipation from './components/PollParticipation';
 import ProtectedRoute from './components/ProtectedRoute';

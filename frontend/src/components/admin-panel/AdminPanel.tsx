@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { userApi } from '../utils/api';
-import type { User } from '../types';
+import { userApi } from '../../utils/api';
+import type { User } from '../../types';
 import * as XLSX from 'xlsx';
 
 const AdminPanel: React.FC = () => {
