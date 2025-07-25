@@ -489,9 +489,9 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                 </p>
               </div>
               <div className="bg-white bg-opacity-20 rounded-xl p-4">
-                <div className="text-right">
-                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-purple-100 text-sm">Total Users</p>
+                <div className="text-center">
+                  <p className="text-purple-900 text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-purple-900 text-sm">Total Users</p>
                 </div>
               </div>
             </div>
