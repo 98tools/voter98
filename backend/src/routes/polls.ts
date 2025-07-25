@@ -749,6 +749,7 @@ pollRoutes.delete('/:id/participants/:participantId', async (c) => {
 const updateParticipantSchema = z.object({
   voteWeight: z.number().positive().optional(),
   token: z.string().optional(),
+  name: z.string().optional(),
 });
 
 pollRoutes.put('/:id/participants/:participantId', zValidator('json', updateParticipantSchema), async (c) => {

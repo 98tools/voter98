@@ -64,6 +64,7 @@ export const pollApi = {
   updateParticipant: (pollId: string, participantId: string, updateData: {
     voteWeight?: number;
     token?: string;
+    name?: string;
   }) =>
     api.put<{ message: string; participant: any }>(`/polls/${pollId}/participants/${participantId}`, updateData),
   
