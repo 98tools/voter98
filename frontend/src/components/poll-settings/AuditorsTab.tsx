@@ -225,7 +225,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                 setShowAddAuditorModal(true);
                 loadAvailableSubAdmins();
               }}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -310,7 +310,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                           {permissions.canManage && (
                             <button
                               onClick={() => handleRemoveAuditor(auditor.id)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-900 cursor-pointer"
                             >
                               Remove
                             </button>
@@ -339,7 +339,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                 setShowAddEditorModal(true);
                 loadAvailableSubAdmins();
               }}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200 cursor-pointer"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -423,7 +423,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                           {permissions.canManage && (
                             <button
                               onClick={() => handleRemoveEditor(editor.id)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-900 cursor-pointer"
                             >
                               Remove
                             </button>
@@ -448,7 +448,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                 <h3 className="text-lg font-medium text-gray-900">Add Auditor</h3>
                 <button
                   onClick={() => setShowAddAuditorModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -500,14 +500,14 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                   <button
                     type="button"
                     onClick={() => setShowAddAuditorModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addingAuditor}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {addingAuditor ? 'Adding...' : 'Add Auditor'}
                   </button>
@@ -527,7 +527,7 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                 <h3 className="text-lg font-medium text-gray-900">Add Editor</h3>
                 <button
                   onClick={() => setShowAddEditorModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -579,14 +579,14 @@ const AuditorsTab: React.FC<AuditorsTabProps> = ({ poll, permissions }) => {
                   <button
                     type="button"
                     onClick={() => setShowAddEditorModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addingEditor}
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {addingEditor ? 'Adding...' : 'Add Editor'}
                   </button>

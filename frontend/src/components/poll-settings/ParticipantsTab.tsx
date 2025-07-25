@@ -469,7 +469,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                 setShowAddModal(true);
                 setAddParticipantError('');
               }}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -478,7 +478,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
             </button>
             <button
               onClick={() => setShowCsvModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
             >
               Upload File
             </button>
@@ -564,13 +564,13 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                   setShowAddModal(true);
                   setAddParticipantError('');
                 }}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
               >
                 Add Individual Participant
               </button>
               <button
                 onClick={() => setShowCsvModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               >
                 Upload File
               </button>
@@ -684,7 +684,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                               </div>
                               <button
                                 onClick={() => toggleTokenVisibility(participant.id)}
-                                className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1"
+                                className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1 cursor-pointer"
                                 title={visibleTokens.has(participant.id) ? 'Hide token' : 'Show token'}
                               >
                                 {visibleTokens.has(participant.id) ? (
@@ -703,7 +703,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                             {permissions.canManageParticipants && (
                               <button
                                 onClick={() => handleRegenerateToken(participant.id)}
-                                className="text-xs text-blue-600 hover:text-blue-800"
+                                className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                               >
                                 Regenerate Token
                               </button>
@@ -715,7 +715,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                         {permissions.canManageParticipants && (
                           <button
                             onClick={() => handleRemoveParticipant(participant.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 cursor-pointer"
                           >
                             Remove
                           </button>
@@ -742,7 +742,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                     setShowAddModal(false);
                     setAddParticipantError('');
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -881,14 +881,14 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                       setShowAddModal(false);
                       setAddParticipantError('');
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isAddingParticipant}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
                   >
                     {isAddingParticipant ? (
                       <>
@@ -920,7 +920,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                 </h3>
                 <button
                   onClick={handleCloseUploadModal}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -982,7 +982,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                           <span className="font-semibold text-red-800">Errors</span>
                         </div>
                         <button
-                          className="ml-4 px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50"
+                          className="ml-4 px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50 cursor-pointer"
                           onClick={async () => {
                             // Find all eligible rows for update
                             if (!poll?.id) return;
@@ -1233,7 +1233,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                                       </div>
                                       {canUpdate && (
                                         <button
-                                          className="mt-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50"
+                                          className="mt-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50 cursor-pointer"
                                           disabled={updatedRows.has(index)}
                                           onClick={async () => {
                                             // Update participant
@@ -1283,7 +1283,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                   <div className="flex justify-end pt-4">
                     <button
                       onClick={handleCloseUploadModal}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
                     >
                       Close
                     </button>
@@ -1297,7 +1297,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                     <nav className="-mb-px flex space-x-8">
                       <button
                         onClick={() => setUploadMode('file')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
                           uploadMode === 'file'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1308,7 +1308,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                       </button>
                       <button
                         onClick={() => setUploadMode('text')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
                           uploadMode === 'text'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1345,7 +1345,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                     <div className="mt-3">
                       <button
                         onClick={downloadCsvTemplate}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
                         disabled={isUploading}
                       >
                         <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -1446,14 +1446,14 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                     <button
                       type="button"
                       onClick={handleCloseUploadModal}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer"
                       disabled={isUploading}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={uploadMode === 'file' ? handleFileUpload : handleCsvUpload}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       disabled={isUploading || (uploadMode === 'file' ? !selectedFile : !csvData.trim())}
                     >
                       {isUploading ? (

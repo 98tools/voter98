@@ -101,7 +101,7 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, permissions, onSave, 
           {permissions.canEdit && (
             <button
               onClick={handleAddQuestion}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -113,7 +113,7 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, permissions, onSave, 
             <button
               onClick={handleSaveQuestions}
               disabled={saving}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 disabled:opacity-50"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 cursor-pointer"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -131,7 +131,7 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, permissions, onSave, 
           {permissions.canEdit && (
             <button
               onClick={handleAddQuestion}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
             >
               Add Question
             </button>
