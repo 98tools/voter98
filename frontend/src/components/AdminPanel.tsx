@@ -154,11 +154,11 @@ const AdminPanel: React.FC = () => {
       }
       
       const headers = rawData[0].map((h: string) => h.toString().toLowerCase().trim());
-      const requiredHeaders = ['name', 'email', 'password', 'role'];
+      const requiredHeaders = ['email'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       
       if (missingHeaders.length > 0) {
-        setFileError(`Missing required headers: ${missingHeaders.join(', ')}`);
+        setFileError(`Missing required header: email`);
         setIsUploading(false);
         return;
       }
@@ -184,22 +184,29 @@ const AdminPanel: React.FC = () => {
           success: false
         };
         
-        // Validate required fields
-        if (!row.name || !row.email || !row.password) {
+        // Only email is required
+        if (!row.email) {
           result.status = 'error';
-          result.message = 'Name, email, and password are required';
+          result.message = 'Email is required';
           result.success = false;
           results.push(result);
           continue;
         }
 
-        const role = ['admin', 'sub-admin', 'user'].includes(row.role) ? row.role : 'user';
+        // Default name to email if empty
+        const name = row.name?.trim() ? row.name.trim() : row.email.trim();
+
+        // Generate password if empty
+        const password = row.password?.trim() ? row.password.trim() : generatePassword();
+
+        // Default role to 'user' if empty or invalid
+        const role = ['admin', 'sub-admin', 'user'].includes(row.role?.trim()) ? row.role.trim() : 'user';
         
         try {
           const response = await userApi.createUser({
-            name: row.name,
-            email: row.email,
-            password: row.password,
+            name,
+            email: row.email.trim(),
+            password,
             role
           });
           
@@ -241,10 +248,10 @@ const AdminPanel: React.FC = () => {
       const lines = csvData.trim().split('\n');
       const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
       
-      const requiredHeaders = ['name', 'email', 'password', 'role'];
+      const requiredHeaders = ['email'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       if (missingHeaders.length > 0) {
-        setCsvError(`Missing required headers: ${missingHeaders.join(', ')}`);
+        setCsvError(`Missing required header: email`);
         setIsUploading(false);
         return;
       }
@@ -270,22 +277,29 @@ const AdminPanel: React.FC = () => {
           success: false
         };
 
-        // Validate required fields
-        if (!row.name || !row.email || !row.password) {
+        // Only email is required
+        if (!row.email) {
           result.status = 'error';
-          result.message = 'Name, email, and password are required';
+          result.message = 'Email is required';
           result.success = false;
           results.push(result);
           continue;
         }
 
-        const role = ['admin', 'sub-admin', 'user'].includes(row.role) ? row.role : 'user';
+        // Default name to email if empty
+        const name = row.name?.trim() ? row.name.trim() : row.email.trim();
+
+        // Generate password if empty
+        const password = row.password?.trim() ? row.password.trim() : generatePassword();
+
+        // Default role to 'user' if empty or invalid
+        const role = ['admin', 'sub-admin', 'user'].includes(row.role?.trim()) ? row.role.trim() : 'user';
 
         try {
           const response = await userApi.createUser({
-            name: row.name,
-            email: row.email,
-            password: row.password,
+            name,
+            email: row.email.trim(),
+            password,
             role
           });
           
@@ -539,8 +553,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
               <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <span className="text-red-700 font-medium">{error}</span>
             </div>
+            <span className="text-red-700 font-medium">{error}</span>
           </div>
         )}
 
@@ -1028,3 +1042,13 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
 };
 
 export default AdminPanel;
+
+// Helper to generate password
+function generatePassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let pass = '';
+  for (let i = 0; i < 8; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
