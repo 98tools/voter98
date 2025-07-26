@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { userApi } from '../../utils/api';
 import type { User } from '../../types';
 import * as XLSX from 'xlsx';
+import SMTPsettingsTab from './SMTPsettingsTab';
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAuth();
@@ -586,6 +587,18 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                 <span className="mr-2">👥</span>
                 User Management
               </button>
+              <button
+                key="smtp"
+                onClick={() => setActiveTab('smtp')}
+                className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer ${
+                  activeTab === 'smtp'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span className="mr-2">📧</span>
+                SMTP Management
+              </button>
             </nav>
           </div>
 
@@ -752,6 +765,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                 </div>
               </div>
             )}
+            {activeTab === 'smtp' && <SMTPsettingsTab />}
           </div>
         </div>
       </main>

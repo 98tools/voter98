@@ -106,4 +106,12 @@ export const publicPollApi = {
     axios.get<{ results: any }>(`${API_BASE_URL}/poll/${id}/results${sessionToken ? `/${sessionToken}` : ''}`),
 };
 
+// SMTP API
+export const smtpApi = {
+  getAll: () => api.get<{ configs: any[] }>('/smtp'),
+  create: (data: any) => api.post<{ message: string; config: any }>('/smtp', data),
+  update: (id: string, data: any) => api.put<{ message: string; config: any }>(`/smtp/${id}`, data),
+  delete: (id: string) => api.delete<{ message: string }>(`/smtp/${id}`),
+};
+
 export default api;
