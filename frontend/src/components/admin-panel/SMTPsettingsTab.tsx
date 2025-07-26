@@ -162,7 +162,7 @@ const SMTPsettingsTab: React.FC = () => {
         )}
       </div>
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in">
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 relative animate-slide-in-right">
             <button
               onClick={handleCloseModal}
