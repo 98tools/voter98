@@ -72,6 +72,20 @@ export const pollVotes = sqliteTable('poll_votes', {
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
 });
 
+// SMTP table for storing email configurationss
+export const smtpConfig = sqliteTable('smtp_config', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  host: text('host').notNull(),
+  port: integer('port').notNull(),
+  user: text('user').notNull(),
+  password: text('password').notNull(),
+  secure: integer('secure', { mode: 'boolean' }).notNull().default(false), // true for SSL, false for TLS
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
+  dailyLimit: integer('daily_limit').notNull().default(100), // Daily email sending limit
+  dailySent: integer('daily_sent').notNull().default(0) // Emails sent today
+});
+
 
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
