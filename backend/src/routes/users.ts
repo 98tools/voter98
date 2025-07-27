@@ -25,6 +25,14 @@ const createUserSchema = z.object({
   role: z.enum(['user', 'sub-admin', 'admin']).default('user'),
 });
 
+// Update user schema
+const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  password: z.string().min(6).optional(),
+  name: z.string().min(1).optional(),
+  role: z.enum(['user', 'sub-admin', 'admin']).optional(),
+});
+
 // Apply auth middleware to all routes
 userRoutes.use('/*', authMiddleware);
 
@@ -165,15 +173,71 @@ userRoutes.get('/sub-admins', adminMiddleware, async (c) => {
   }
 });
 
+// Update user by ID (admin only)
+userRoutes.put('/:id', adminMiddleware, zValidator('json', updateUserSchema), async (c) => {
+  const db = getDb(c.env.DB);
+  const userId = c.req.param('id');
+  const updateData = c.req.valid('json');
+
+  try {
+    // Check if user exists
+    const existingUser = await db.select().from(users).where(eq(users.id, userId)).get();
+    if (!existingUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // If email is being updated, check for conflicts
+    if (updateData.email && updateData.email !== existingUser.email) {
+      const emailExists = await db.select().from(users).where(eq(users.email, updateData.email)).get();
+      if (emailExists) {
+        return c.json({ error: 'Email already exists' }, 400);
+      }
+    }
+
+    // Prepare update object
+    const updateObject: any = {};
+    if (updateData.name) updateObject.name = updateData.name;
+    if (updateData.email) updateObject.email = updateData.email;
+    if (updateData.role) updateObject.role = updateData.role;
+    if (updateData.password) {
+      updateObject.password = await hashPassword(updateData.password);
+    }
+
+    // Update user
+    const updatedUser = await db.update(users)
+      .set(updateObject)
+      .where(eq(users.id, userId))
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        createdAt: users.createdAt,
+      })
+      .get();
+
+    return c.json({
+      message: 'User updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // Delete user by ID (admin only)
 userRoutes.delete('/:id', adminMiddleware, async (c) => {
   const db = getDb(c.env.DB);
   const userId = c.req.param('id');
   try {
-    const deleted = await db.delete(users).where(eq(users.id, userId)).run();
-    if (deleted.changes === 0) {
+    // Check if user exists first
+    const existingUser = await db.select().from(users).where(eq(users.id, userId)).get();
+    if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
     }
+    
+    await db.delete(users).where(eq(users.id, userId)).run();
     return c.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
