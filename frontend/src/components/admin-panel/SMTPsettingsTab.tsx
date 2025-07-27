@@ -9,6 +9,7 @@ const SMTPsettingsTab: React.FC = () => {
   const [editConfig, setEditConfig] = useState<any | null>(null);
   const [showHostSuggestions, setShowHostSuggestions] = useState(false);
   const [showPortSuggestions, setShowPortSuggestions] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [form, setForm] = useState({
     host: '',
     port: 587,
@@ -103,6 +104,7 @@ const SMTPsettingsTab: React.FC = () => {
       port: suggestion.port,
       secure: suggestion.secure,
     }));
+    setSelectedProvider(suggestion.name);
     setShowHostSuggestions(false);
   };
 
@@ -306,7 +308,63 @@ const SMTPsettingsTab: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  Password
+                  <div className="relative ml-2 group">
+                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-80 z-20">
+                      <div className="relative">
+                        <div className="font-semibold mb-2">SMTP Password Requirements:</div>
+                        <div className="space-y-2 text-xs">
+                          {selectedProvider && (
+                            <div className="bg-blue-900/50 p-2 rounded border-l-2 border-blue-400 mb-2">
+                              <div className="font-medium text-blue-300">Selected: {selectedProvider}</div>
+                              {selectedProvider.includes('Gmail') && (
+                                <div className="mt-1">
+                                  <span className="text-yellow-300">⚠️ Important:</span> You must create an App Password. 
+                                  <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200 underline ml-1">
+                                    Learn how →
+                                  </a>
+                                </div>
+                              )}
+                              {selectedProvider.includes('Outlook') && (
+                                <div className="mt-1">
+                                  <span className="text-yellow-300">⚠️ Important:</span> Enable 2FA and generate an App Password in Account Settings.
+                                </div>
+                              )}
+                              {selectedProvider.includes('Proton') && (
+                                <div className="mt-1">
+                                  <span className="text-yellow-300">⚠️ Important:</span> Use your Bridge password or create a dedicated SMTP password in Settings.
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium text-yellow-300">Proton Mail:</span> Use Bridge password or create SMTP password
+                          </div>
+                          <div>
+                            <span className="font-medium text-yellow-300">Gmail:</span> Create an App Password 
+                            <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200 underline ml-1">
+                              (Guide)
+                            </a>
+                          </div>
+                          <div>
+                            <span className="font-medium text-yellow-300">Outlook/Hotmail:</span> Enable 2FA → Generate App Password
+                          </div>
+                          <div>
+                            <span className="font-medium text-yellow-300">Office 365:</span> Enable 2FA → Generate App Password
+                          </div>
+                          <div className="text-gray-300 mt-2 border-t border-gray-700 pt-2">
+                            <strong>💡 Tip:</strong> Regular account passwords usually won't work for SMTP. Most providers require App Passwords or SMTP-specific passwords for security.
+                          </div>
+                        </div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
+                  </div>
+                </label>
                 <input
                   name="password"
                   value={form.password}
