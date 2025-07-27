@@ -7,6 +7,7 @@ const SMTPsettingsTab: React.FC = () => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editConfig, setEditConfig] = useState<any | null>(null);
+  const [showHostSuggestions, setShowHostSuggestions] = useState(false);
   const [form, setForm] = useState({
     host: '',
     port: 587,
@@ -15,6 +16,20 @@ const SMTPsettingsTab: React.FC = () => {
     secure: false,
     dailyLimit: 100,
   });
+
+  // Common SMTP hosts with their default ports and security settings
+  const smtpHosts = [
+    { host: 'smtp.protonmail.ch', port: 587, secure: false, name: 'Proton Mail' },
+    { host: 'smtp.protonmail.ch', port: 465, secure: true, name: 'Proton Mail (SSL)' },
+    { host: 'smtp.gmail.com', port: 587, secure: false, name: 'Gmail' },
+    { host: 'smtp.gmail.com', port: 465, secure: true, name: 'Gmail (SSL)' },
+    { host: 'smtp-mail.outlook.com', port: 587, secure: false, name: 'Outlook/Hotmail' },
+    { host: 'smtp-mail.outlook.com', port: 465, secure: true, name: 'Outlook/Hotmail (SSL)' },
+    { host: 'smtp.office365.com', port: 587, secure: false, name: 'Office 365' },
+    { host: 'smtp.office365.com', port: 465, secure: true, name: 'Office 365 (SSL)' },
+    { host: 'smtp.zoho.com', port: 587, secure: false, name: 'Zoho Mail' },
+    { host: 'smtp.zoho.com', port: 465, secure: true, name: 'Zoho Mail (SSL)' },
+  ];
 
   useEffect(() => {
     loadConfigs();
@@ -60,6 +75,25 @@ const SMTPsettingsTab: React.FC = () => {
       ...prev,
       [name]: newValue,
     }));
+  };
+
+  const handleHostFocus = () => {
+    setShowHostSuggestions(true);
+  };
+
+  const handleHostBlur = () => {
+    // Delay hiding suggestions to allow clicking on them
+    setTimeout(() => setShowHostSuggestions(false), 200);
+  };
+
+  const handleHostSuggestionClick = (suggestion: any) => {
+    setForm((prev) => ({
+      ...prev,
+      host: suggestion.host,
+      port: suggestion.port,
+      secure: suggestion.secure,
+    }));
+    setShowHostSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,16 +209,33 @@ const SMTPsettingsTab: React.FC = () => {
             </button>
             <h4 className="text-lg font-semibold text-gray-900 mb-6">{editConfig ? 'Edit SMTP Config' : 'Add SMTP Config'}</h4>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Host</label>
                 <input
                   name="host"
                   value={form.host}
                   onChange={handleChange}
+                  onFocus={handleHostFocus}
+                  onBlur={handleHostBlur}
                   placeholder="Host"
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
+                {showHostSuggestions && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {smtpHosts.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handleHostSuggestionClick(suggestion)}
+                        className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{suggestion.name}</div>
+                        <div className="text-sm text-gray-500">{suggestion.host} (Port: {suggestion.port}, {suggestion.secure ? 'SSL' : 'TLS'})</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
