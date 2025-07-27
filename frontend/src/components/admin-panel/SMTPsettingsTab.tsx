@@ -8,6 +8,7 @@ const SMTPsettingsTab: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editConfig, setEditConfig] = useState<any | null>(null);
   const [showHostSuggestions, setShowHostSuggestions] = useState(false);
+  const [showPortSuggestions, setShowPortSuggestions] = useState(false);
   const [form, setForm] = useState({
     host: '',
     port: 587,
@@ -29,6 +30,15 @@ const SMTPsettingsTab: React.FC = () => {
     { host: 'smtp.office365.com', port: 465, secure: true, name: 'Office 365 (SSL)' },
     { host: 'smtp.zoho.com', port: 587, secure: false, name: 'Zoho Mail' },
     { host: 'smtp.zoho.com', port: 465, secure: true, name: 'Zoho Mail (SSL)' },
+  ];
+
+  // Common SMTP ports with descriptions
+  const smtpPorts = [
+    { port: 587, description: 'SMTP with STARTTLS', secure: false },
+    { port: 465, description: 'SMTPS (SSL/TLS)', secure: true },
+    { port: 25, description: 'SMTP (Unencrypted)', secure: false },
+    { port: 2525, description: 'Alternative SMTP', secure: false },
+    { port: 8025, description: 'Alternative SMTP', secure: false },
   ];
 
   useEffect(() => {
@@ -94,6 +104,24 @@ const SMTPsettingsTab: React.FC = () => {
       secure: suggestion.secure,
     }));
     setShowHostSuggestions(false);
+  };
+
+  const handlePortFocus = () => {
+    setShowPortSuggestions(true);
+  };
+
+  const handlePortBlur = () => {
+    // Delay hiding suggestions to allow clicking on them
+    setTimeout(() => setShowPortSuggestions(false), 200);
+  };
+
+  const handlePortSuggestionClick = (suggestion: any) => {
+    setForm((prev) => ({
+      ...prev,
+      port: suggestion.port,
+      secure: suggestion.secure,
+    }));
+    setShowPortSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -237,17 +265,34 @@ const SMTPsettingsTab: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
                 <input
                   name="port"
                   type="number"
                   value={form.port}
                   onChange={handleChange}
+                  onFocus={handlePortFocus}
+                  onBlur={handlePortBlur}
                   placeholder="Port"
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
+                {showPortSuggestions && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {smtpPorts.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handlePortSuggestionClick(suggestion)}
+                        className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">Port {suggestion.port}</div>
+                        <div className="text-sm text-gray-500">{suggestion.description} {suggestion.secure ? '(Secure)' : '(Unencrypted)'}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">User</label>
