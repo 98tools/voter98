@@ -36,6 +36,8 @@ export const userApi = {
     api.post<{ message: string; user: User }>('/users/sub-admin', { email, password, name }),
   createUser: (userData: { name: string; email: string; password: string; role: string }) => 
     api.post<{ message: string; user: User }>('/users/create', userData),
+  updateUser: (id: string, userData: { name?: string; email?: string; password?: string; role?: string }) => 
+    api.put<{ message: string; user: User }>(`/users/${id}`, userData),
   deleteUser: (id: string) => api.delete<{ message: string }>(`/users/${id}`),
 };
 

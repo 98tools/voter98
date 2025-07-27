@@ -27,6 +27,16 @@ const AdminPanel: React.FC = () => {
     role: 'user' as 'admin' | 'sub-admin' | 'user'
   });
 
+  // Edit user states
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showEditUser, setShowEditUser] = useState(false);
+  const [editUser, setEditUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user' as 'admin' | 'sub-admin' | 'user'
+  });
+
   // Bulk upload states
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
@@ -402,6 +412,45 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
     }
   };
 
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditUser({
+      name: user.name,
+      email: user.email,
+      password: '', // Don't populate password for security
+      role: user.role as 'admin' | 'sub-admin' | 'user'
+    });
+    setShowEditUser(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    try {
+      const updateData: any = {
+        name: editUser.name,
+        email: editUser.email,
+        role: editUser.role
+      };
+      
+      // Only include password if it's provided
+      if (editUser.password.trim()) {
+        updateData.password = editUser.password;
+      }
+      
+      await userApi.updateUser(editingUser.id, updateData);
+      setShowEditUser(false);
+      setEditingUser(null);
+      setEditUser({ name: '', email: '', password: '', role: 'user' });
+      loadUsers();
+    } catch (error: any) {
+      console.error('Update user error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to update user';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+    }
+  };
+
   if (user?.role !== 'admin') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -703,6 +752,84 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                   </div>
                 )}
 
+                {/* Edit User Form */}
+                {showEditUser && editingUser && (
+                  <div className="bg-gray-50 rounded-xl p-6 mb-6 animate-slide-in-right">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Edit User: {editingUser.name}</h4>
+                    <form onSubmit={handleUpdateUser} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                          <input
+                            type="text"
+                            value={editUser.name}
+                            onChange={(e) => setEditUser({...editUser, name: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            required
+                            placeholder="Enter user's full name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                          <input
+                            type="email"
+                            value={editUser.email}
+                            onChange={(e) => setEditUser({...editUser, email: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            required
+                            placeholder="Enter user's email"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                          <input
+                            type="password"
+                            value={editUser.password}
+                            onChange={(e) => setEditUser({...editUser, password: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Leave blank to keep current password"
+                            minLength={6}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Leave blank to keep the current password</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                          <select
+                            value={editUser.role}
+                            onChange={(e) => setEditUser({...editUser, role: e.target.value as 'admin' | 'sub-admin' | 'user'})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                          >
+                            <option value="user">User</option>
+                            <option value="sub-admin">Sub-Admin</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex space-x-3">
+                        <button
+                          type="submit"
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift cursor-pointer"
+                        >
+                          Update User
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowEditUser(false);
+                            setEditingUser(null);
+                            setEditUser({ name: '', email: '', password: '', role: 'user' });
+                          }}
+                          className="flex-1 bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
                 {/* Users Table */}
                 <div className="overflow-hidden">
                   <div className="overflow-x-auto">
@@ -746,7 +873,10 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end space-x-2">
-                                <button className="text-blue-600 hover:text-blue-900 font-medium transition-colors duration-200 cursor-pointer">
+                                <button 
+                                  className="text-blue-600 hover:text-blue-900 font-medium transition-colors duration-200 cursor-pointer"
+                                  onClick={() => handleEditUser(user)}
+                                >
                                   Edit
                                 </button>
                                 <button
