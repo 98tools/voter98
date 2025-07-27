@@ -7,6 +7,9 @@ const SMTPsettingsTab: React.FC = () => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editConfig, setEditConfig] = useState<any | null>(null);
+  const [showHostSuggestions, setShowHostSuggestions] = useState(false);
+  const [showPortSuggestions, setShowPortSuggestions] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [form, setForm] = useState({
     host: '',
     port: 587,
@@ -15,6 +18,29 @@ const SMTPsettingsTab: React.FC = () => {
     secure: false,
     dailyLimit: 100,
   });
+
+  // Common SMTP hosts with their default ports and security settings
+  const smtpHosts = [
+    { host: 'smtp.protonmail.ch', port: 587, secure: false, name: 'Proton Mail' },
+    { host: 'smtp.protonmail.ch', port: 465, secure: true, name: 'Proton Mail (SSL)' },
+    { host: 'smtp.gmail.com', port: 587, secure: false, name: 'Gmail' },
+    { host: 'smtp.gmail.com', port: 465, secure: true, name: 'Gmail (SSL)' },
+    { host: 'smtp-mail.outlook.com', port: 587, secure: false, name: 'Outlook/Hotmail' },
+    { host: 'smtp-mail.outlook.com', port: 465, secure: true, name: 'Outlook/Hotmail (SSL)' },
+    { host: 'smtp.office365.com', port: 587, secure: false, name: 'Office 365' },
+    { host: 'smtp.office365.com', port: 465, secure: true, name: 'Office 365 (SSL)' },
+    { host: 'smtp.zoho.com', port: 587, secure: false, name: 'Zoho Mail' },
+    { host: 'smtp.zoho.com', port: 465, secure: true, name: 'Zoho Mail (SSL)' },
+  ];
+
+  // Common SMTP ports with descriptions
+  const smtpPorts = [
+    { port: 587, description: 'SMTP with STARTTLS', secure: false },
+    { port: 465, description: 'SMTPS (SSL/TLS)', secure: true },
+    { port: 25, description: 'SMTP (Unencrypted)', secure: false },
+    { port: 2525, description: 'Alternative SMTP', secure: false },
+    { port: 8025, description: 'Alternative SMTP', secure: false },
+  ];
 
   useEffect(() => {
     loadConfigs();
@@ -60,6 +86,44 @@ const SMTPsettingsTab: React.FC = () => {
       ...prev,
       [name]: newValue,
     }));
+  };
+
+  const handleHostFocus = () => {
+    setShowHostSuggestions(true);
+  };
+
+  const handleHostBlur = () => {
+    // Delay hiding suggestions to allow clicking on them
+    setTimeout(() => setShowHostSuggestions(false), 200);
+  };
+
+  const handleHostSuggestionClick = (suggestion: any) => {
+    setForm((prev) => ({
+      ...prev,
+      host: suggestion.host,
+      port: suggestion.port,
+      secure: suggestion.secure,
+    }));
+    setSelectedProvider(suggestion.name);
+    setShowHostSuggestions(false);
+  };
+
+  const handlePortFocus = () => {
+    setShowPortSuggestions(true);
+  };
+
+  const handlePortBlur = () => {
+    // Delay hiding suggestions to allow clicking on them
+    setTimeout(() => setShowPortSuggestions(false), 200);
+  };
+
+  const handlePortSuggestionClick = (suggestion: any) => {
+    setForm((prev) => ({
+      ...prev,
+      port: suggestion.port,
+      secure: suggestion.secure,
+    }));
+    setShowPortSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,28 +239,62 @@ const SMTPsettingsTab: React.FC = () => {
             </button>
             <h4 className="text-lg font-semibold text-gray-900 mb-6">{editConfig ? 'Edit SMTP Config' : 'Add SMTP Config'}</h4>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Host</label>
                 <input
                   name="host"
                   value={form.host}
                   onChange={handleChange}
+                  onFocus={handleHostFocus}
+                  onBlur={handleHostBlur}
                   placeholder="Host"
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
+                {showHostSuggestions && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {smtpHosts.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handleHostSuggestionClick(suggestion)}
+                        className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{suggestion.name}</div>
+                        <div className="text-sm text-gray-500">{suggestion.host} (Port: {suggestion.port}, {suggestion.secure ? 'SSL' : 'TLS'})</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
                 <input
                   name="port"
                   type="number"
                   value={form.port}
                   onChange={handleChange}
+                  onFocus={handlePortFocus}
+                  onBlur={handlePortBlur}
                   placeholder="Port"
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
+                {showPortSuggestions && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {smtpPorts.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handlePortSuggestionClick(suggestion)}
+                        className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">Port {suggestion.port}</div>
+                        <div className="text-sm text-gray-500">{suggestion.description} {suggestion.secure ? '(Secure)' : '(Unencrypted)'}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">User</label>
@@ -210,7 +308,63 @@ const SMTPsettingsTab: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  Password
+                  <div className="relative ml-2 group">
+                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-80 z-20">
+                      <div className="relative">
+                        <div className="font-semibold mb-2">SMTP Password Requirements:</div>
+                        <div className="space-y-2 text-xs">
+                          {selectedProvider && (
+                            <div className="bg-blue-900/50 p-2 rounded border-l-2 border-blue-400 mb-2">
+                              <div className="font-medium text-blue-300">Selected: {selectedProvider}</div>
+                              {selectedProvider.includes('Gmail') && (
+                                <div className="mt-1">
+                                  <span className="text-yellow-300">⚠️ Important:</span> You must create an App Password. 
+                                  <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200 underline ml-1">
+                                    Learn how →
+                                  </a>
+                                </div>
+                              )}
+                              {selectedProvider.includes('Outlook') && (
+                                <div className="mt-1">
+                                  <span className="text-yellow-300">⚠️ Important:</span> Enable 2FA and generate an App Password in Account Settings.
+                                </div>
+                              )}
+                              {selectedProvider.includes('Proton') && (
+                                <div className="mt-1">
+                                  <span className="text-yellow-300">⚠️ Important:</span> Use your Bridge password or create a dedicated SMTP password in Settings.
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium text-yellow-300">Proton Mail:</span> Use Bridge password or create SMTP password
+                          </div>
+                          <div>
+                            <span className="font-medium text-yellow-300">Gmail:</span> Create an App Password 
+                            <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200 underline ml-1">
+                              (Guide)
+                            </a>
+                          </div>
+                          <div>
+                            <span className="font-medium text-yellow-300">Outlook/Hotmail:</span> Enable 2FA → Generate App Password
+                          </div>
+                          <div>
+                            <span className="font-medium text-yellow-300">Office 365:</span> Enable 2FA → Generate App Password
+                          </div>
+                          <div className="text-gray-300 mt-2 border-t border-gray-700 pt-2">
+                            <strong>💡 Tip:</strong> Regular account passwords usually won't work for SMTP. Most providers require App Passwords or SMTP-specific passwords for security.
+                          </div>
+                        </div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
+                  </div>
+                </label>
                 <input
                   name="password"
                   value={form.password}
