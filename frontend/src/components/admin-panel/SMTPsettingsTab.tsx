@@ -51,7 +51,16 @@ const SMTPsettingsTab: React.FC = () => {
     setLoading(true);
     try {
       const res = await smtpApi.getAll();
-      setConfigs(res.data.configs);
+      // Map snake_case to camelCase for frontend
+      const configs = res.data.configs.map((cfg: any) => ({
+        ...cfg,
+        dailyLimit: cfg.daily_limit,
+        dailySent: cfg.daily_sent,
+        createdAt: cfg.created_at,
+        updatedAt: cfg.updated_at,
+        order: cfg.order,
+      }));
+      setConfigs(configs);
       setError('');
     } catch (e: any) {
       setError(e.response?.data?.error || 'Failed to load SMTP configs');

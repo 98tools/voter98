@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getDb } from '../models/db';
 import { smtpConfig } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const smtpRoutes = new Hono<{ Bindings: AppBindings; Variables: { user?: JWTPayload } }>();
@@ -57,9 +57,13 @@ smtpRoutes.post('/', zValidator('json', smtpSchema), async (c) => {
   const db = getDb(c.env.DB);
   const data = c.req.valid('json');
   try {
+    // Get the current max order
+    const maxOrderRow = await db.select({ max: sql`MAX("order")` }).from(smtpConfig).get();
+    const nextOrder = Number(maxOrderRow?.max ?? 0) + 1;
     const inserted = await db.insert(smtpConfig).values({
       ...data,
       dailyLimit: data.dailyLimit ?? 100,
+      order: nextOrder,
     }).returning().get();
     return c.json({ message: 'SMTP config added', config: inserted });
   } catch (error) {
