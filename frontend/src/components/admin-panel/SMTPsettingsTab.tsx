@@ -54,7 +54,7 @@ const SMTPsettingsTab: React.FC = () => {
       // Map snake_case to camelCase for frontend
       const configs = res.data.configs.map((cfg: any) => ({
         ...cfg,
-        dailyLimit: cfg.daily_limit,
+        dailyLimit: cfg.dailyLimit,
         dailySent: cfg.daily_sent,
         createdAt: cfg.created_at,
         updatedAt: cfg.updated_at,
