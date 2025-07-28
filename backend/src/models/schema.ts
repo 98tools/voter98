@@ -83,7 +83,8 @@ export const smtpConfig = sqliteTable('smtp_config', {
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
   dailyLimit: integer('daily_limit').notNull().default(100), // Daily email sending limit
-  dailySent: integer('daily_sent').notNull().default(0) // Emails sent today
+  dailySent: integer('daily_sent').notNull().default(0), // Emails sent today
+  order: integer('order').notNull().default(1), // Order for prioritization
 });
 
 

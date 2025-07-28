@@ -112,6 +112,7 @@ export const smtpApi = {
   create: (data: any) => api.post<{ message: string; config: any }>('/smtp', data),
   update: (id: string, data: any) => api.put<{ message: string; config: any }>(`/smtp/${id}`, data),
   delete: (id: string) => api.delete<{ message: string }>(`/smtp/${id}`),
+  patchOrder: (updates: { id: string; order: number }[]) => api.patch<{ message: string }>('/smtp/order', updates),
 };
 
 export default api;

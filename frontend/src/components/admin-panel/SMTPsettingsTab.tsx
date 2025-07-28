@@ -18,6 +18,7 @@ const SMTPsettingsTab: React.FC = () => {
     secure: false,
     dailyLimit: 100,
   });
+  const [reordering, setReordering] = useState(false);
 
   // Common SMTP hosts with their default ports and security settings
   const smtpHosts = [
@@ -151,6 +152,31 @@ const SMTPsettingsTab: React.FC = () => {
     }
   };
 
+  // Move config up or down
+  const moveConfig = async (index: number, direction: 'up' | 'down') => {
+    if (reordering) return;
+    setReordering(true);
+    const newConfigs = [...configs];
+    if (direction === 'up' && index > 0) {
+      [newConfigs[index - 1], newConfigs[index]] = [newConfigs[index], newConfigs[index - 1]];
+    } else if (direction === 'down' && index < newConfigs.length - 1) {
+      [newConfigs[index], newConfigs[index + 1]] = [newConfigs[index + 1], newConfigs[index]];
+    } else {
+      setReordering(false);
+      return;
+    }
+    // Update order field based on new position
+    const updates = newConfigs.map((cfg, i) => ({ id: cfg.id, order: i + 1 }));
+    try {
+      await smtpApi.patchOrder(updates);
+      await loadConfigs();
+    } catch (e) {
+      setError('Failed to update order');
+    } finally {
+      setReordering(false);
+    }
+  };
+
   return (
     <div className="">
       <div className="flex items-center justify-between mb-6">
@@ -181,6 +207,7 @@ const SMTPsettingsTab: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Host</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
@@ -190,8 +217,23 @@ const SMTPsettingsTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {configs.map((cfg) => (
+              {configs.map((cfg, idx) => (
                 <tr key={cfg.id} className="hover:bg-gray-50 transition-colors duration-200">
+                  <td className="px-4 py-4 whitespace-nowrap font-bold flex items-center gap-1">
+                    {cfg.order}
+                    <button
+                      className="ml-1 text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30"
+                      onClick={() => moveConfig(idx, 'up')}
+                      disabled={idx === 0 || reordering}
+                      title="Move up"
+                    >▲</button>
+                    <button
+                      className="ml-1 text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30"
+                      onClick={() => moveConfig(idx, 'down')}
+                      disabled={idx === configs.length - 1 || reordering}
+                      title="Move down"
+                    >▼</button>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.host}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.port}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.user}</td>

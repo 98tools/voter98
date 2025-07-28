@@ -25,10 +25,29 @@ smtpRoutes.use('/*', authMiddleware, adminMiddleware);
 smtpRoutes.get('/', async (c) => {
   const db = getDb(c.env.DB);
   try {
-    const configs = await db.select().from(smtpConfig).all();
+    const configs = await db.select().from(smtpConfig).orderBy(smtpConfig.order).all();
     return c.json({ configs });
   } catch (error) {
     console.error('Get SMTP configs error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// PATCH endpoint to update order of SMTP configs
+smtpRoutes.patch('/order', async (c) => {
+  const db = getDb(c.env.DB);
+  const updates = await c.req.json(); // Expecting [{id, order}, ...]
+  if (!Array.isArray(updates)) {
+    return c.json({ error: 'Invalid payload' }, 400);
+  }
+  try {
+    for (const { id, order } of updates) {
+      if (!id || typeof order !== 'number') continue;
+      await db.update(smtpConfig).set({ order }).where(eq(smtpConfig.id, id)).run();
+    }
+    return c.json({ message: 'Order updated' });
+  } catch (error) {
+    console.error('Update SMTP order error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
