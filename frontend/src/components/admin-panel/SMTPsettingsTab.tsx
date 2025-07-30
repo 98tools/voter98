@@ -55,7 +55,7 @@ const SMTPsettingsTab: React.FC = () => {
       const configs = res.data.configs.map((cfg: any) => ({
         ...cfg,
         dailyLimit: cfg.dailyLimit,
-        dailySent: cfg.daily_sent,
+        dailySent: cfg.dailySent,
         createdAt: cfg.created_at,
         updatedAt: cfg.updated_at,
         order: cfg.order,
@@ -222,6 +222,7 @@ const SMTPsettingsTab: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Secure</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daily Limit</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daily Sent</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -248,6 +249,7 @@ const SMTPsettingsTab: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.user}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.secure ? <span className="text-green-600 font-semibold">Yes</span> : <span className="text-gray-400">No</span>}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.dailyLimit}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{cfg.dailySent}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <button
                       className="text-blue-600 hover:text-blue-900 font-medium mr-2 transition-colors duration-200 cursor-pointer"
