@@ -24,6 +24,7 @@ export const polls = sqliteTable('polls', {
   createdById: text('created_by_id').notNull().references(() => users.id),
   settings: text('settings', { mode: 'json' }).notNull().default('{}'), // JSON object for poll settings
   ballot: text('ballot', { mode: 'json' }).notNull().default('[]'), // JSON array of ballot questions
+  willSendEmails: integer('will_send_emails', { mode: 'boolean' }).notNull().default(false), // Enable automatic email sending
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
 });
@@ -85,6 +86,8 @@ export const smtpConfig = sqliteTable('smtp_config', {
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
   dailyLimit: integer('daily_limit').notNull().default(100), // Daily email sending limit
   dailySent: integer('daily_sent').notNull().default(0), // Emails sent today
+  cronLimit: integer('cron_limit').notNull().default(10), // Emails sent per cron job execution
+  cronSent: integer('cron_sent').notNull().default(0), // Emails sent in current cron execution
   order: integer('order').notNull().default(1), // Order for prioritization
 });
 

@@ -492,6 +492,51 @@ pollRoutes.put('/:id', zValidator('json', updatePollSchema), async (c) => {
   }
 });
 
+// Toggle willSendEmails for a poll (manager or admin only)
+pollRoutes.patch('/:id/toggle-emails', async (c) => {
+  const pollId = c.req.param('id');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - only manager or admin can toggle email sending
+    const permissions = await getUserPollPermissions(db, user.userId, user.role, pollId);
+    
+    if (!permissions.canManage) {
+      return c.json({ error: 'Access denied. Only poll managers and admins can toggle email sending.' }, 403);
+    }
+
+    // Only allow toggling for active polls
+    if (poll.status !== 'active') {
+      return c.json({ error: 'Email sending can only be toggled for active polls' }, 400);
+    }
+
+    // Toggle the willSendEmails field
+    const newValue = !poll.willSendEmails;
+    const updatedPoll = await db.update(polls)
+      .set({
+        willSendEmails: newValue,
+        updatedAt: Date.now(),
+      })
+      .where(eq(polls.id, pollId))
+      .returning()
+      .get();
+
+    return c.json({
+      message: `Email sending ${newValue ? 'enabled' : 'disabled'} successfully`,
+      poll: updatedPoll,
+    });
+  } catch (error) {
+    console.error('Toggle email sending error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // Delete poll (admin only)
 pollRoutes.delete('/:id', adminMiddleware, async (c) => {
   const pollId = c.req.param('id');

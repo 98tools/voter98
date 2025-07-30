@@ -12,7 +12,8 @@ export interface EmailData {
 export async function sendEmail(
   db: any, 
   smtpId: string, 
-  emailData: EmailData
+  emailData: EmailData,
+  isCronJob: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   try {
     let config: SmtpConfig;
@@ -26,11 +27,23 @@ export async function sendEmail(
         return { success: false, error: 'No SMTP configurations available' };
       }
 
-      // Find the first available SMTP config (dailySent < dailyLimit)
-      config = configs.find((cfg: SmtpConfig) => cfg.dailySent < cfg.dailyLimit);
+      // Find the first available SMTP config based on limits
+      config = configs.find((cfg: SmtpConfig) => {
+        if (isCronJob) {
+          // For cron jobs, check both daily and cron limits
+          return cfg.dailySent < cfg.dailyLimit && cfg.cronSent < cfg.cronLimit;
+        } else {
+          // For manual sending, only check daily limit
+          return cfg.dailySent < cfg.dailyLimit;
+        }
+      });
       
       if (!config) {
-        return { success: false, error: 'All SMTP configurations have reached their daily limits' };
+        if (isCronJob) {
+          return { success: false, error: 'All SMTP configurations have reached their daily or cron limits' };
+        } else {
+          return { success: false, error: 'All SMTP configurations have reached their daily limits' };
+        }
       }
     } else {
       // Get specific SMTP configuration
@@ -39,9 +52,18 @@ export async function sendEmail(
         return { success: false, error: 'SMTP configuration not found' };
       }
 
-      // Check daily limit
-      if (config.dailySent >= config.dailyLimit) {
-        return { success: false, error: 'Daily email limit reached' };
+      // Check limits based on context
+      if (isCronJob) {
+        if (config.dailySent >= config.dailyLimit) {
+          return { success: false, error: 'Daily email limit reached' };
+        }
+        if (config.cronSent >= config.cronLimit) {
+          return { success: false, error: 'Cron email limit reached' };
+        }
+      } else {
+        if (config.dailySent >= config.dailyLimit) {
+          return { success: false, error: 'Daily email limit reached' };
+        }
       }
     }
 
@@ -68,12 +90,18 @@ export async function sendEmail(
 
     await mailer.close();
 
-    // Update daily sent count
+    // Update sent counts
+    const updateData: any = {
+      dailySent: sql`"daily_sent" + 1`,
+      updatedAt: Date.now()
+    };
+    
+    if (isCronJob) {
+      updateData.cronSent = sql`"cron_sent" + 1`;
+    }
+    
     await db.update(smtpConfig)
-      .set({ 
-        dailySent: sql`"daily_sent" + 1`,
-        updatedAt: Date.now()
-      })
+      .set(updateData)
       .where(eq(smtpConfig.id, config.id))
       .run();
 
@@ -97,5 +125,18 @@ export async function resetDailySentCounts(db: any): Promise<void> {
       .run();
   } catch (error) {
     console.error('Error resetting daily sent counts:', error);
+  }
+}
+
+export async function resetCronSentCounts(db: any): Promise<void> {
+  try {
+    await db.update(smtpConfig)
+      .set({ 
+        cronSent: 0,
+        updatedAt: Date.now()
+      })
+      .run();
+  } catch (error) {
+    console.error('Error resetting cron sent counts:', error);
   }
 } 

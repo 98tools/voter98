@@ -7,6 +7,7 @@ import userRoutes from './routes/users';
 import pollRoutes, { publicPollRoutes } from './routes/polls';
 import seedRoutes from './routes/seed';
 import smtpRoutes from './routes/smtp';
+import { sendEmailsToParticipants } from './utils/cron';
 
 const app = new Hono<{ Bindings: AppBindings }>();
 
@@ -26,6 +27,21 @@ app.route('/api/polls', pollRoutes);
 app.route('/api/poll', publicPollRoutes); // Public poll access routes
 app.route('/api/dev', seedRoutes); // Development routes
 app.route('/api/smtp', smtpRoutes);
+
+// Cron job endpoint for Cloudflare Workers
+app.post('/api/cron/send-emails', async (c) => {
+  try {
+    const result = await sendEmailsToParticipants(c.env);
+    return c.json(result);
+  } catch (error) {
+    console.error('Cron job error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Cron job failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
 
 // 404 handler
 app.notFound((c) => {

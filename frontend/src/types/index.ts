@@ -60,6 +60,7 @@ export interface Poll {
   createdById: string;
   settings: PollSettings;
   ballot: BallotQuestion[];
+  willSendEmails: boolean;
   createdAt: number;
   updatedAt: number;
 }

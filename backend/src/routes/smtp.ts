@@ -17,6 +17,7 @@ const smtpSchema = z.object({
   password: z.string().min(1),
   secure: z.boolean(),
   dailyLimit: z.number().int().min(1).optional(),
+  cronLimit: z.number().int().min(1).optional(),
 });
 
 const sendEmailSchema = z.object({
@@ -79,6 +80,7 @@ smtpRoutes.post('/', zValidator('json', smtpSchema), async (c) => {
     const inserted = await db.insert(smtpConfig).values({
       ...data,
       dailyLimit: data.dailyLimit ?? 100,
+      cronLimit: data.cronLimit ?? 10,
       order: nextOrder,
     }).returning().get();
     return c.json({ message: 'SMTP config added', config: inserted });
@@ -97,6 +99,7 @@ smtpRoutes.put('/:id', zValidator('json', smtpSchema), async (c) => {
     const updated = await db.update(smtpConfig).set({
       ...data,
       dailyLimit: data.dailyLimit ?? 100,
+      cronLimit: data.cronLimit ?? 10,
       updatedAt: Date.now(),
     }).where(eq(smtpConfig.id, id)).returning().get();
     if (!updated) {

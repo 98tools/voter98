@@ -17,6 +17,7 @@ const SMTPsettingsTab: React.FC = () => {
     password: '',
     secure: false,
     dailyLimit: 100,
+    cronLimit: 10,
   });
   const [reordering, setReordering] = useState(false);
   
@@ -71,6 +72,8 @@ const SMTPsettingsTab: React.FC = () => {
         ...cfg,
         dailyLimit: cfg.dailyLimit,
         dailySent: cfg.dailySent,
+        cronLimit: cfg.cronLimit,
+        cronSent: cfg.cronSent,
         createdAt: cfg.created_at,
         updatedAt: cfg.updated_at,
         order: cfg.order,
@@ -89,11 +92,12 @@ const SMTPsettingsTab: React.FC = () => {
       setEditConfig(config);
       setForm({ 
         ...config,
-        dailyLimit: config.dailyLimit || 100
+        dailyLimit: config.dailyLimit || 100,
+        cronLimit: config.cronLimit || 10
       });
     } else {
       setEditConfig(null);
-      setForm({ host: '', port: 587, user: '', password: '', secure: false, dailyLimit: 100 });
+      setForm({ host: '', port: 587, user: '', password: '', secure: false, dailyLimit: 100, cronLimit: 10 });
     }
     setShowModal(true);
   };
@@ -101,7 +105,7 @@ const SMTPsettingsTab: React.FC = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditConfig(null);
-    setForm({ host: '', port: 587, user: '', password: '', secure: false, dailyLimit: 100 });
+    setForm({ host: '', port: 587, user: '', password: '', secure: false, dailyLimit: 100, cronLimit: 10 });
   };
 
   const handleOpenTestModal = (config: any) => {
@@ -218,10 +222,11 @@ const SMTPsettingsTab: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Ensure dailyLimit is a number
+      // Ensure limits are numbers
       const formData = {
         ...form,
         dailyLimit: form.dailyLimit ? Number(form.dailyLimit) : 100,
+        cronLimit: form.cronLimit ? Number(form.cronLimit) : 10,
         port: Number(form.port)
       };
       
@@ -344,6 +349,8 @@ const SMTPsettingsTab: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Secure</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daily Limit</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daily Sent</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cron Limit</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cron Sent</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -385,6 +392,8 @@ const SMTPsettingsTab: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.secure ? <span className="text-green-600 font-semibold">Yes</span> : <span className="text-gray-400">No</span>}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.dailyLimit}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.dailySent}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{cfg.cronLimit}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{cfg.cronSent}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <button
                       className="text-green-600 hover:text-green-900 font-medium mr-2 transition-colors duration-200 cursor-pointer"
@@ -690,17 +699,28 @@ const SMTPsettingsTab: React.FC = () => {
                   />
                   Secure (SSL)
                 </label>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Daily Limit</label>
-                  <input
-                    name="dailyLimit"
-                    type="number"
-                    value={form.dailyLimit}
-                    onChange={handleChange}
-                    placeholder="Daily Limit"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
+                                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Daily Limit</label>
+                    <input
+                      name="dailyLimit"
+                      type="number"
+                      value={form.dailyLimit}
+                      onChange={handleChange}
+                      placeholder="Daily Limit"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cron Limit</label>
+                    <input
+                      name="cronLimit"
+                      type="number"
+                      value={form.cronLimit}
+                      onChange={handleChange}
+                      placeholder="Cron Limit"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    />
+                  </div>
               </div>
               <div className="flex space-x-3 pt-2">
                 <button

@@ -10,7 +10,7 @@ interface ParticipantsTabProps {
   saving: boolean;
 }
 
-const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) => {
+const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, onSave }) => {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -28,6 +28,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   const [isUploading, setIsUploading] = useState(false);
   const [isAddingParticipant, setIsAddingParticipant] = useState(false);
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
+  const [togglingEmailSending, setTogglingEmailSending] = useState(false);
   const [newParticipant, setNewParticipant] = useState({
     name: '',
     email: '',
@@ -485,6 +486,25 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
     return `last sent ${date.toLocaleDateString()} ${date.toLocaleTimeString()} GMT${gmtSign}${gmtOffset}`;
   };
 
+  const handleToggleEmailSending = async () => {
+    if (!poll?.id) return;
+    
+    setTogglingEmailSending(true);
+    
+    try {
+      const response = await pollApi.toggleEmailSending(poll.id);
+      // Update the poll state in the parent component
+      if (onSave) {
+        onSave({ willSendEmails: response.data.poll.willSendEmails });
+      }
+    } catch (error: any) {
+      console.error('Failed to toggle email sending:', error);
+      alert(error.response?.data?.error || 'Failed to toggle email sending');
+    } finally {
+      setTogglingEmailSending(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -499,6 +519,47 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
         <h3 className="text-lg font-medium text-gray-900">Participants Management</h3>
         {permissions.canManageParticipants && (
           <div className="flex space-x-3">
+            {poll.status === 'active' && (
+              <div className="relative group">
+                <button
+                  onClick={handleToggleEmailSending}
+                  disabled={togglingEmailSending}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer ${
+                    poll.willSendEmails 
+                      ? 'text-white bg-red-600 hover:bg-red-700' 
+                      : 'text-white bg-blue-600 hover:bg-blue-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {togglingEmailSending ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Toggling...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                      </svg>
+                      {poll.willSendEmails ? 'Disable Email Sending' : 'Send Email to all users'}
+                    </>
+                  )}
+                </button>
+                {poll.willSendEmails && (
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                    <div className="text-center">
+                      <div className="font-semibold mb-1">Automatic Email Sending</div>
+                      <div>A cron job runs every 5 minutes to send emails</div>
+                      <div>to participants who haven't received one yet.</div>
+                    </div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                )}
+              </div>
+            )}
             <button
               onClick={() => {
                 setShowAddModal(true);
