@@ -54,4 +54,29 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal server error' }, 500);
 });
 
+// Handle cron triggers
+addEventListener('scheduled', (event: ScheduledEvent) => {
+  event.waitUntil(handleCronTrigger(event));
+});
+
+async function handleCronTrigger(event: ScheduledEvent) {
+  console.log('Cron trigger fired:', event.cron);
+  
+  try {
+    // Create a mock environment context for the cron function
+    // This will be replaced with actual environment bindings at runtime
+    const env = {
+      DB: (globalThis as any).DB,
+      VOTER_KV: (globalThis as any).VOTER_KV,
+      JWT_SECRET: (globalThis as any).JWT_SECRET
+    };
+    
+    const result = await sendEmailsToParticipants(env);
+    console.log('Cron job completed successfully:', result);
+  } catch (error) {
+    console.error('Cron job failed:', error);
+  }
+}
+
+// Export the app for HTTP requests
 export default app;
