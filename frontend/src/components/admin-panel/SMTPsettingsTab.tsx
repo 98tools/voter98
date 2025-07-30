@@ -138,7 +138,8 @@ const SMTPsettingsTab: React.FC = () => {
     setTestResult(null);
 
     try {
-      const response = await smtpApi.sendEmail({
+      // const response = await smtpApi.sendEmail({
+      await smtpApi.sendEmail({
         to: testForm.to,
         subject: testForm.subject,
         body: testForm.body,
@@ -347,7 +348,7 @@ const SMTPsettingsTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {configs.map((cfg, idx) => (
+              {configs.map((cfg) => (
                 <tr 
                   key={cfg.id} 
                   className={`transition-all duration-200 ${

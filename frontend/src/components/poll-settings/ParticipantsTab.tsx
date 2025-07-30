@@ -477,7 +477,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
     if (!timestamp) return 'never sent';
     
     const date = new Date(timestamp);
-    const now = new Date();
+    // const now = new Date();
     const timezoneOffset = date.getTimezoneOffset();
     const gmtOffset = -timezoneOffset / 60;
     const gmtSign = gmtOffset >= 0 ? '+' : '';
@@ -1158,12 +1158,12 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {(() => {
                                 // Show old->new for name if external and changed
-                                let nameChanged = false;
+                                // let nameChanged = false;
                                 let nameDisplay = null;
                                 if (result.message === 'Participant already exists for this poll') {
                                   const existing = participants.find(p => p.email === result.email);
                                   if (existing && !existing.isUser && existing.name !== result.name) {
-                                    nameChanged = true;
+                                    // nameChanged = true;
                                     nameDisplay = <span className="text-yellow-600 font-medium">{existing.name} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.name}</span></span>;
                                   } else if (updatedRows.has(index) && existing && !existing.isUser) {
                                     nameDisplay = <span className="text-yellow-600 font-medium">{result.name}</span>;
@@ -1204,12 +1204,12 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
                               {(() => {
                                 // Show old->new if changed
                                 let display = result.voteWeight;
-                                let changed = false;
+                                // let changed = false;
                                 if (result.message === 'Participant already exists for this poll') {
                                   const existing = participants.find(p => p.email === result.email);
                                   if (existing && existing.voteWeight !== result.voteWeight) {
                                     display = <span>{existing.voteWeight} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.voteWeight}</span></span>;
-                                    changed = true;
+                                    // changed = true;
                                   } else if (updatedRows.has(index)) {
                                     display = <span className="text-yellow-600 font-semibold">{result.voteWeight}</span>;
                                   }
@@ -1220,12 +1220,12 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                               {(() => {
                                 let display = result.token;
-                                let changed = false;
+                                // let changed = false;
                                 if (result.message === 'Participant already exists for this poll') {
                                   const existing = participants.find(p => p.email === result.email);
                                   if (existing && result.token && result.token.trim() !== '' && result.token !== 'Auto-generated if needed' && existing.token !== result.token) {
                                     display = <span>{existing.token || <span className="text-gray-400">(none)</span>} <span className="text-blue-600">→</span> <span className={updatedRows.has(index) ? 'text-yellow-600 font-semibold' : ''}>{result.token}</span></span>;
-                                    changed = true;
+                                    // changed = true;
                                   } else if (updatedRows.has(index)) {
                                     display = <span className="text-yellow-600 font-semibold">{result.token}</span>;
                                   } else {
