@@ -436,11 +436,11 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
 
   const downloadCsvTemplate = () => {
     const csvTemplate = `email,name,vote_weight,token
-john@example.com,John Doe,1.0,
-jane@external.com,,1.5,custom_token_123
-bob@example.com,Bob Wilson,2.0,
-sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
-    
+    abdulkarim@example.com,Abdulkarim Lahmuni,1.0,duax635vbsu2m8xqmfryrq
+    ahmad@external.com,,1.5,custom_token_123
+    mustafa@example.com,Mustafa Ali,2.0,
+    amal@external.com,Amal Naseh,1.0,amal_token_456`;
+
     const blob = new Blob([csvTemplate], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -480,7 +480,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
               onClick={() => setShowCsvModal(true)}
               className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
             >
-              Upload File
+              Upload List of Participants
             </button>
           </div>
         )}
@@ -572,7 +572,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                 onClick={() => setShowCsvModal(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               >
-                Upload File
+                Upload List of Participants
               </button>
             </div>
           )}
@@ -1426,7 +1426,7 @@ sarah@external.com,Sarah Connor,1.0,sarah_token_456`;
                           onChange={(e) => setCsvData(e.target.value)}
                           rows={10}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                          placeholder="name,email,vote_weight,token&#10;John Doe,john@example.com,1.0,&#10;Jane Smith,jane@external.com,1.5,custom_token_123&#10;Bob Wilson,bob@example.com,2.0,"
+                          placeholder="name,email,vote_weight,token&#10;Abdulkarim Lahmuni,abdulkarim@example.com,1.0,duax635vbsu2m8xqmfryrq&#10;Ahmad,ahmad@external.com,1.5,custom_token_123&#10;Mustafa Ali,mustafa@example.com,2.0,&#10;Amal Naseh,amal@external.com,1.0,amal_token_456"
                           disabled={isUploading}
                         />
                         <p className="mt-1 text-sm text-gray-500">
