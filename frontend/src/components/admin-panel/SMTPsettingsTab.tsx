@@ -19,6 +19,10 @@ const SMTPsettingsTab: React.FC = () => {
     dailyLimit: 100,
   });
   const [reordering, setReordering] = useState(false);
+  
+  // Drag and drop states
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<string | null>(null);
 
   // Common SMTP hosts with their default ports and security settings
   const smtpHosts = [
@@ -161,21 +165,49 @@ const SMTPsettingsTab: React.FC = () => {
     }
   };
 
-  // Move config up or down
-  const moveConfig = async (index: number, direction: 'up' | 'down') => {
-    if (reordering) return;
-    setReordering(true);
-    const newConfigs = [...configs];
-    if (direction === 'up' && index > 0) {
-      [newConfigs[index - 1], newConfigs[index]] = [newConfigs[index], newConfigs[index - 1]];
-    } else if (direction === 'down' && index < newConfigs.length - 1) {
-      [newConfigs[index], newConfigs[index + 1]] = [newConfigs[index + 1], newConfigs[index]];
-    } else {
-      setReordering(false);
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, configId: string) => {
+    setDraggedItem(configId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', configId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, configId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverItem(configId);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverItem(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetConfigId: string) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem === targetConfigId) {
+      setDraggedItem(null);
+      setDragOverItem(null);
       return;
     }
+
+    const draggedIndex = configs.findIndex(cfg => cfg.id === draggedItem);
+    const targetIndex = configs.findIndex(cfg => cfg.id === targetConfigId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedItem(null);
+      setDragOverItem(null);
+      return;
+    }
+
+    setReordering(true);
+    const newConfigs = [...configs];
+    const [draggedConfig] = newConfigs.splice(draggedIndex, 1);
+    newConfigs.splice(targetIndex, 0, draggedConfig);
+    
     // Update order field based on new position
     const updates = newConfigs.map((cfg, i) => ({ id: cfg.id, order: i + 1 }));
+    
     try {
       await smtpApi.patchOrder(updates);
       await loadConfigs();
@@ -183,7 +215,14 @@ const SMTPsettingsTab: React.FC = () => {
       setError('Failed to update order');
     } finally {
       setReordering(false);
+      setDraggedItem(null);
+      setDragOverItem(null);
     }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverItem(null);
   };
 
   return (
@@ -228,21 +267,35 @@ const SMTPsettingsTab: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {configs.map((cfg, idx) => (
-                <tr key={cfg.id} className="hover:bg-gray-50 transition-colors duration-200">
-                  <td className="px-4 py-4 whitespace-nowrap font-bold flex items-center gap-1">
-                    {cfg.order}
-                    <button
-                      className="ml-1 text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30"
-                      onClick={() => moveConfig(idx, 'up')}
-                      disabled={idx === 0 || reordering}
-                      title="Move up"
-                    >▲</button>
-                    <button
-                      className="ml-1 text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30"
-                      onClick={() => moveConfig(idx, 'down')}
-                      disabled={idx === configs.length - 1 || reordering}
-                      title="Move down"
-                    >▼</button>
+                <tr 
+                  key={cfg.id} 
+                  className={`transition-all duration-200 ${
+                    draggedItem === cfg.id 
+                      ? 'opacity-50 bg-blue-50' 
+                      : dragOverItem === cfg.id 
+                      ? 'bg-blue-100 border-t-2 border-b-2 border-blue-300' 
+                      : 'hover:bg-gray-50'
+                  } ${reordering ? 'pointer-events-none' : ''}`}
+                  draggable={!reordering}
+                  onDragStart={(e) => handleDragStart(e, cfg.id)}
+                  onDragOver={(e) => handleDragOver(e, cfg.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, cfg.id)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <td className="px-4 py-4 whitespace-nowrap font-bold flex items-center gap-2">
+                    <div className="flex items-center">
+                      <span className="mr-2">{cfg.order}</span>
+                      <svg 
+                        className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth={2} 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
+                      </svg>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.host}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.port}</td>
