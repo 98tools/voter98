@@ -117,6 +117,8 @@ export const smtpApi = {
   patchOrder: (updates: { id: string; order: number }[]) => api.patch<{ message: string }>('/smtp/order', updates),
   sendEmail: (data: { to: string; subject: string; body: string; smtpId: string }) => 
     api.post<{ message: string }>('/smtp/send', data),
+  sendEmailNextAvailable: (data: { to: string; subject: string; body: string; html?: string }) => 
+    api.post<{ message: string; smtpConfig: { id: string; host: string; order: number } }>('/smtp/send/next-available', data),
 };
 
 export default api;

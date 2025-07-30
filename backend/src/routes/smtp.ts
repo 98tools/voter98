@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getDb } from '../models/db';
 import { smtpConfig } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and, lt } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { sendEmail } from '../utils/mail';
 
@@ -25,6 +25,13 @@ const sendEmailSchema = z.object({
   body: z.string().min(1),
   html: z.string().optional(),
   smtpId: z.string().min(1),
+});
+
+const sendEmailNextAvailableSchema = z.object({
+  to: z.string().email(),
+  subject: z.string().min(1),
+  body: z.string().min(1),
+  html: z.string().optional(),
 });
 
 // Apply auth middleware to all routes
@@ -138,6 +145,52 @@ smtpRoutes.post('/send', zValidator('json', sendEmailSchema), async (c) => {
     }
   } catch (error) {
     console.error('Send email error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Send email using next available SMTP config
+smtpRoutes.post('/send/next-available', zValidator('json', sendEmailNextAvailableSchema), async (c) => {
+  const db = getDb(c.env.DB);
+  const data = c.req.valid('json');
+  
+  try {
+    // Get all SMTP configs ordered by priority (order field)
+    const configs = await db.select().from(smtpConfig).orderBy(smtpConfig.order).all();
+    
+    if (configs.length === 0) {
+      return c.json({ error: 'No SMTP configurations available' }, 400);
+    }
+
+    // Find the first available SMTP config (dailySent < dailyLimit)
+    const availableConfig = configs.find(config => config.dailySent < config.dailyLimit);
+    
+    if (!availableConfig) {
+      return c.json({ error: 'All SMTP configurations have reached their daily limits' }, 400);
+    }
+
+    // Send email using the available config
+    const result = await sendEmail(db, availableConfig.id, {
+      to: data.to,
+      subject: data.subject,
+      body: data.body,
+      html: data.html,
+    });
+
+    if (result.success) {
+      return c.json({ 
+        message: 'Email sent successfully', 
+        smtpConfig: {
+          id: availableConfig.id,
+          host: availableConfig.host,
+          order: availableConfig.order
+        }
+      });
+    } else {
+      return c.json({ error: result.error }, 400);
+    }
+  } catch (error) {
+    console.error('Send email with next available SMTP error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
