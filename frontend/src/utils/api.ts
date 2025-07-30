@@ -115,6 +115,8 @@ export const smtpApi = {
   update: (id: string, data: any) => api.put<{ message: string; config: any }>(`/smtp/${id}`, data),
   delete: (id: string) => api.delete<{ message: string }>(`/smtp/${id}`),
   patchOrder: (updates: { id: string; order: number }[]) => api.patch<{ message: string }>('/smtp/order', updates),
+  sendEmail: (data: { to: string; subject: string; body: string; smtpId: string }) => 
+    api.post<{ message: string }>('/smtp/send', data),
 };
 
 export default api;
