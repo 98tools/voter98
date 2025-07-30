@@ -6,6 +6,7 @@ import { smtpConfig } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
 import { eq, sql } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
+import { sendEmail } from '../utils/mail';
 
 const smtpRoutes = new Hono<{ Bindings: AppBindings; Variables: { user?: JWTPayload } }>();
 
@@ -16,6 +17,14 @@ const smtpSchema = z.object({
   password: z.string().min(1),
   secure: z.boolean(),
   dailyLimit: z.number().int().min(1).optional(),
+});
+
+const sendEmailSchema = z.object({
+  to: z.string().email(),
+  subject: z.string().min(1),
+  body: z.string().min(1),
+  html: z.string().optional(),
+  smtpId: z.string().min(1),
 });
 
 // Apply auth middleware to all routes
@@ -105,6 +114,30 @@ smtpRoutes.delete('/:id', async (c) => {
     return c.json({ message: 'SMTP config deleted' });
   } catch (error) {
     console.error('Delete SMTP config error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Send email endpoint
+smtpRoutes.post('/send', zValidator('json', sendEmailSchema), async (c) => {
+  const db = getDb(c.env.DB);
+  const data = c.req.valid('json');
+  
+  try {
+    const result = await sendEmail(db, data.smtpId, {
+      to: data.to,
+      subject: data.subject,
+      body: data.body,
+      html: data.html,
+    });
+
+    if (result.success) {
+      return c.json({ message: 'Email sent successfully' });
+    } else {
+      return c.json({ error: result.error }, 400);
+    }
+  } catch (error) {
+    console.error('Send email error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

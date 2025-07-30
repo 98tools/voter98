@@ -18,6 +18,7 @@
     "bcryptjs": "^2.4.3",
     "hono": "^4.8.5",
     "jsonwebtoken": "^9.0.2",
+    "worker-mailer": "^1.1.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
