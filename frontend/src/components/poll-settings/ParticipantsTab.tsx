@@ -27,6 +27,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
   const [showResults, setShowResults] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAddingParticipant, setIsAddingParticipant] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
   const [newParticipant, setNewParticipant] = useState({
     name: '',
     email: '',
@@ -422,6 +423,28 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
     }
   };
 
+  const handleSendEmail = async (participantId: string) => {
+    if (!poll?.id) return;
+    
+    setSendingEmails(prev => new Set(prev).add(participantId));
+    
+    try {
+      const response = await pollApi.sendEmailToParticipant(poll.id, participantId);
+      setParticipants(participants.map(p => 
+        p.id === participantId ? { ...p, lastEmailSentAt: response.data.lastEmailSentAt } : p
+      ));
+    } catch (error: any) {
+      console.error('Failed to send email:', error);
+      alert(error.response?.data?.error || 'Failed to send email');
+    } finally {
+      setSendingEmails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(participantId);
+        return newSet;
+      });
+    }
+  };
+
   const toggleTokenVisibility = (participantId: string) => {
     setVisibleTokens(prev => {
       const newSet = new Set(prev);
@@ -448,6 +471,18 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
     a.download = 'participants_template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const formatEmailSentDate = (timestamp: number | null | undefined) => {
+    if (!timestamp) return 'never sent';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const timezoneOffset = date.getTimezoneOffset();
+    const gmtOffset = -timezoneOffset / 60;
+    const gmtSign = gmtOffset >= 0 ? '+' : '';
+    
+    return `last sent ${date.toLocaleDateString()} ${date.toLocaleTimeString()} GMT${gmtSign}${gmtOffset}`;
   };
 
   if (loading) {
@@ -602,6 +637,11 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
                     <th className="px-18 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Token/Access
                     </th>
+                    {poll.status === 'active' && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -711,6 +751,32 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions }) 
                           </div>
                         )}
                       </td>
+                      {poll.status === 'active' && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="space-y-1">
+                            <button
+                              onClick={() => handleSendEmail(participant.id)}
+                              disabled={sendingEmails.has(participant.id)}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              {sendingEmails.has(participant.id) ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Sending...
+                                </>
+                              ) : (
+                                'Send Email'
+                              )}
+                            </button>
+                            <div className="text-xs text-gray-500">
+                              {formatEmailSentDate(participant.lastEmailSentAt)}
+                            </div>
+                          </div>
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {permissions.canManageParticipants && (
                           <button

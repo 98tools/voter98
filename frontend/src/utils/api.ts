@@ -70,6 +70,8 @@ export const pollApi = {
     name?: string;
   }) =>
     api.put<{ message: string; participant: any }>(`/polls/${pollId}/participants/${participantId}`, updateData),
+  sendEmailToParticipant: (pollId: string, participantId: string) =>
+    api.post<{ message: string; lastEmailSentAt: number }>(`/polls/${pollId}/participants/${participantId}/send-email`),
   
   // Results API
   getResults: (pollId: string) => 

@@ -1822,5 +1822,84 @@ pollRoutes.delete('/:id/editors/:editorId', async (c) => {
   }
 });
 
+// Send email to participant (manager, admin only)
+pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    if (user.role !== 'admin' && poll.managerId !== user.userId) {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Check if poll is active
+    if (poll.status !== 'active') {
+      return c.json({ error: 'Can only send emails for active polls' }, 400);
+    }
+
+    // Get participant
+    const participant = await db.select().from(pollParticipants)
+      .where(and(eq(pollParticipants.id, participantId), eq(pollParticipants.pollId, pollId)))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Import the sendEmail function from mail utils
+    const { sendEmail } = await import('../utils/mail');
+
+    // Prepare email content
+    const emailSubject = `Vote in Poll: ${poll.title}`;
+    const emailBody = `Hello ${participant.name},
+
+You are invited to participate in the poll: "${poll.title}"
+
+${poll.description ? `Description: ${poll.description}\n\n` : ''}Poll Link: ${c.env.FRONTEND_URL}/poll/${pollId}${participant.token ? `?token=${participant.token}` : ''}
+
+Please cast your vote before the poll ends.
+
+Best regards,
+The Poll System`;
+
+    // Send email using next available SMTP
+    const result = await sendEmail(db, 'next-available', {
+      to: participant.email,
+      subject: emailSubject,
+      body: emailBody,
+    });
+
+    if (result.success) {
+      // Update lastEmailSentAt timestamp
+      await db.update(pollParticipants)
+        .set({ 
+          lastEmailSentAt: Date.now(),
+          updatedAt: Date.now()
+        })
+        .where(eq(pollParticipants.id, participantId))
+        .run();
+
+      return c.json({ 
+        message: 'Email sent successfully',
+        lastEmailSentAt: Date.now()
+      });
+    } else {
+      return c.json({ error: result.error }, 400);
+    }
+  } catch (error) {
+    console.error('Error sending email to participant:', error);
+    return c.json({ error: 'Failed to send email' }, 500);
+  }
+});
+
 export { publicPollRoutes };
 export default pollRoutes;

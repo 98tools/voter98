@@ -1,4 +1,4 @@
-import { smtpConfig } from '../models/schema';
+import { smtpConfig, SmtpConfig } from '../models/schema';
 import { eq, sql } from 'drizzle-orm';
 import { WorkerMailer } from 'worker-mailer';
 
@@ -15,15 +15,34 @@ export async function sendEmail(
   emailData: EmailData
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get SMTP configuration
-    const config = await db.select().from(smtpConfig).where(eq(smtpConfig.id, smtpId)).get();
-    if (!config) {
-      return { success: false, error: 'SMTP configuration not found' };
-    }
+    let config: SmtpConfig;
+    
+    // Handle "next-available" case
+    if (smtpId === 'next-available') {
+      // Get all SMTP configs ordered by priority (order field)
+      const configs = await db.select().from(smtpConfig).orderBy(smtpConfig.order).all();
+      
+      if (configs.length === 0) {
+        return { success: false, error: 'No SMTP configurations available' };
+      }
 
-    // Check daily limit
-    if (config.dailySent >= config.dailyLimit) {
-      return { success: false, error: 'Daily email limit reached' };
+      // Find the first available SMTP config (dailySent < dailyLimit)
+      config = configs.find((cfg: SmtpConfig) => cfg.dailySent < cfg.dailyLimit);
+      
+      if (!config) {
+        return { success: false, error: 'All SMTP configurations have reached their daily limits' };
+      }
+    } else {
+      // Get specific SMTP configuration
+      config = await db.select().from(smtpConfig).where(eq(smtpConfig.id, smtpId)).get();
+      if (!config) {
+        return { success: false, error: 'SMTP configuration not found' };
+      }
+
+      // Check daily limit
+      if (config.dailySent >= config.dailyLimit) {
+        return { success: false, error: 'Daily email limit reached' };
+      }
     }
 
     // Send email using worker-mailer
@@ -55,7 +74,7 @@ export async function sendEmail(
         dailySent: sql`"daily_sent" + 1`,
         updatedAt: Date.now()
       })
-      .where(eq(smtpConfig.id, smtpId))
+      .where(eq(smtpConfig.id, config.id))
       .run();
 
     return { success: true };

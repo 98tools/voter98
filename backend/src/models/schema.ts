@@ -57,6 +57,7 @@ export const pollParticipants = sqliteTable('poll_participants', {
   voteWeight: real('vote_weight').notNull().default(1.0),
   status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
   hasVoted: integer('has_voted', { mode: 'boolean' }).notNull().default(false),
+  lastEmailSentAt: integer('last_email_sent_at'), // timestamp when last email was sent
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
 });
@@ -97,6 +98,8 @@ export type PollParticipant = typeof pollParticipants.$inferSelect;
 export type NewPollParticipant = typeof pollParticipants.$inferInsert;
 export type PollVote = typeof pollVotes.$inferSelect;
 export type NewPollVote = typeof pollVotes.$inferInsert;
+export type SmtpConfig = typeof smtpConfig.$inferSelect;
+export type NewSmtpConfig = typeof smtpConfig.$inferInsert;
 
 // Ballot question and option types
 export interface BallotOption {
