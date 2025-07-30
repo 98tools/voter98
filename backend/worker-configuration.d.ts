@@ -6,6 +6,7 @@ declare namespace Cloudflare {
 		VOTER_KV: KVNamespace;
 		JWT_SECRET: string;
 		DB: D1Database;
+        FRONTEND_URL: string;
 	}
 }
 interface CloudflareBindings extends Cloudflare.Env {}
