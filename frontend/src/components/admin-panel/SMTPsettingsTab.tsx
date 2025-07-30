@@ -24,6 +24,17 @@ const SMTPsettingsTab: React.FC = () => {
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
 
+  // Test email states
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [testConfig, setTestConfig] = useState<any | null>(null);
+  const [testForm, setTestForm] = useState({
+    to: '',
+    subject: '',
+    body: '',
+  });
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [sendingTest, setSendingTest] = useState(false);
+
   // Common SMTP hosts with their default ports and security settings
   const smtpHosts = [
     { host: 'smtp.protonmail.ch', port: 587, secure: false, name: 'Proton Mail' },
@@ -88,6 +99,64 @@ const SMTPsettingsTab: React.FC = () => {
     setShowModal(false);
     setEditConfig(null);
     setForm({ host: '', port: 587, user: '', password: '', secure: false, dailyLimit: 100 });
+  };
+
+  const handleOpenTestModal = (config: any) => {
+    setTestConfig(config);
+    setTestForm({
+      to: '',
+      subject: 'SMTP Test Email',
+      body: 'This is a test email to verify SMTP configuration.',
+    });
+    setTestResult(null);
+    setShowTestModal(true);
+  };
+
+  const handleCloseTestModal = () => {
+    setShowTestModal(false);
+    setTestConfig(null);
+    setTestForm({ to: '', subject: '', body: '' });
+    setTestResult(null);
+  };
+
+  const handleTestFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setTestForm(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testConfig) return;
+
+    setSendingTest(true);
+    setTestResult(null);
+
+    try {
+      const response = await smtpApi.sendEmail({
+        to: testForm.to,
+        subject: testForm.subject,
+        body: testForm.body,
+        smtpId: testConfig.id,
+      });
+
+      setTestResult({
+        success: true,
+        message: 'Test email sent successfully!',
+      });
+
+      // Reload configs to update daily sent count
+      await loadConfigs();
+    } catch (e: any) {
+      setTestResult({
+        success: false,
+        message: e.response?.data?.error || 'Failed to send test email',
+      });
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -305,6 +374,16 @@ const SMTPsettingsTab: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{cfg.dailySent}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <button
+                      className="text-green-600 hover:text-green-900 font-medium mr-2 transition-colors duration-200 cursor-pointer"
+                      onClick={() => handleOpenTestModal(cfg)}
+                      title="Test Email"
+                    >
+                      <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Test
+                    </button>
+                    <button
                       className="text-blue-600 hover:text-blue-900 font-medium mr-2 transition-colors duration-200 cursor-pointer"
                       onClick={() => handleOpenModal(cfg)}
                       title="Edit"
@@ -331,6 +410,112 @@ const SMTPsettingsTab: React.FC = () => {
           </table>
         )}
       </div>
+
+      {/* Test Email Modal */}
+      {showTestModal && testConfig && (
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative animate-slide-in-right">
+            <button
+              onClick={handleCloseTestModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+              title="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="mb-4">
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">Test SMTP Configuration</h4>
+              <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <div><strong>Host:</strong> {testConfig.host}</div>
+                <div><strong>Port:</strong> {testConfig.port}</div>
+                <div><strong>User:</strong> {testConfig.user}</div>
+                <div><strong>Secure:</strong> {testConfig.secure ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSendTestEmail} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Email</label>
+                <input
+                  name="to"
+                  type="email"
+                  value={testForm.to}
+                  onChange={handleTestFormChange}
+                  placeholder="recipient@example.com"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <input
+                  name="subject"
+                  value={testForm.subject}
+                  onChange={handleTestFormChange}
+                  placeholder="Test Subject"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message Body</label>
+                <textarea
+                  name="body"
+                  value={testForm.body}
+                  onChange={handleTestFormChange}
+                  placeholder="Test message content..."
+                  required
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                />
+              </div>
+
+              {testResult && (
+                <div className={`p-3 rounded-lg text-sm ${
+                  testResult.success 
+                    ? 'bg-green-50 border border-green-200 text-green-700' 
+                    : 'bg-red-50 border border-red-200 text-red-700'
+                }`}>
+                  {testResult.message}
+                </div>
+              )}
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={sendingTest}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingTest ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending...
+                    </span>
+                  ) : (
+                    'Send Test Email'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseTestModal}
+                  className="flex-1 bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit/Create Modal */}
       {showModal && (
         <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 relative animate-slide-in-right">
