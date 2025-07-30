@@ -87,7 +87,10 @@ const SMTPsettingsTab: React.FC = () => {
   const handleOpenModal = (config?: any) => {
     if (config) {
       setEditConfig(config);
-      setForm({ ...config });
+      setForm({ 
+        ...config,
+        dailyLimit: config.dailyLimit || 100
+      });
     } else {
       setEditConfig(null);
       setForm({ host: '', port: 587, user: '', password: '', secure: false, dailyLimit: 100 });
@@ -164,6 +167,8 @@ const SMTPsettingsTab: React.FC = () => {
     let newValue: any = value;
     if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
       newValue = e.target.checked;
+    } else if (type === 'number') {
+      newValue = value === '' ? undefined : Number(value);
     }
     setForm((prev) => ({
       ...prev,
@@ -212,10 +217,17 @@ const SMTPsettingsTab: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Ensure dailyLimit is a number
+      const formData = {
+        ...form,
+        dailyLimit: form.dailyLimit ? Number(form.dailyLimit) : 100,
+        port: Number(form.port)
+      };
+      
       if (editConfig) {
-        await smtpApi.update(editConfig.id, form);
+        await smtpApi.update(editConfig.id, formData);
       } else {
-        await smtpApi.create(form);
+        await smtpApi.create(formData);
       }
       loadConfigs();
       handleCloseModal();
@@ -280,7 +292,7 @@ const SMTPsettingsTab: React.FC = () => {
     try {
       await smtpApi.patchOrder(updates);
       await loadConfigs();
-    } catch (e) {
+    } catch (e: any) {
       setError('Failed to update order');
     } finally {
       setReordering(false);
