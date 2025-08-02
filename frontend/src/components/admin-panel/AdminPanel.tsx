@@ -1,30 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { userApi } from '../../utils/api';
-import type { User } from '../../types';
+import { userApi, groupApi } from '../../utils/api';
+import type { User, UserGroup } from '../../types';
 import * as XLSX from 'xlsx';
 import SMTPsettingsTab from './SMTPsettingsTab';
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [groups, setGroups] = useState<UserGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('users');
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     admins: 0,
     subAdmins: 0,
-    regularUsers: 0
+    regularUsers: 0,
+    totalGroups: 0
   });
 
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'user' as 'admin' | 'sub-admin' | 'user'
+    role: 'user' as 'admin' | 'sub-admin' | 'user',
+    selectedGroups: [] as string[]
+  });
+
+  const [newGroup, setNewGroup] = useState({
+    name: '',
+    description: ''
   });
 
   // Edit user states
@@ -54,16 +63,24 @@ const AdminPanel: React.FC = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await userApi.getAllUsers();
-      const userData = response.data.users;
+      const [usersResponse, groupsResponse] = await Promise.all([
+        userApi.getAllUsers(),
+        groupApi.getAllGroups()
+      ]);
+      
+      const userData = usersResponse.data.users;
+      const groupData = groupsResponse.data.groups;
+      
       setUsers(userData);
+      setGroups(groupData);
       
       // Calculate stats
       setStats({
         totalUsers: userData.length,
         admins: userData.filter((u: User) => u.role === 'admin').length,
         subAdmins: userData.filter((u: User) => u.role === 'sub-admin').length,
-        regularUsers: userData.filter((u: User) => u.role === 'user').length
+        regularUsers: userData.filter((u: User) => u.role === 'user').length,
+        totalGroups: groupData.length
       });
     } catch (error: any) {
       console.error('Load users error:', error);
@@ -78,13 +95,37 @@ const AdminPanel: React.FC = () => {
     e.preventDefault();
     try {
       await userApi.createUser(newUser);
-      setNewUser({ name: '', email: '', password: '', role: 'user' });
+      setNewUser({ name: '', email: '', password: '', role: 'user', selectedGroups: [] });
       setShowCreateUser(false);
       loadUsers();
     } catch (error: any) {
       console.error('Create user error:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create user';
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+    }
+  };
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await groupApi.createGroup(newGroup);
+      setNewGroup({ name: '', description: '' });
+      setShowCreateGroup(false);
+      loadUsers();
+    } catch (error: any) {
+      console.error('Create group error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create group';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!window.confirm('Are you sure you want to delete this group? This will remove all users from the group.')) return;
+    try {
+      await groupApi.deleteGroup(groupId);
+      loadUsers();
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Failed to delete group');
     }
   };
 
@@ -637,6 +678,18 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                 User Management
               </button>
               <button
+                key="groups"
+                onClick={() => setActiveTab('groups')}
+                className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer ${
+                  activeTab === 'groups'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span className="mr-2">🏷️</span>
+                Group Management
+              </button>
+              <button
                 key="smtp"
                 onClick={() => setActiveTab('smtp')}
                 className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer ${
@@ -731,6 +784,37 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                             <option value="sub-admin">Sub-Admin</option>
                             <option value="admin">Admin</option>
                           </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Groups</label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                          {groups.map((group) => (
+                            <label key={group.id} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={newUser.selectedGroups.includes(group.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setNewUser({
+                                      ...newUser,
+                                      selectedGroups: [...newUser.selectedGroups, group.id]
+                                    });
+                                  } else {
+                                    setNewUser({
+                                      ...newUser,
+                                      selectedGroups: newUser.selectedGroups.filter(id => id !== group.id)
+                                    });
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">{group.name}</span>
+                            </label>
+                          ))}
+                          {groups.length === 0 && (
+                            <span className="text-sm text-gray-500 col-span-full">No groups available</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex space-x-3">
@@ -839,6 +923,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Groups</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
                           <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -868,6 +953,22 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                                 <span className="ml-1">{user.role.toUpperCase()}</span>
                               </span>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex flex-wrap gap-1">
+                                {user.groups && user.groups.length > 0 ? (
+                                  user.groups.map((group) => (
+                                    <span
+                                      key={group.id}
+                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                    >
+                                      {group.name}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-sm text-gray-500">No groups</span>
+                                )}
+                              </div>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(user.createdAt).toLocaleDateString()}
                             </td>
@@ -886,6 +987,123 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                                   Delete
                                 </button>
                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'groups' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Group Management</h3>
+                  <button
+                    onClick={() => setShowCreateGroup(!showCreateGroup)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover-lift cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Create New Group
+                  </button>
+                </div>
+
+                {/* Create Group Form */}
+                {showCreateGroup && (
+                  <div className="bg-gray-50 rounded-xl p-6 mb-6 animate-slide-in-right">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Create New Group</h4>
+                    <form onSubmit={handleCreateGroup} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Group Name</label>
+                          <input
+                            type="text"
+                            value={newGroup.name}
+                            onChange={(e) => setNewGroup({...newGroup, name: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                            required
+                            placeholder="Enter group name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                          <input
+                            type="text"
+                            value={newGroup.description}
+                            onChange={(e) => setNewGroup({...newGroup, description: e.target.value})}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Enter group description (optional)"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex space-x-3">
+                        <button
+                          type="submit"
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                        >
+                          Create Group
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateGroup(false)}
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Groups List */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {groups.map((group) => (
+                          <tr key={group.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{group.name}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{group.description || '-'}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {group.memberCount || 0} members
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(group.createdAt || Date.now()).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button
+                                onClick={() => handleDeleteGroup(group.id)}
+                                className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                              >
+                                Delete
+                              </button>
                             </td>
                           </tr>
                         ))}

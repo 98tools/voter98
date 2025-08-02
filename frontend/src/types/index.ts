@@ -1,9 +1,19 @@
+export interface UserGroup {
+  id: string;
+  name: string;
+  description?: string;
+  memberCount?: number;
+  createdAt?: number;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
   role: 'admin' | 'sub-admin' | 'user';
+  groupIDs?: string[];
   createdAt: number;
+  groups?: UserGroup[];
 }
 
 export interface PollPermissions {

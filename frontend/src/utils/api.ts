@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AuthResponse, User, Poll, PollPermissions } from '../types';
+import type { AuthResponse, User, UserGroup, Poll, PollPermissions } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787/api';
 
@@ -39,6 +39,22 @@ export const userApi = {
   updateUser: (id: string, userData: { name?: string; email?: string; password?: string; role?: string }) => 
     api.put<{ message: string; user: User }>(`/users/${id}`, userData),
   deleteUser: (id: string) => api.delete<{ message: string }>(`/users/${id}`),
+};
+
+// Group API
+export const groupApi = {
+  getAllGroups: () => api.get<{ groups: UserGroup[] }>('/groups/all'),
+  getGroupsWithMembers: () => api.get<{ groups: UserGroup[] }>('/groups/with-members'),
+  createGroup: (groupData: { name: string; description?: string }) => 
+    api.post<{ message: string; group: UserGroup }>('/groups/create', groupData),
+  updateGroup: (id: string, groupData: { name?: string; description?: string }) => 
+    api.put<{ message: string; group: UserGroup }>(`/groups/${id}`, groupData),
+  deleteGroup: (id: string) => api.delete<{ message: string }>(`/groups/${id}`),
+  addMembersToGroup: (groupId: string, userIds: string[]) => 
+    api.post<{ message: string; addedCount: number }>(`/groups/${groupId}/members`, { userIds }),
+  removeMembersFromGroup: (groupId: string, userIds: string[]) => 
+    api.delete<{ message: string; removedCount: number }>(`/groups/${groupId}/members`, { data: { userIds } }),
+  getUsersWithGroups: () => api.get<{ users: User[] }>('/groups/users-with-groups'),
 };
 
 // Poll API
