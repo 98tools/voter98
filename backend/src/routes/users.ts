@@ -23,6 +23,7 @@ const createUserSchema = z.object({
   password: z.string().min(6),
   name: z.string().min(1),
   role: z.enum(['user', 'sub-admin', 'admin']).default('user'),
+  groupIDs: z.array(z.string()).optional().default([]),
 });
 
 // Update user schema
@@ -31,6 +32,7 @@ const updateUserSchema = z.object({
   password: z.string().min(6).optional(),
   name: z.string().min(1).optional(),
   role: z.enum(['user', 'sub-admin', 'admin']).optional(),
+  groupIDs: z.array(z.string()).optional(),
 });
 
 // Apply auth middleware to all routes
@@ -137,7 +139,7 @@ userRoutes.get('/all', adminMiddleware, async (c) => {
 
 // Create user (admin only)
 userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema), async (c) => {
-  const { email, password, name, role } = c.req.valid('json');
+  const { email, password, name, role, groupIDs } = c.req.valid('json');
   const db = getDb(c.env.DB);
 
   try {
@@ -147,6 +149,16 @@ userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema)
       return c.json({ error: 'User already exists' }, 400);
     }
 
+    // Validate group IDs if provided
+    if (groupIDs && groupIDs.length > 0) {
+      for (const groupId of groupIDs) {
+        const group = await db.select().from(userGroups).where(eq(userGroups.id, groupId)).get();
+        if (!group) {
+          return c.json({ error: `Group with ID ${groupId} not found` }, 400);
+        }
+      }
+    }
+
     // Hash password and create user
     const hashedPassword = await hashPassword(password);
     const newUser = await db.insert(users).values({
@@ -154,6 +166,7 @@ userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema)
       password: hashedPassword,
       name,
       role,
+      groupIDs: groupIDs || [],
     }).returning().get();
 
     return c.json({
@@ -163,6 +176,7 @@ userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema)
         email: newUser.email,
         name: newUser.name,
         role: newUser.role,
+        groupIDs: newUser.groupIDs,
       },
     });
   } catch (error) {
@@ -212,6 +226,16 @@ userRoutes.put('/:id', adminMiddleware, zValidator('json', updateUserSchema), as
       }
     }
 
+    // Validate group IDs if provided
+    if (updateData.groupIDs && updateData.groupIDs.length > 0) {
+      for (const groupId of updateData.groupIDs) {
+        const group = await db.select().from(userGroups).where(eq(userGroups.id, groupId)).get();
+        if (!group) {
+          return c.json({ error: `Group with ID ${groupId} not found` }, 400);
+        }
+      }
+    }
+
     // Prepare update object
     const updateObject: any = {};
     if (updateData.name) updateObject.name = updateData.name;
@@ -220,6 +244,7 @@ userRoutes.put('/:id', adminMiddleware, zValidator('json', updateUserSchema), as
     if (updateData.password) {
       updateObject.password = await hashPassword(updateData.password);
     }
+    if (updateData.groupIDs !== undefined) updateObject.groupIDs = updateData.groupIDs;
 
     // Update user
     const updatedUser = await db.update(users)

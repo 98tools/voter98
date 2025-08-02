@@ -34,9 +34,9 @@ export const userApi = {
   getSubAdmins: () => api.get<{ subAdmins: User[] }>('/users/sub-admins'),
   createSubAdmin: (email: string, password: string, name: string) => 
     api.post<{ message: string; user: User }>('/users/sub-admin', { email, password, name }),
-  createUser: (userData: { name: string; email: string; password: string; role: string }) => 
+  createUser: (userData: { name: string; email: string; password: string; role: string; groupIDs?: string[] }) => 
     api.post<{ message: string; user: User }>('/users/create', userData),
-  updateUser: (id: string, userData: { name?: string; email?: string; password?: string; role?: string }) => 
+  updateUser: (id: string, userData: { name?: string; email?: string; password?: string; role?: string; groupIDs?: string[] }) => 
     api.put<{ message: string; user: User }>(`/users/${id}`, userData),
   deleteUser: (id: string) => api.delete<{ message: string }>(`/users/${id}`),
 };

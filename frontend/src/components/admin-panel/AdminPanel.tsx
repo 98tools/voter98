@@ -43,7 +43,8 @@ const AdminPanel: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    role: 'user' as 'admin' | 'sub-admin' | 'user'
+    role: 'user' as 'admin' | 'sub-admin' | 'user',
+    selectedGroups: [] as string[]
   });
 
   // Bulk upload states
@@ -94,7 +95,15 @@ const AdminPanel: React.FC = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await userApi.createUser(newUser);
+      const userData = {
+        name: newUser.name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        groupIDs: newUser.selectedGroups
+      };
+      
+      await userApi.createUser(userData);
       setNewUser({ name: '', email: '', password: '', role: 'user', selectedGroups: [] });
       setShowCreateUser(false);
       loadUsers();
@@ -459,7 +468,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
       name: user.name,
       email: user.email,
       password: '', // Don't populate password for security
-      role: user.role as 'admin' | 'sub-admin' | 'user'
+      role: user.role as 'admin' | 'sub-admin' | 'user',
+      selectedGroups: user.groupIDs || []
     });
     setShowEditUser(true);
   };
@@ -472,7 +482,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
       const updateData: any = {
         name: editUser.name,
         email: editUser.email,
-        role: editUser.role
+        role: editUser.role,
+        groupIDs: editUser.selectedGroups
       };
       
       // Only include password if it's provided
@@ -483,7 +494,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
       await userApi.updateUser(editingUser.id, updateData);
       setShowEditUser(false);
       setEditingUser(null);
-      setEditUser({ name: '', email: '', password: '', role: 'user' });
+      setEditUser({ name: '', email: '', password: '', role: 'user', selectedGroups: [] });
       loadUsers();
     } catch (error: any) {
       console.error('Update user error:', error);
@@ -891,6 +902,37 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                           </select>
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Groups</label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                          {groups.map((group) => (
+                            <label key={group.id} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editUser.selectedGroups.includes(group.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEditUser({
+                                      ...editUser,
+                                      selectedGroups: [...editUser.selectedGroups, group.id]
+                                    });
+                                  } else {
+                                    setEditUser({
+                                      ...editUser,
+                                      selectedGroups: editUser.selectedGroups.filter(id => id !== group.id)
+                                    });
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">{group.name}</span>
+                            </label>
+                          ))}
+                          {groups.length === 0 && (
+                            <span className="text-sm text-gray-500 col-span-full">No groups available</span>
+                          )}
+                        </div>
+                      </div>
                       <div className="flex space-x-3">
                         <button
                           type="submit"
@@ -903,7 +945,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                           onClick={() => {
                             setShowEditUser(false);
                             setEditingUser(null);
-                            setEditUser({ name: '', email: '', password: '', role: 'user' });
+                            setEditUser({ name: '', email: '', password: '', role: 'user', selectedGroups: [] });
                           }}
                           className="flex-1 bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 cursor-pointer"
                         >
