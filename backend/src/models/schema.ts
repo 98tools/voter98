@@ -8,6 +8,17 @@ export const users = sqliteTable('users', {
   password: text('password').notNull(),
   name: text('name').notNull(),
   role: text('role').notNull().default('user'), // 'admin', 'sub-admin', 'user'
+  groupIDs: text('group_ids', { mode: 'json' }).notNull().default('[]'), // JSON array of group IDs
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
+// User groups table
+export const userGroups = sqliteTable('user_groups', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdById: text('created_by_id').notNull().references(() => users.id),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
 });
@@ -95,6 +106,8 @@ export const smtpConfig = sqliteTable('smtp_config', {
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type UserGroup = typeof userGroups.$inferSelect;
+export type NewUserGroup = typeof userGroups.$inferInsert;
 export type Poll = typeof polls.$inferSelect;
 export type NewPoll = typeof polls.$inferInsert;
 export type PollParticipant = typeof pollParticipants.$inferSelect;

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getDb } from '../models/db';
-import { users } from '../models/schema';
+import { users, userGroups } from '../models/schema';
 import { hashPassword } from '../utils/auth';
 import { AppBindings, JWTPayload } from '../types';
 import { eq } from 'drizzle-orm';
@@ -107,10 +107,28 @@ userRoutes.get('/all', adminMiddleware, async (c) => {
       email: users.email,
       name: users.name,
       role: users.role,
+      groupIDs: users.groupIDs,
       createdAt: users.createdAt,
     }).from(users).all();
 
-    return c.json({ users: allUsers });
+    const allGroups = await db.select({
+      id: userGroups.id,
+      name: userGroups.name,
+      description: userGroups.description,
+    }).from(userGroups).all();
+
+    // Get groups for each user
+    const usersWithGroups = allUsers.map((user) => {
+      const userGroupIDs = user.groupIDs as string[] || [];
+      const userGroups = allGroups.filter(group => userGroupIDs.includes(group.id));
+
+      return {
+        ...user,
+        groups: userGroups,
+      };
+    });
+
+    return c.json({ users: usersWithGroups });
   } catch (error) {
     console.error('Get all users error:', error);
     return c.json({ error: 'Internal server error' }, 500);

@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import { AppBindings } from './types';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
+import groupRoutes from './routes/groups';
 import pollRoutes, { publicPollRoutes } from './routes/polls';
 import seedRoutes from './routes/seed';
 import smtpRoutes from './routes/smtp';
@@ -23,6 +24,7 @@ app.get('/', (c) => {
 // Routes
 app.route('/api/auth', authRoutes);
 app.route('/api/users', userRoutes);
+app.route('/api/groups', groupRoutes);
 app.route('/api/polls', pollRoutes);
 app.route('/api/poll', publicPollRoutes); // Public poll access routes
 app.route('/api/dev', seedRoutes); // Development routes
