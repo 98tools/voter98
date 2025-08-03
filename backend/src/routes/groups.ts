@@ -46,9 +46,10 @@ groupRoutes.get('/all', adminMiddleware, async (c) => {
     // Calculate member count for each group
     const groupsWithMemberCount = await Promise.all(
       allGroups.map(async (group) => {
-        const usersInGroup = await db.select()
-          .from(users)
-          .all();
+        const usersInGroup = await db.select({
+          id: users.id,
+          groupIDs: users.groupIDs,
+        }).from(users).all();
         
         const memberCount = usersInGroup.filter(user => 
           (user.groupIDs as string[] || []).includes(group.id)
@@ -89,6 +90,7 @@ groupRoutes.get('/with-members', adminMiddleware, async (c) => {
           name: users.name,
           email: users.email,
           role: users.role,
+          groupIDs: users.groupIDs,
         }).from(users).all();
 
         const members = allUsers.filter(user => 
