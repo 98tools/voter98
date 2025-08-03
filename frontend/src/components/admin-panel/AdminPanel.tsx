@@ -58,6 +58,12 @@ const AdminPanel: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Group members modal states
+  const [showGroupMembers, setShowGroupMembers] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<UserGroup | null>(null);
+  const [groupMembers, setGroupMembers] = useState<User[]>([]);
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -135,6 +141,50 @@ const AdminPanel: React.FC = () => {
       loadUsers();
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to delete group');
+    }
+  };
+
+  const handleViewGroupMembers = async (group: UserGroup) => {
+    try {
+      setSelectedGroup(group);
+      setShowGroupMembers(true);
+      setMemberSearchTerm(''); // Reset search term
+      
+      // Filter users who belong to this group
+      const members = users.filter(user => 
+        user.groupIDs && user.groupIDs.includes(group.id)
+      );
+      setGroupMembers(members);
+    } catch (error: any) {
+      console.error('Load group members error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to load group members';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+    }
+  };
+
+  const handleRemoveMemberFromGroup = async (userId: string, groupId: string) => {
+    if (!window.confirm('Are you sure you want to remove this member from the group?')) return;
+    
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      const updatedGroupIDs = (user.groupIDs || []).filter(id => id !== groupId);
+      
+      await userApi.updateUser(userId, { groupIDs: updatedGroupIDs });
+      
+      // Update local state
+      setGroupMembers(prev => prev.filter(member => member.id !== userId));
+      setUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, groupIDs: updatedGroupIDs } : u
+      ));
+      
+      // Show success message
+      setError(''); // Clear any existing errors
+    } catch (error: any) {
+      console.error('Remove member error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to remove member';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     }
   };
 
@@ -1053,6 +1103,76 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                   </button>
                 </div>
 
+                {/* Groups Overview Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm opacity-90">Total Groups</p>
+                        <p className="text-2xl font-bold">{groups.length}</p>
+                      </div>
+                      <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm opacity-90">Total Members</p>
+                        <p className="text-2xl font-bold">
+                          {users.reduce((total, user) => total + (user.groupIDs?.length || 0), 0)}
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm opacity-90">Active Groups</p>
+                        <p className="text-2xl font-bold">
+                          {groups.filter(group => 
+                            users.some(user => user.groupIDs?.includes(group.id))
+                          ).length}
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm opacity-90">Avg Members</p>
+                        <p className="text-2xl font-bold">
+                          {groups.length > 0 
+                            ? Math.round(users.reduce((total, user) => total + (user.groupIDs?.length || 0), 0) / groups.length)
+                            : 0
+                          }
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Create Group Form */}
                 {showCreateGroup && (
                   <div className="bg-gray-50 rounded-xl p-6 mb-6 animate-slide-in-right">
@@ -1124,7 +1244,12 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                                   </svg>
                                 </div>
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">{group.name}</div>
+                                  <button
+                                    onClick={() => handleViewGroupMembers(group)}
+                                    className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors duration-200 cursor-pointer"
+                                  >
+                                    {group.name}
+                                  </button>
                                 </div>
                               </div>
                             </td>
@@ -1133,7 +1258,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {group.memberCount || 0} members
+                                {users.filter(user => user.groupIDs?.includes(group.id)).length} members
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1415,6 +1540,126 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                       )}
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Members Modal */}
+      {showGroupMembers && selectedGroup && (
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Group Members: {selectedGroup.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {selectedGroup.description || 'No description'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowGroupMembers(false);
+                    setSelectedGroup(null);
+                    setGroupMembers([]);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {groupMembers.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600">
+                      {groupMembers.length} member{groupMembers.length !== 1 ? 's' : ''} in this group
+                    </p>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search members..."
+                      value={memberSearchTerm}
+                      onChange={(e) => setMemberSearchTerm(e.target.value)}
+                      className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {groupMembers
+                        .filter(member => 
+                          member.name.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                          member.email.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                          member.role.toLowerCase().includes(memberSearchTerm.toLowerCase())
+                        )
+                        .map((member) => (
+                        <div key={member.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-semibold text-sm">
+                                {member.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {member.name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {member.email}
+                              </p>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(member.role)}`}>
+                                {getRoleIcon(member.role)}
+                                <span className="ml-1">{member.role.toUpperCase()}</span>
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveMemberFromGroup(member.id, selectedGroup!.id)}
+                              className="text-red-500 hover:text-red-700 transition-colors duration-200 p-1"
+                              title="Remove from group"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {groupMembers.filter(member => 
+                      member.name.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                      member.email.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                      member.role.toLowerCase().includes(memberSearchTerm.toLowerCase())
+                    ).length === 0 && memberSearchTerm && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No members found matching "{memberSearchTerm}"</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Members</h3>
+                  <p className="text-gray-500">
+                    This group doesn't have any members yet.
+                  </p>
                 </div>
               )}
             </div>
