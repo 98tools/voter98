@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Poll, PollPermissions } from '../../types';
-import { pollApi } from '../../utils/api';
+import type { Poll, PollPermissions, UserGroup } from '../../types';
+import { pollApi, groupApi } from '../../utils/api';
 import * as XLSX from 'xlsx';
 
 interface ParticipantsTabProps {
@@ -36,6 +36,15 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     voteWeight: 1.0,
     token: ''
   });
+  
+  // Group-related state
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groups, setGroups] = useState<UserGroup[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [groupVoteWeight, setGroupVoteWeight] = useState(1.0);
+  const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const [addGroupError, setAddGroupError] = useState('');
+  const [groupResults, setGroupResults] = useState<any>(null);
 
   useEffect(() => {
     if (poll?.id) {
@@ -55,6 +64,75 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadGroups = async () => {
+    try {
+      const response = await groupApi.getGroupsWithMembers();
+      setGroups(response.data.groups);
+    } catch (error) {
+      console.error('Failed to load groups:', error);
+      setGroups([]);
+    }
+  };
+
+  const handleAddGroupParticipants = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!poll?.id || !selectedGroup) return;
+    
+    setAddGroupError('');
+    setIsAddingGroup(true);
+    
+    try {
+      const response = await pollApi.addGroupParticipants(poll.id, {
+        groupId: selectedGroup,
+        voteWeight: groupVoteWeight
+      });
+      
+      setGroupResults(response.data);
+      
+      // Reload participants to show the newly added ones
+      await loadParticipants();
+      
+      // Reset form
+      setSelectedGroup('');
+      setGroupVoteWeight(1.0);
+    } catch (error: any) {
+      console.error('Failed to add group participants:', error);
+      
+      let errorMessage = 'Failed to add group participants';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
+          errorMessage = errorData.details[0].message || errorMessage;
+        }
+      }
+      
+      setAddGroupError(errorMessage);
+    } finally {
+      setIsAddingGroup(false);
+    }
+  };
+
+  const handleOpenGroupModal = async () => {
+    setShowGroupModal(true);
+    setAddGroupError('');
+    setGroupResults(null);
+    await loadGroups();
+  };
+
+  const handleCloseGroupModal = () => {
+    setShowGroupModal(false);
+    setSelectedGroup('');
+    setGroupVoteWeight(1.0);
+    setAddGroupError('');
+    setGroupResults(null);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -573,6 +651,15 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
               Add Participant
             </button>
             <button
+              onClick={handleOpenGroupModal}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+              </svg>
+              Add Group
+            </button>
+            <button
               onClick={() => setShowCsvModal(true)}
               className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
             >
@@ -663,6 +750,12 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
               >
                 Add Individual Participant
+              </button>
+              <button
+                onClick={handleOpenGroupModal}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
+              >
+                Add Group
               </button>
               <button
                 onClick={() => setShowCsvModal(true)}
@@ -1031,6 +1124,202 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Group Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {groupResults ? 'Group Addition Results' : 'Add Group Participants'}
+                </h3>
+                <button
+                  onClick={handleCloseGroupModal}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {groupResults ? (
+                /* Results Display */
+                <div className="space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-green-800">
+                          Group "{groupResults.group.name}" added successfully!
+                        </h3>
+                        <div className="mt-2 text-sm text-green-700">
+                          <p><strong>Total members:</strong> {groupResults.summary.total}</p>
+                          <p><strong>Added:</strong> {groupResults.summary.added}</p>
+                          <p><strong>Skipped (already participants):</strong> {groupResults.summary.skipped}</p>
+                          {groupResults.summary.errors > 0 && (
+                            <p><strong>Errors:</strong> {groupResults.summary.errors}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {groupResults.skippedParticipants.length > 0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-yellow-800 mb-2">Skipped Participants (Already in Poll)</h4>
+                      <div className="max-h-32 overflow-y-auto">
+                        {groupResults.skippedParticipants.map((participant: any, index: number) => (
+                          <div key={index} className="text-sm text-yellow-700">
+                            {participant.name} ({participant.email})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {groupResults.errors.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-red-800 mb-2">Errors</h4>
+                      <div className="max-h-32 overflow-y-auto">
+                        {groupResults.errors.map((error: any, index: number) => (
+                          <div key={index} className="text-sm text-red-700">
+                            {error.name} ({error.email}): {error.error}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-4">
+                    <button
+                      onClick={handleCloseGroupModal}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Group Selection Form */
+                <div className="space-y-4">
+                  {addGroupError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-red-700">{addGroupError}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Group
+                    </label>
+                    {groups.length === 0 ? (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No groups available</h3>
+                        <p className="text-gray-500">
+                          There are no groups with members in the system. Please create groups and add members first.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {groups.map((group) => (
+                          <div
+                            key={group.id}
+                            onClick={() => setSelectedGroup(group.id)}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors duration-200 ${
+                              selectedGroup === group.id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900">{group.name}</h4>
+                                {group.description && (
+                                  <p className="text-sm text-gray-500 mt-1">{group.description}</p>
+                                )}
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {group.memberCount || 0} member{(group.memberCount || 0) !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                              {selectedGroup === group.id && (
+                                <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Vote Weight (applied to all group members)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      value={groupVoteWeight}
+                      onChange={(e) => setGroupVoteWeight(parseFloat(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This vote weight will be applied to all members of the selected group
+                    </p>
+                  </div>
+
+                  <div className="flex space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleCloseGroupModal}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddGroupParticipants}
+                      disabled={isAddingGroup || !selectedGroup}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
+                    >
+                      {isAddingGroup ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Adding...
+                        </>
+                      ) : (
+                        'Add Group Members'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

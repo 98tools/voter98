@@ -78,6 +78,18 @@ export const pollApi = {
     token?: string;
   }) => 
     api.post<{ message: string; participant: any; systemNameUsed?: boolean }>(`/polls/${pollId}/participants`, participantData),
+  addGroupParticipants: (pollId: string, groupData: {
+    groupId: string;
+    voteWeight?: number;
+  }) => 
+    api.post<{ 
+      message: string; 
+      group: { id: string; name: string; description?: string };
+      summary: { total: number; added: number; skipped: number; errors: number };
+      addedParticipants: any[];
+      skippedParticipants: any[];
+      errors: any[];
+    }>(`/polls/${pollId}/participants/group`, groupData),
   removeParticipant: (pollId: string, participantId: string) =>
     api.delete<{ message: string }>(`/polls/${pollId}/participants/${participantId}`),
   updateParticipant: (pollId: string, participantId: string, updateData: {

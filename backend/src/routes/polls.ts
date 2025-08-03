@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getDb } from '../models/db';
-import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes } from '../models/schema';
+import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes, userGroups } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
 import { eq, and, not, inArray, ne } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
@@ -1864,6 +1864,150 @@ pollRoutes.delete('/:id/editors/:editorId', async (c) => {
   } catch (error) {
     console.error('Error removing editor:', error);
     return c.json({ error: 'Failed to remove editor' }, 500);
+  }
+});
+
+// Add group members as participants (poll manager, admin, or editors)
+const addGroupParticipantsSchema = z.object({
+  groupId: z.string().min(1, 'Group ID is required'),
+  voteWeight: z.number().positive('Vote weight must be positive').optional().default(1.0),
+});
+
+pollRoutes.post('/:id/participants/group', zValidator('json', addGroupParticipantsSchema, (result, c) => {
+  if (!result.success) {
+    const errors = result.error.errors.map(err => ({
+      field: err.path.join('.'),
+      message: err.message
+    }));
+    return c.json({ 
+      error: 'Validation failed', 
+      details: errors,
+      message: errors[0]?.message || 'Invalid input data'
+    }, 400);
+  }
+}), async (c) => {
+  const pollId = c.req.param('id');
+  const { groupId, voteWeight } = c.req.valid('json');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - admin, poll manager, or editors can add participants
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Check if group exists
+    const group = await db.select().from(userGroups).where(eq(userGroups.id, groupId)).get();
+    if (!group) {
+      return c.json({ error: 'Group not found' }, 404);
+    }
+
+    // Get all users in the group
+    const allUsers = await db.select().from(users).all();
+    const groupMembers = allUsers.filter(user => 
+      (user.groupIDs as string[] || []).includes(groupId)
+    );
+
+    if (groupMembers.length === 0) {
+      return c.json({ error: 'Group has no members' }, 400);
+    }
+
+    // Check for existing participants to avoid duplicates
+    const existingParticipants = await db.select()
+      .from(pollParticipants)
+      .where(eq(pollParticipants.pollId, pollId))
+      .all();
+
+    const existingEmails = new Set(existingParticipants.map(p => p.email));
+
+    // Add group members as participants
+    const addedParticipants = [];
+    const skippedParticipants = [];
+    const errors = [];
+
+    for (const member of groupMembers) {
+      if (existingEmails.has(member.email)) {
+        skippedParticipants.push({
+          email: member.email,
+          name: member.name,
+          reason: 'Already a participant'
+        });
+        continue;
+      }
+
+      try {
+        const participant = await db.insert(pollParticipants)
+          .values({
+            pollId,
+            userId: member.id,
+            email: member.email,
+            name: member.name,
+            isUser: true,
+            token: null, // Users don't need tokens
+            tokenUsed: false,
+            voteWeight,
+            status: 'approved',
+            hasVoted: false,
+          })
+          .returning()
+          .get();
+
+        addedParticipants.push({
+          id: participant.id,
+          email: participant.email,
+          name: participant.name,
+          isUser: participant.isUser,
+          voteWeight: participant.voteWeight,
+          status: participant.status,
+          hasVoted: participant.hasVoted,
+        });
+
+        existingEmails.add(member.email); // Add to set to prevent duplicates in same batch
+      } catch (error) {
+        console.error(`Error adding participant ${member.email}:`, error);
+        errors.push({
+          email: member.email,
+          name: member.name,
+          error: 'Failed to add participant'
+        });
+      }
+    }
+
+    return c.json({
+      message: `Group members added successfully`,
+      group: {
+        id: group.id,
+        name: group.name,
+        description: group.description
+      },
+      summary: {
+        total: groupMembers.length,
+        added: addedParticipants.length,
+        skipped: skippedParticipants.length,
+        errors: errors.length
+      },
+      addedParticipants,
+      skippedParticipants,
+      errors
+    });
+  } catch (error) {
+    console.error('Add group participants error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
