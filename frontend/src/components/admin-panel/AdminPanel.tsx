@@ -290,6 +290,7 @@ const AdminPanel: React.FC = () => {
           name: row.name,
           email: row.email,
           role: row.role,
+          groups: row.groups,
           status: 'processing',
           message: '',
           success: false
@@ -313,12 +314,21 @@ const AdminPanel: React.FC = () => {
         // Default role to 'user' if empty or invalid
         const role = ['admin', 'sub-admin', 'user'].includes(row.role?.trim()) ? row.role.trim() : 'user';
         
+        // Process groups if provided
+        const { groupIds, invalidNames } = getGroupIdsFromNames(row.groups || '');
+        
+        // Add warning for invalid group names
+        if (invalidNames.length > 0) {
+          result.message = `Warning: Invalid group names: ${invalidNames.join(', ')}. User will be created without these groups.`;
+        }
+        
         try {
           const response = await userApi.createUser({
             name,
             email: row.email.trim(),
             password,
-            role
+            role,
+            groupIDs: groupIds
           });
           
           result.status = 'success';
@@ -383,6 +393,7 @@ const AdminPanel: React.FC = () => {
           name: row.name,
           email: row.email,
           role: row.role,
+          groups: row.groups,
           status: 'processing',
           message: '',
           success: false
@@ -406,12 +417,21 @@ const AdminPanel: React.FC = () => {
         // Default role to 'user' if empty or invalid
         const role = ['admin', 'sub-admin', 'user'].includes(row.role?.trim()) ? row.role.trim() : 'user';
 
+        // Process groups if provided
+        const { groupIds, invalidNames } = getGroupIdsFromNames(row.groups || '');
+        
+        // Add warning for invalid group names
+        if (invalidNames.length > 0) {
+          result.message = `Warning: Invalid group names: ${invalidNames.join(', ')}. User will be created without these groups.`;
+        }
+
         try {
           const response = await userApi.createUser({
             name,
             email: row.email.trim(),
             password,
-            role
+            role,
+            groupIDs: groupIds
           });
           
           result.status = 'success';
@@ -444,11 +464,31 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Helper function to convert group names to group IDs
+  const getGroupIdsFromNames = (groupNames: string): { groupIds: string[]; invalidNames: string[] } => {
+    if (!groupNames || !groupNames.trim()) return { groupIds: [], invalidNames: [] };
+    
+    const names = groupNames.split(';').map(name => name.trim()).filter(name => name);
+    const groupIds: string[] = [];
+    const invalidNames: string[] = [];
+    
+    for (const name of names) {
+      const group = groups.find(g => g.name.toLowerCase() === name.toLowerCase());
+      if (group) {
+        groupIds.push(group.id);
+      } else {
+        invalidNames.push(name);
+      }
+    }
+    
+    return { groupIds, invalidNames };
+  };
+
   const downloadCsvTemplate = () => {
-    const csvTemplate = `name,email,password,role
-John Doe,john@example.com,password123,user
-Jane Smith,jane@example.com,admin123,admin
-Bob Wilson,bob@example.com,subadmin123,sub-admin`;
+    const csvTemplate = `name,email,password,role,groups
+John Doe,john@example.com,password123,user,Group A;Group B
+Jane Smith,jane@example.com,admin123,admin,Admin Group
+Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
     
     const blob = new Blob([csvTemplate], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -1352,6 +1392,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Groups</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
@@ -1362,6 +1403,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                             <td className="px-6 py-4 whitespace-nowrap">{result.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{result.email}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{result.role || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{result.groups || '-'}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {result.success ? (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Success</span>
@@ -1500,11 +1542,11 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin`;
                           onChange={(e) => setCsvData(e.target.value)}
                           rows={10}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                          placeholder="name,email,password,role&#10;John Doe,john@example.com,password123,user&#10;Jane Smith,jane@example.com,admin123,admin&#10;Bob Wilson,bob@example.com,subadmin123,sub-admin"
+                          placeholder="name,email,password,role,groups&#10;John Doe,john@example.com,password123,user,Group A;Group B&#10;Jane Smith,jane@example.com,admin123,admin,Admin Group&#10;Bob Wilson,bob@example.com,subadmin123,sub-admin,"
                           disabled={isUploading}
                         />
                         <p className="mt-1 text-sm text-gray-500">
-                          Required columns: name, email, password, role. Allowed roles: user, sub-admin, admin
+                          Required columns: name, email, password, role. Optional: groups (semicolon-separated group names). Allowed roles: user, sub-admin, admin
                         </p>
                       </div>
 
