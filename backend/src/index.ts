@@ -8,7 +8,7 @@ import groupRoutes from './routes/groups';
 import pollRoutes, { publicPollRoutes } from './routes/polls';
 import seedRoutes from './routes/seed';
 import smtpRoutes from './routes/smtp';
-import { sendEmailsToParticipants } from './utils/cron';
+import { sendEmailsToParticipants, resetDailyEmailCounts } from './utils/cron';
 
 const app = new Hono<{ Bindings: AppBindings }>();
 
@@ -30,7 +30,7 @@ app.route('/api/poll', publicPollRoutes); // Public poll access routes
 app.route('/api/dev', seedRoutes); // Development routes
 app.route('/api/smtp', smtpRoutes);
 
-// Cron job endpoint for Cloudflare Workers
+// Cron job endpoints for Cloudflare Workers
 app.post('/api/cron/send-emails', async (c) => {
   try {
     const result = await sendEmailsToParticipants(c.env);
@@ -40,6 +40,20 @@ app.post('/api/cron/send-emails', async (c) => {
     return c.json({ 
       success: false, 
       error: 'Cron job failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+app.post('/api/cron/reset-daily-counts', async (c) => {
+  try {
+    const result = await resetDailyEmailCounts(c.env);
+    return c.json(result);
+  } catch (error) {
+    console.error('Daily reset cron job error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Daily reset cron job failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
@@ -65,15 +79,30 @@ async function handleCronTrigger(event: ScheduledEvent) {
   console.log('Cron trigger fired:', event.cron);
   
   try {
-    // Create a mock environment context for the cron function
-    // This will be replaced with actual environment bindings at runtime
+    // Create environment context for the cron function
     const env = {
       DB: (globalThis as any).DB,
       VOTER_KV: (globalThis as any).VOTER_KV,
-      JWT_SECRET: (globalThis as any).JWT_SECRET
+      JWT_SECRET: (globalThis as any).JWT_SECRET,
+      FRONTEND_URL: (globalThis as any).FRONTEND_URL || 'http://localhost:5173'
     };
     
-    const result = await sendEmailsToParticipants(env);
+    let result;
+    
+    // Determine which cron job to run based on the cron pattern
+    if (event.cron === '*/5 * * * *') {
+      // Every 5 minutes - send emails to participants
+      console.log('Running 5-minute email sending cron job...');
+      result = await sendEmailsToParticipants(env);
+    } else if (event.cron === '0 0 * * *') {
+      // Daily at midnight - reset daily email counts
+      console.log('Running daily email count reset cron job...');
+      result = await resetDailyEmailCounts(env);
+    } else {
+      console.log('Unknown cron pattern:', event.cron);
+      return;
+    }
+    
     console.log('Cron job completed successfully:', result);
   } catch (error) {
     console.error('Cron job failed:', error);

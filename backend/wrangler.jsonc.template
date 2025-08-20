@@ -10,12 +10,18 @@
     "nodejs_compat"
   ],
   "triggers": {
-    "crons": [
-      "*/5 * * * *"
+    "crons": [ // Cron Triggers
+      "*/5 * * * *", // for sending emails to participants
+      "0 0 * * *" // for resetting daily email counts
     ]
   },
+  "observability": { // Enable Workers Logs
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
   "vars": {
-    "JWT_SECRET": "your-super-secret-jwt-key-for-development-please-change-in-production"
+    "JWT_SECRET": "your-super-secret-jwt-key-for-development-please-change-in-production",
+    "FRONTEND_URL": "https://xxxxxxx.xxxxxxxx.workers.dev"
   },
   "kv_namespaces": [
     {
