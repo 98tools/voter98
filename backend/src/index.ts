@@ -70,36 +70,32 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal server error' }, 500);
 });
 
-// Handle cron triggers
-addEventListener('scheduled', (event: ScheduledEvent) => {
-  event.waitUntil(handleCronTrigger(event));
-});
-
-async function handleCronTrigger(event: ScheduledEvent) {
-  console.log('Cron trigger fired:', event.cron);
+// Cron job handler function
+async function handleCronJob(controller: ScheduledController, env: AppBindings) {
+  console.log('Cron trigger fired:', controller.cron);
   
   try {
     // Create environment context for the cron function
-    const env = {
-      DB: (globalThis as any).DB,
-      VOTER_KV: (globalThis as any).VOTER_KV,
-      JWT_SECRET: (globalThis as any).JWT_SECRET,
-      FRONTEND_URL: (globalThis as any).FRONTEND_URL || 'http://localhost:5173'
+    const cronEnv = {
+      DB: env.DB,
+      VOTER_KV: env.VOTER_KV,
+      JWT_SECRET: env.JWT_SECRET,
+      FRONTEND_URL: env.FRONTEND_URL || 'http://localhost:5173'
     };
     
     let result;
     
     // Determine which cron job to run based on the cron pattern
-    if (event.cron === '*/5 * * * *') {
+    if (controller.cron === '*/5 * * * *') {
       // Every 5 minutes - send emails to participants
       console.log('Running 5-minute email sending cron job...');
-      result = await sendEmailsToParticipants(env);
-    } else if (event.cron === '0 0 * * *') {
+      result = await sendEmailsToParticipants(cronEnv);
+    } else if (controller.cron === '0 0 * * *') {
       // Daily at midnight - reset daily email counts
       console.log('Running daily email count reset cron job...');
-      result = await resetDailyEmailCounts(env);
+      result = await resetDailyEmailCounts(cronEnv);
     } else {
-      console.log('Unknown cron pattern:', event.cron);
+      console.log('Unknown cron pattern:', controller.cron);
       return;
     }
     
@@ -109,5 +105,8 @@ async function handleCronTrigger(event: ScheduledEvent) {
   }
 }
 
-// Export the app for HTTP requests
-export default app;
+// Export using the explicit pattern recommended by Cloudflare Workers
+export default {
+  fetch: app.fetch,
+  scheduled: handleCronJob
+};
