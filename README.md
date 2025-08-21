@@ -150,10 +150,10 @@ Backend API: http://localhost:8787
 ### Method 1: Deploy to Cloudflare Workers with one click
 
 `Deploy Backend`<br>
-[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/backend)
+[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/tree/main/backend)
 
 `Deploy Frontend`<br>
-[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/frontend)
+[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/tree/main/frontend)
 
 - from Cloudflare dashboard, Workers, voter98-backend, Bindings, `Add Binding`, choose `D1 database` and press Add, Variable name is `DB`, D1 database is `voter-db` which you'll create here
 - again `Add Binding`, choose `KV namespace` and press Add, Variable name is `VOTER_KV`, KV namespace is `voter-kv` which you'll create here
