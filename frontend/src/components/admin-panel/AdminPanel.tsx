@@ -636,7 +636,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-                  <p className="text-xs text-gray-500">Voter15 Management</p>
+                  <p className="text-xs text-gray-500">Voter98 Management</p>
                 </div>
               </div>
             </div>
