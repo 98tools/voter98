@@ -1,6 +1,12 @@
 # Voter98 - Advanced Polling & Voting System
 
-Deploy to Cloudflare License: MIT TypeScript React Tailwind CSS Cloudflare Workers
+[![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Hono](https://img.shields.io/badge/Hono-4B5563?style=flat&logo=hono&logoColor=white)](https://hono.dev/)
+[![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+
 
 A powerful, web-based polling and voting system that enables organizations to create, manage, and conduct secure online polls with advanced features like email notifications, participant management, and real-time results. Built with React and TypeScript, optimized for easy and fast deployment on **Cloudflare Workers**.
 
@@ -445,7 +451,7 @@ Found a bug or have a feature request? Please create an issue on GitHub Issues.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the AGPLv3 License - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
