@@ -4,5 +4,11 @@
   "assets": {
     "directory": "dist",
     "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "VITE_API_BASE_URL": "https://voter98-backend.xxxxxxxx.workers.dev/api"
+  },
+  "deploy": {
+    "command": "npx wrangler deploy"
   }
 }
