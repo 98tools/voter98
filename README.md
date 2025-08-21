@@ -152,35 +152,174 @@ Backend API: http://localhost:8787
 
 ### Method 2: Deploy to Cloudflare Workers manually
 
-1. **Install Wrangler CLI**  
+#### Prerequisites
+* Cloudflare account
+* Node.js 18+ installed
+* Git repository cloned
+
+#### Step 1: Install and Setup Wrangler CLI
+
 ```bash
 npm install -g wrangler
-```
-
-2. **Login to Cloudflare**  
-```bash
 wrangler login
 ```
 
-3. **Set up D1 database**  
+#### Step 2: Create Cloudflare Resources
+
 ```bash
+# Create D1 database
 wrangler d1 create voter-db
+
+# Create KV namespace (optional, for caching)
+wrangler kv:namespace create VOTER_KV
+wrangler kv:namespace create VOTER_KV --preview
 ```
 
-4. **Configure wrangler.jsonc**  
-Update the database binding in your wrangler configuration.
+#### Step 3: Configure Backend
 
-5. **Build and Deploy**  
+1. **Copy configuration template**:
 ```bash
-# Backend
 cd backend
-npm run deploy
+cp wrangler.jsonc.template wrangler.jsonc
+```
 
-# Frontend
+2. **Update `wrangler.jsonc` with your values**:
+```json
+{
+  // ...
+
+  "vars": {
+    "JWT_SECRET": "your-super-secret-jwt-key-change-this-in-production",
+    "FRONTEND_URL": "https://your-frontend-url.workers.dev"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "VOTER_KV",
+      "id": "YOUR_KV_NAMESPACE_ID_HERE",
+      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "voter-db",
+      "database_id": "YOUR_D1_DATABASE_ID_HERE"
+    }
+  ]
+}
+```
+
+3. **Deploy backend**:
+```bash
+npm run deploy
+```
+
+4. **Note your backend URL** (e.g., `https://voter15-backend.your-username.workers.dev`)
+
+#### Step 4: Configure Frontend
+
+1. **Create environment file**:
+```bash
 cd ../frontend
+```
+
+2. **Create `.env` file**:
+```env
+VITE_API_BASE_URL=https://voter15-backend.your-username.workers.dev/api
+```
+
+3. **Build and deploy frontend**:
+```bash
 npm run build
 npm run deploy
 ```
+
+4. **Note your frontend URL** (e.g., `https://voter15-frontend.your-username.workers.dev`)
+
+#### Step 5: Update Backend Configuration
+
+1. **Update backend `wrangler.jsonc`** with your frontend URL:
+```json
+{
+  "vars": {
+    "JWT_SECRET": "your-super-secret-jwt-key-change-this-in-production",
+    "FRONTEND_URL": "https://your-frontend-url.workers.dev"
+  }
+}
+```
+
+2. **Redeploy backend**:
+```bash
+cd ../backend
+npm run deploy
+```
+
+#### Step 6: Setup Database and Seed Data
+
+1. **Apply database migrations**:
+```bash
+npm run db:migrate:remote
+```
+
+2. **Seed the database** (only in development):
+```bash
+# Make a POST request to seed endpoint
+curl -X POST https://your-backend-url.workers.dev/api/dev/seed
+```
+
+**Default seed user**:
+- **Admin**: `admin@example.com` / `password123`
+
+#### Step 7: Configure SMTP (Optional)
+
+1. **Access your application** at your frontend URL
+2. **Login as admin** using the seed credentials
+3. **Navigate to Admin Panel** → SMTP Settings
+4. **Configure your SMTP settings**:
+   - SMTP Host (e.g., `smtp.gmail.com`)
+   - Port (e.g., `587` for TLS)
+   - Username and Password
+   - Daily email limits
+   - Cron job limits
+
+#### Step 8: Test Your Deployment
+
+1. **Visit your frontend URL**
+2. **Login with seed credentials**
+3. **Create a test poll**
+4. **Test email functionality** (if SMTP is configured)
+
+### Environment Variables Reference
+
+#### Backend Environment Variables (`wrangler.jsonc`)
+```json
+{
+  "vars": {
+    "JWT_SECRET": "your-jwt-secret-key",
+    "FRONTEND_URL": "https://your-frontend-url.workers.dev"
+  }
+}
+```
+
+#### Frontend Environment Variables (`.env`)
+```env
+VITE_API_BASE_URL=https://your-backend-url.workers.dev/api
+```
+
+### Troubleshooting
+
+#### Common Issues:
+
+1. **CORS Errors**: Ensure `FRONTEND_URL` in backend config matches your frontend URL exactly
+2. **Database Connection**: Verify D1 database ID is correct in `wrangler.jsonc`
+3. **Email Not Working**: Check SMTP configuration in Admin Panel
+4. **Build Errors**: Ensure all dependencies are installed with `npm install`
+
+#### Development vs Production:
+
+- **Development**: Use `npm run db:migrate:local` for local database
+- **Production**: Use `npm run db:migrate:remote` for production database
+- **Seeding**: Only available in development (JWT_SECRET contains "development")
 
 ### Deploy to Other Platforms
 
