@@ -81,14 +81,11 @@ Backend API: http://localhost:8787
 
 ## 🛠️ Tech Stack
 
-* **Frontend**: React 19, TypeScript, Tailwind CSS
-* **Backend**: Hono.js, TypeScript, Drizzle ORM
+* **Frontend**: Vite, React 19, TypeScript, Tailwind CSS, Cloudflare Workers
+* **Backend**: Hono.js, TypeScript, Drizzle ORM, Cloudflare Workers
 * **Database**: Cloudflare D1 (SQLite)
 * **Authentication**: JWT with bcrypt
 * **Email**: SMTP integration with worker-mailer
-* **Build Tool**: Vite
-* **Deployment**: Cloudflare Workers
-* **Development**: Hot reload, TypeScript support
 
 ## 📖 How to Use
 
@@ -147,7 +144,11 @@ Backend API: http://localhost:8787
 
 ### Method 1: Deploy to Cloudflare Workers with one click
 
-[Deploy to Cloudflare Workers]
+`Deploy Backend`<br>
+[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/backend)
+
+`Deploy Frontend`<br>
+[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/frontend)
 
 ### Method 2: Deploy to Cloudflare Workers manually
 
@@ -166,7 +167,7 @@ wrangler login
 wrangler d1 create voter-db
 ```
 
-4. **Configure wrangler.toml**  
+4. **Configure wrangler.jsonc**  
 Update the database binding in your wrangler configuration.
 
 5. **Build and Deploy**  
