@@ -5,8 +5,13 @@ Deploy to Cloudflare License: MIT TypeScript React Tailwind CSS Cloudflare Worke
 A powerful, web-based polling and voting system that enables organizations to create, manage, and conduct secure online polls with advanced features like email notifications, participant management, and real-time results. Built with React and TypeScript, optimized for easy and fast deployment on **Cloudflare Workers**.
 
 ## Screenshots
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/1e0978ba-6cbb-45dc-9d84-e7083fb0f0e7" />
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/ccc3f33d-103d-4538-bf57-8ce936d0ce0f" />
+<img width="1912" height="1079" alt="image" src="https://github.com/user-attachments/assets/971adb0c-b767-4072-9904-5e3b5304d61f" />
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/57fac3be-6922-4b92-bc8d-53553402eb7c" />
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/6b160452-62eb-49ec-ad00-89ce4cad7edc" />
+<img width="1914" height="1079" alt="image" src="https://github.com/user-attachments/assets/e7ff1138-a58e-4605-b2aa-f5596460efe7" />
 
-*[Screenshots will be added here]*
 
 ## ✨ Features
 
@@ -145,10 +150,10 @@ Backend API: http://localhost:8787
 ### Method 1: Deploy to Cloudflare Workers with one click
 
 `Deploy Backend`<br>
-[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/backend)
+[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/tree/main/backend)
 
 `Deploy Frontend`<br>
-[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/frontend)
+[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/tree/main/frontend)
 
 - from Cloudflare dashboard, Workers, voter98-backend, Bindings, `Add Binding`, choose `D1 database` and press Add, Variable name is `DB`, D1 database is `voter-db` which you'll create here
 - again `Add Binding`, choose `KV namespace` and press Add, Variable name is `VOTER_KV`, KV namespace is `voter-kv` which you'll create here
