@@ -150,6 +150,10 @@ Backend API: http://localhost:8787
 `Deploy Frontend`<br>
 [![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/frontend)
 
+- from Cloudflare dashboard, Workers, voter98-backend, Bindings, `Add Binding`, choose `D1 database` and press Add, Variable name is `DB`, D1 database is `voter-db` which you'll create here
+- again `Add Binding`, choose `KV namespace` and press Add, Variable name is `VOTER_KV`, KV namespace is `voter-kv` which you'll create here
+- navigate to `Settings`, Variables and Secrets, `Add`, Text, Variable name is `FRONTEND_URL`, Value is `https://voter98-frontend.your-username.workers.dev`
+
 ### Method 2: Deploy to Cloudflare Workers manually
 
 #### Prerequisites
