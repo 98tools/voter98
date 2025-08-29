@@ -36,3 +36,4 @@ lerna-debug.log*
 migrations/
 
 # cloudflare
+wrangler-local.jsonc

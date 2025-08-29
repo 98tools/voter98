@@ -4,10 +4,12 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
+    "deploy:config:local": "wrangler deploy --minify --config wrangler.local.jsonc",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply voter-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply voter-db --remote",
+    "db:migrate:remote:config:local": "wrangler d1 migrations apply voter-db --remote --config wrangler.local.jsonc",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
