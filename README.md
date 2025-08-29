@@ -464,6 +464,6 @@ This project is licensed under the AGPLv3 License - see the LICENSE file for det
 
 ---
 
-Made with ❤️ by the Voter98 Team
+Made with ❤️ by the 98tools Team
 
 ⭐ Star this project • 🐛 Report Bug • 🔧 Request Feature
