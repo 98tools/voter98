@@ -138,39 +138,39 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--brand-background)'}}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading your dashboard...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4" style={{borderBottomColor: 'var(--brand-primary)'}}></div>
+          <p className="brand-text text-lg">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{background: 'var(--brand-background)'}}>
       {/* Navigation Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="border-b" style={{backgroundColor: 'var(--brand-surface)', boxShadow: 'var(--brand-shadow-md)', borderBottomColor: 'var(--brand-sand-dark)'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center p-1">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center p-1" style={{background: 'var(--brand-gradient-primary)'}}>
                   <img src={newLogo} alt="منظومة اقتراع Logo" className="w-full h-full object-contain" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">منظومة اقتراع</h1>
+                <h1 className="text-xl font-bold brand-heading">منظومة اقتراع</h1>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                  <p className="text-sm font-medium brand-text">{user?.name}</p>
                   <p className={`text-xs px-2 py-1 rounded-full font-medium ${getRoleColor(user?.role || 'user')}`}>
                     {user?.role?.toUpperCase()}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{background: 'var(--brand-gradient-primary)'}}>
                   <span className="text-white font-semibold text-sm">
                     {user?.name?.charAt(0).toUpperCase()}
                   </span>
@@ -180,7 +180,8 @@ const Dashboard: React.FC = () => {
               {user?.role === 'admin' && (
                 <Link
                   to="/admin"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift"
+                  className="brand-button inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg hover-lift"
+                  style={{background: 'var(--brand-gradient-primary)', color: 'var(--brand-carbon)', transition: 'var(--brand-transition)'}}
                 >
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
@@ -191,7 +192,14 @@ const Dashboard: React.FC = () => {
               
               <button
                 onClick={logout}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 cursor-pointer"
+                className="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg cursor-pointer brand-text"
+                style={{borderColor: 'var(--brand-sand-dark)', backgroundColor: 'var(--brand-surface)', transition: 'var(--brand-transition)'}}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--brand-sand)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--brand-surface)';
+                }}
               >
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
@@ -207,30 +215,122 @@ const Dashboard: React.FC = () => {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Welcome Section */}
         <div className="mb-8 animate-fade-in">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">
-                  Welcome back, {user?.name}! 👋
-                </h2>
-                <p className="text-blue-100 text-lg">
+          <div className="relative overflow-hidden rounded-2xl p-8 text-white shadow-xl" style={{
+            background: 'var(--brand-gradient-primary)',
+            boxShadow: 'var(--brand-shadow-xl)'
+          }}>
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{
+                background: 'var(--brand-sand)'
+              }}></div>
+              <div className="absolute top-8 -left-8 w-32 h-32 rounded-full" style={{
+                background: 'var(--brand-rich-gold)'
+              }}></div>
+              <div className="absolute -bottom-6 right-12 w-20 h-20 rounded-full" style={{
+                background: 'var(--brand-deep-green)'
+              }}></div>
+            </div>
+            
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center mb-4">
+                  <div className="w-16 h-16 rounded-xl flex items-center justify-center mr-4" style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}>
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-4xl font-bold mb-2 brand-heading" style={{
+                      color: 'var(--brand-carbon)',
+                      textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                    }}>
+                      Welcome back, {user?.name}! 👋
+                    </h2>
+                    <div className="flex items-center space-x-3">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" style={{
+                        background: 'var(--brand-deep-green)',
+                        color: 'white'
+                      }}>
+                        {user?.role?.toUpperCase()}
+                      </span>
+                      <span className="text-sm opacity-75">
+                        Dashboard Active
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-lg mb-4 leading-relaxed brand-text" style={{
+                  color: 'var(--brand-carbon)',
+                  opacity: 0.9
+                }}>
                   {user?.role === 'admin' 
-                    ? 'Manage polls, users, and oversee the entire voting platform.' 
+                    ? '🎯 Manage polls, users, and oversee the entire voting platform with full administrative control.' 
                     : user?.role === 'sub-admin'
-                    ? 'Manage your assigned polls and participate in the voting process.'
-                    : 'Participate in polls and view your voting history.'}
+                    ? '📊 Manage your assigned polls and participate in the democratic voting process.'
+                    : '🗳️ Participate in polls, cast your votes, and view your comprehensive voting history.'}
                 </p>
+                
+                {/* Quick Stats */}
+                <div className="flex items-center space-x-6 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{background: 'var(--brand-deep-green)'}}></div>
+                    <span className="brand-text" style={{color: 'var(--brand-carbon)'}}>
+                      {polls.length} {user?.role === 'admin' ? 'Total' : user?.role === 'sub-admin' ? 'My' : 'Available'} Polls
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{background: 'var(--brand-rich-gold)'}}></div>
+                    <span className="brand-text" style={{color: 'var(--brand-carbon)'}}>
+                      {polls.filter(p => p.status === 'active').length} Active Now
+                    </span>
+                  </div>
+                </div>
               </div>
+              
               {(user?.role === 'admin') && (
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-purple-600 font-medium py-3 px-6 rounded-xl transition-all duration-200 hover-lift border border-white border-opacity-20 cursor-pointer"
-                >
-                  <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                  Create New Poll
-                </button>
+                <div className="ml-8">
+                  <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="brand-button-secondary relative overflow-hidden group"
+                    style={{
+                      background: 'var(--brand-deep-green)',
+                      color: 'white',
+                      padding: '16px 32px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '16px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'var(--brand-transition)',
+                      boxShadow: 'var(--brand-shadow-md)',
+                      transform: 'translateY(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--brand-shadow-lg)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'var(--brand-shadow-md)';
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                      <span>Create New Poll</span>
+                    </div>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300" style={{
+                      background: 'var(--brand-rich-gold)'
+                    }}></div>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -238,41 +338,58 @@ const Dashboard: React.FC = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg animate-slide-in-right">
+          <div className="mb-6 p-4 rounded-lg animate-slide-in-right" style={{backgroundColor: 'rgba(220, 181, 87, 0.1)', borderLeft: '4px solid var(--brand-primary)'}}>
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 mr-3" fill="var(--brand-primary)" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <span className="text-red-700 font-medium">{error}</span>
+              <span className="brand-text font-medium">{error}</span>
             </div>
           </div>
         )}
 
         {/* Polls Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <div className="brand-card rounded-2xl" style={{backgroundColor: 'var(--brand-surface)', boxShadow: 'var(--brand-shadow-md)', border: '1px solid var(--brand-sand-dark)'}}>
+          <div className="p-6 border-b" style={{borderBottomColor: 'var(--brand-sand-dark)'}}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold brand-heading">
                 {user?.role === 'admin' ? 'All Polls' : 
                  user?.role === 'sub-admin' ? 'My Polls' : 
                  'Available Polls'}
               </h3>
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">{polls.length} total</span>
+                <span className="text-sm brand-text" style={{opacity: 0.7}}>{polls.length} total</span>
               </div>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            <div className="flex space-x-1 p-1 rounded-lg" style={{backgroundColor: 'var(--brand-sand)'}}>
               {['all', 'active', 'draft', 'completed'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                  className={`px-4 py-2 text-sm font-medium rounded-md ${
                     activeTab === tab
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'brand-text'
+                      : 'brand-text'
                   }`}
+                  style={{
+                    backgroundColor: activeTab === tab ? 'var(--brand-surface)' : 'transparent',
+                    color: activeTab === tab ? 'var(--brand-primary)' : 'var(--brand-carbon)',
+                    opacity: activeTab === tab ? 1 : 0.7,
+                    boxShadow: activeTab === tab ? 'var(--brand-shadow-sm)' : 'none',
+                    transition: 'var(--brand-transition)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab) {
+                      e.currentTarget.style.opacity = '1';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab) {
+                      e.currentTarget.style.opacity = '0.7';
+                    }
+                  }}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
@@ -283,11 +400,11 @@ const Dashboard: React.FC = () => {
           <div className="p-6">
             {polls.length === 0 ? (
               <div className="text-center py-12 animate-fade-in">
-                <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="mx-auto h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="var(--brand-primary)" style={{opacity: 0.6}}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No polls found</h3>
-                <p className="text-gray-500 mb-6">
+                <h3 className="text-lg font-medium brand-heading mb-2">No polls found</h3>
+                <p className="brand-text mb-6" style={{opacity: 0.7}}>
                   {user?.role === 'admin' || user?.role === 'sub-admin'
                     ? 'Get started by creating your first poll.'
                     : 'No polls are available for you to participate in yet.'}
@@ -295,7 +412,7 @@ const Dashboard: React.FC = () => {
                 {(user?.role === 'admin' || user?.role === 'sub-admin') && (
                   <button 
                     onClick={() => setShowCreateModal(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+                    className="brand-button-secondary inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg"
                   >
                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -311,11 +428,19 @@ const Dashboard: React.FC = () => {
                   .map((poll, index) => (
                     <div
                       key={poll.id}
-                      className="bg-white border border-gray-200 rounded-xl p-6 hover-lift animate-fade-in"
-                      style={{ animationDelay: `${index * 0.1}s` }}
+                      className="brand-card rounded-xl p-6 hover-lift animate-fade-in"
+                      style={{ animationDelay: `${index * 0.1}s`, backgroundColor: 'var(--brand-surface)', border: '1px solid var(--brand-sand-dark)', boxShadow: 'var(--brand-shadow-sm)', transition: 'var(--brand-transition)' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = 'var(--brand-shadow-lg)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'var(--brand-shadow-sm)';
+                      }}
                     >
                       <div className="flex items-start justify-between mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900 leading-tight">
+                        <h4 className="text-lg font-semibold brand-heading leading-tight">
                           {poll.title}
                         </h4>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(poll.status)}`}>
@@ -325,12 +450,12 @@ const Dashboard: React.FC = () => {
                       </div>
                       
                       {poll.description && (
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        <p className="brand-text text-sm mb-4 line-clamp-2" style={{opacity: 0.8}}>
                           {poll.description}
                         </p>
                       )}
                       
-                      <div className="space-y-2 text-sm text-gray-500 mb-4">
+                      <div className="space-y-2 text-sm mb-4" style={{color: 'var(--brand-carbon)', opacity: 0.7}}>
                         <div className="flex items-center">
                           <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
@@ -348,7 +473,14 @@ const Dashboard: React.FC = () => {
                       <div className="flex space-x-2">
                         <button 
                           onClick={() => handlePollClick(poll)}
-                          className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                          className="flex-1 inline-flex items-center justify-center px-3 py-2 border text-sm font-medium rounded-lg cursor-pointer brand-text"
+                          style={{borderColor: 'var(--brand-sand-dark)', backgroundColor: 'var(--brand-surface)', transition: 'var(--brand-transition)'}}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--brand-sand)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--brand-surface)';
+                          }}
                         >
                           <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -360,7 +492,7 @@ const Dashboard: React.FC = () => {
                         {user?.role === 'user' && (poll.status === 'completed' || poll.status === 'active') && (
                           <button 
                             onClick={() => navigate(`/poll/${poll.id}`)}
-                            className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
+                            className="brand-button-secondary flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg"
                           >
                             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
@@ -378,28 +510,45 @@ const Dashboard: React.FC = () => {
 
         {/* Other Polls Section */}
         {(user?.role === 'sub-admin' || user?.role === 'user') && otherPolls.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
+          <div className="mt-8 brand-card rounded-2xl" style={{backgroundColor: 'var(--brand-surface)', boxShadow: 'var(--brand-shadow-md)', border: '1px solid var(--brand-sand-dark)'}}>
+            <div className="p-6 border-b" style={{borderBottomColor: 'var(--brand-sand-dark)'}}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-gray-900">
+                <h3 className="text-2xl font-bold brand-heading">
                   {user?.role === 'sub-admin' ? 'Other Polls' : 'All Polls'}
                 </h3>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">{otherPolls.length} available</span>
+                  <span className="text-sm brand-text" style={{opacity: 0.7}}>{otherPolls.length} available</span>
                 </div>
               </div>
 
               {/* Tab Navigation for Other Polls */}
-              <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+              <div className="flex space-x-1 p-1 rounded-lg" style={{backgroundColor: 'var(--brand-sand)'}}>
                 {['all', 'active', 'draft', 'completed'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveOtherTab(tab)}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-md ${
                       activeOtherTab === tab
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'brand-text'
+                        : 'brand-text'
                     }`}
+                    style={{
+                      backgroundColor: activeOtherTab === tab ? 'var(--brand-surface)' : 'transparent',
+                      color: activeOtherTab === tab ? 'var(--brand-primary)' : 'var(--brand-carbon)',
+                      opacity: activeOtherTab === tab ? 1 : 0.7,
+                      boxShadow: activeOtherTab === tab ? 'var(--brand-shadow-sm)' : 'none',
+                      transition: 'var(--brand-transition)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeOtherTab !== tab) {
+                        e.currentTarget.style.opacity = '1';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeOtherTab !== tab) {
+                        e.currentTarget.style.opacity = '0.7';
+                      }
+                    }}
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
                   </button>
@@ -410,8 +559,8 @@ const Dashboard: React.FC = () => {
             <div className="p-6">
               {loadingOther ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading other polls...</p>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4" style={{borderBottomColor: 'var(--brand-primary)'}}></div>
+                  <p className="brand-text">Loading other polls...</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
