@@ -2048,17 +2048,87 @@ pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
     const { sendEmail } = await import('../utils/mail');
 
     // Prepare email content
-    const emailSubject = `Vote in Poll: ${poll.title}`;
-    const emailBody = `Hello ${participant.name},
+    // Read brand configuration
+    const brandConfig = {
+      name: "Voter98",
+      tagline: "Secure, Transparent, Democratic",
+      colors: {
+      primary: "#2563eb",
+      secondary: "#1e40af"
+      },
+      contact: {
+      email: "support@voter98.com",
+      website: "https://voter98.com"
+      }
+    };
 
-You are invited to participate in the poll: "${poll.title}"
+    const emailSubject = `${brandConfig.name} - Vote in Poll: ${poll.title}`;
+    
+    const emailBody = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poll Invitation - ${brandConfig.name}</title>
+  </head>
+  <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, ${brandConfig.colors.primary} 0%, ${brandConfig.colors.secondary} 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${brandConfig.name}</h1>
+        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">${brandConfig.tagline}</p>
+      </div>
 
-${poll.description ? `Description: ${poll.description}\n\n` : ''}Poll Link: ${c.env.FRONTEND_URL}/poll/${pollId}${participant.token ? `?token=${participant.token}` : ''}
+      <!-- Main Content -->
+      <div style="padding: 30px 20px;">
+        <h2 style="color: ${brandConfig.colors.primary}; margin-top: 0;">You're Invited to Vote!</h2>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">Hello <strong>${participant.name}</strong>,</p>
+        
+        <p style="font-size: 16px;">You have been invited to participate in an important poll:</p>
+        
+        <div style="background-color: #f8fafc; border-left: 4px solid ${brandConfig.colors.primary}; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+          <h3 style="margin: 0 0 10px 0; color: ${brandConfig.colors.primary}; font-size: 20px;">${poll.title}</h3>
+          ${poll.description ? `<p style="margin: 0; font-style: italic; color: #666;">${poll.description}</p>` : ''}
+        </div>
 
-Please cast your vote before the poll ends.
+        <!-- Call to Action Button -->
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${c.env.FRONTEND_URL}/poll/${pollId}${participant.token ? `?token=${participant.token}` : ''}" 
+             style="display: inline-block; background: linear-gradient(135deg, ${brandConfig.colors.primary} 0%, ${brandConfig.colors.secondary} 100%); color: white; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+            🗳️ Cast Your Vote Now
+          </a>
+        </div>
 
-Best regards,
-The Poll System`;
+        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 14px; color: #92400e;"><strong>⏰ Important:</strong> Make sure to cast your vote before the poll closes. Your participation matters!</p>
+        </div>
+
+        <!-- Poll Details -->
+        <div style="margin-top: 30px; padding: 20px; background-color: #f1f5f9; border-radius: 8px;">
+          <h4 style="margin: 0 0 15px 0; color: ${brandConfig.colors.primary};">Poll Information:</h4>
+          <ul style="margin: 0; padding-left: 20px; color: #666;">
+            <li><strong>Poll ID:</strong> ${pollId}</li>
+            <li><strong>Voting Period:</strong> ${new Date(poll.startDate).toLocaleDateString()} - ${new Date(poll.endDate).toLocaleDateString()}</li>
+            ${participant.isUser ? '' : `<li><strong>Access Token:</strong> ${participant.token}</li>`}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">
+          This email was sent by <strong>${brandConfig.name}</strong> - Your trusted voting platform
+        </p>
+        <p style="margin: 0; font-size: 12px; color: #999;">
+          For support, contact us at <a href="mailto:${brandConfig.contact.email}" style="color: ${brandConfig.colors.primary};">${brandConfig.contact.email}</a> | 
+          Visit <a href="${brandConfig.contact.website}" style="color: ${brandConfig.colors.primary};">${brandConfig.contact.website}</a>
+        </p>
+      </div>
+    </div>
+  </body>
+  </html>`;
 
     // Send email using next available SMTP
     const result = await sendEmail(db, 'next-available', {
