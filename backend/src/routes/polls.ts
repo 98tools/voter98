@@ -2050,29 +2050,32 @@ pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
     // Prepare email content
     // Read brand configuration
     const brandConfig = {
-      name: "Voter98",
-      tagline: "Secure, Transparent, Democratic",
+      name: "منظومة اقتراع",
+      tagline: "آمن، شفاف، ديمقراطي",
       colors: {
-      primary: "#2563eb",
-      secondary: "#1e40af"
+        primary: "#dcb557",      // Brand Rich Gold
+        secondary: "#214937",    // Brand Deep Green
+        accent: "#1f1f1f",       // Brand Carbon
+        background: "#efe8d7",   // Brand Sand
+        text: "#1f1f1f"          // Brand Carbon for text
       },
       contact: {
-      email: "support@voter98.com",
-      website: "https://voter98.com"
+        email: "info@guofsyrians.org",
+        website: "https://guofsyrians.org"
       }
     };
 
-    const emailSubject = `${brandConfig.name} - Vote in Poll: ${poll.title}`;
+    const emailSubject = `${brandConfig.name} - صوت في الاستطلاع: ${poll.title}`;
     
     const emailBody = `
   <!DOCTYPE html>
-  <html>
+  <html dir="rtl" lang="ar">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poll Invitation - ${brandConfig.name}</title>
+    <title>دعوة للاستطلاع - ${brandConfig.name}</title>
   </head>
-  <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; line-height: 1.6; color: #333; direction: rtl;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
       <!-- Header -->
       <div style="background: linear-gradient(135deg, ${brandConfig.colors.primary} 0%, ${brandConfig.colors.secondary} 100%); color: white; padding: 30px 20px; text-align: center;">
@@ -2082,48 +2085,80 @@ pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
 
       <!-- Main Content -->
       <div style="padding: 30px 20px;">
-        <h2 style="color: ${brandConfig.colors.primary}; margin-top: 0;">You're Invited to Vote!</h2>
+        <h2 style="color: ${brandConfig.colors.primary}; margin-top: 0; text-align: right;">أنت مدعو للتصويت!</h2>
         
-        <p style="font-size: 16px; margin-bottom: 20px;">Hello <strong>${participant.name}</strong>,</p>
+        <p style="font-size: 16px; margin-bottom: 20px; text-align: right;">مرحباً <strong>${participant.name}</strong>،</p>
         
-        <p style="font-size: 16px;">You have been invited to participate in an important poll:</p>
+        ${participant.token ? `
+        <!-- IMPORTANT: Access Token Display - Most Important -->
+        <div style="background: linear-gradient(135deg, ${brandConfig.colors.primary} 0%, ${brandConfig.colors.secondary} 100%); border: 3px solid ${brandConfig.colors.primary}; border-radius: 12px; padding: 25px; margin: 25px 0; text-align: center; box-shadow: 0 8px 25px rgba(220, 181, 87, 0.3);">
+          <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+            <h3 style="margin: 0 0 10px 0; color: ${brandConfig.colors.secondary}; font-size: 18px; font-weight: bold;">🔑 رمز الوصول الخاص بك</h3>
+            <div style="background: ${brandConfig.colors.secondary}; color: white; padding: 15px 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; letter-spacing: 2px; border: 2px solid ${brandConfig.colors.primary};">
+              ${participant.token}
+            </div>
+          </div>
+          <p style="margin: 0; color: ${brandConfig.colors.secondary}; font-size: 14px; font-weight: bold;">
+            ⚠️ احفظ هذا الرمز - ستحتاجه للتصويت
+          </p>
+        </div>
+        ` : ''}
         
-        <div style="background-color: #f8fafc; border-left: 4px solid ${brandConfig.colors.primary}; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-          <h3 style="margin: 0 0 10px 0; color: ${brandConfig.colors.primary}; font-size: 20px;">${poll.title}</h3>
-          ${poll.description ? `<p style="margin: 0; font-style: italic; color: #666;">${poll.description}</p>` : ''}
+        <p style="font-size: 16px; text-align: right;">تمت دعوتك للمشاركة في استطلاع مهم:</p>
+        
+        <div style="background-color: #f8fafc; border-right: 4px solid ${brandConfig.colors.primary}; border-left: none; padding: 20px; margin: 20px 0; border-radius: 8px 0 0 8px;">
+          <h3 style="margin: 0 0 10px 0; color: ${brandConfig.colors.primary}; font-size: 20px; text-align: right;">${poll.title}</h3>
+          ${poll.description ? `<p style="margin: 0; font-style: italic; color: #666; text-align: right;">${poll.description}</p>` : ''}
         </div>
 
         <!-- Call to Action Button -->
         <div style="text-align: center; margin: 30px 0;">
           <a href="${c.env.FRONTEND_URL}/poll/${pollId}${participant.token ? `?token=${participant.token}` : ''}" 
-             style="display: inline-block; background: linear-gradient(135deg, ${brandConfig.colors.primary} 0%, ${brandConfig.colors.secondary} 100%); color: white; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-            🗳️ Cast Your Vote Now
+             style="display: inline-block; background: linear-gradient(135deg, ${brandConfig.colors.primary} 0%, ${brandConfig.colors.secondary} 100%); color: white; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(220, 181, 87, 0.3);">
+            🗳️ صوت الآن
           </a>
         </div>
 
-        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
-          <p style="margin: 0; font-size: 14px; color: #92400e;"><strong>⏰ Important:</strong> Make sure to cast your vote before the poll closes. Your participation matters!</p>
+        <div style="background-color: ${brandConfig.colors.background}; border: 1px solid ${brandConfig.colors.primary}; border-radius: 8px; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 14px; color: ${brandConfig.colors.text}; text-align: right;"><strong>⏰ مهم:</strong> تأكد من الإدلاء بصوتك قبل إغلاق الاستطلاع. مشاركتك مهمة!</p>
         </div>
 
+        ${participant.token ? `
+        <!-- How to Use Token Section -->
+        <div style="background-color: #f0f9ff; border: 2px solid ${brandConfig.colors.secondary}; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h4 style="margin: 0 0 15px 0; color: ${brandConfig.colors.secondary}; text-align: right; font-size: 16px;">📋 خطوات التصويت:</h4>
+          <div style="text-align: right; color: ${brandConfig.colors.text};">
+            <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>1.</strong> اضغط على الزر "صوت الآن" أعلاه</p>
+            <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>2.</strong> اختر "الدخول برمز الوصول" في صفحة التسجيل</p>
+            <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>3.</strong> أدخل الرمز الذهبي المعروض أعلاه</p>
+            <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>4.</strong> ابدأ التصويت على الأسئلة</p>
+            <hr style="border: none; border-top: 1px solid #d1d5db; margin: 15px 0;">
+            <p style="margin: 0; font-size: 13px; color: ${brandConfig.colors.secondary};">
+              <strong>ملاحظة مهمة:</strong> رمز الوصول صالح لاستخدام واحد فقط. لا تشاركه مع أي شخص آخر.
+            </p>
+          </div>
+        </div>
+        ` : ''}
+
         <!-- Poll Details -->
-        <div style="margin-top: 30px; padding: 20px; background-color: #f1f5f9; border-radius: 8px;">
-          <h4 style="margin: 0 0 15px 0; color: ${brandConfig.colors.primary};">Poll Information:</h4>
-          <ul style="margin: 0; padding-left: 20px; color: #666;">
-            <li><strong>Poll ID:</strong> ${pollId}</li>
-            <li><strong>Voting Period:</strong> ${new Date(poll.startDate).toLocaleDateString()} - ${new Date(poll.endDate).toLocaleDateString()}</li>
-            ${participant.isUser ? '' : `<li><strong>Access Token:</strong> ${participant.token}</li>`}
+        <div style="margin-top: 30px; padding: 20px; background-color: ${brandConfig.colors.background}; border-radius: 8px; border: 1px solid #e8dcc7;">
+          <h4 style="margin: 0 0 15px 0; color: ${brandConfig.colors.secondary}; text-align: right;">معلومات الاستطلاع:</h4>
+          <ul style="margin: 0; padding-right: 20px; padding-left: 0; color: ${brandConfig.colors.text}; text-align: right;">
+            <li><strong>معرف الاستطلاع:</strong> ${pollId}</li>
+            <li><strong>فترة التصويت:</strong> ${new Date(poll.startDate).toLocaleDateString('ar-EG')} - ${new Date(poll.endDate).toLocaleDateString('ar-EG')}</li>
+            ${participant.isUser ? '' : `<li><strong>رمز الوصول:</strong> ${participant.token}</li>`}
           </ul>
         </div>
       </div>
 
       <!-- Footer -->
-      <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-        <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">
-          This email was sent by <strong>${brandConfig.name}</strong> - Your trusted voting platform
+      <div style="background-color: ${brandConfig.colors.background}; padding: 20px; text-align: center; border-top: 1px solid #e8dcc7;">
+        <p style="margin: 0 0 10px 0; font-size: 14px; color: ${brandConfig.colors.text};">
+          تم إرسال هذا البريد الإلكتروني من <strong>${brandConfig.name}</strong> - منصة التصويت الموثوقة
         </p>
-        <p style="margin: 0; font-size: 12px; color: #999;">
-          For support, contact us at <a href="mailto:${brandConfig.contact.email}" style="color: ${brandConfig.colors.primary};">${brandConfig.contact.email}</a> | 
-          Visit <a href="${brandConfig.contact.website}" style="color: ${brandConfig.colors.primary};">${brandConfig.contact.website}</a>
+        <p style="margin: 0; font-size: 12px; color: ${brandConfig.colors.secondary};">
+          للدعم الفني، تواصل معنا على <a href="mailto:${brandConfig.contact.email}" style="color: ${brandConfig.colors.primary};">${brandConfig.contact.email}</a> | 
+          زر موقعنا <a href="${brandConfig.contact.website}" style="color: ${brandConfig.colors.primary};">${brandConfig.contact.website}</a>
         </p>
       </div>
     </div>
