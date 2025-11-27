@@ -69,8 +69,11 @@ userRoutes.post('/sub-admin', adminMiddleware, zValidator('json', createSubAdmin
   const db = getDb(c.env.DB);
 
   try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+    
     // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    const existingUser = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
     if (existingUser) {
       return c.json({ error: 'User already exists' }, 400);
     }
@@ -78,7 +81,7 @@ userRoutes.post('/sub-admin', adminMiddleware, zValidator('json', createSubAdmin
     // Hash password and create sub-admin
     const hashedPassword = await hashPassword(password);
     const newSubAdmin = await db.insert(users).values({
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       name,
       role: 'sub-admin',
@@ -143,8 +146,11 @@ userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema)
   const db = getDb(c.env.DB);
 
   try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+    
     // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    const existingUser = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
     if (existingUser) {
       return c.json({ error: 'User already exists' }, 400);
     }
@@ -162,7 +168,7 @@ userRoutes.post('/create', adminMiddleware, zValidator('json', createUserSchema)
     // Hash password and create user
     const hashedPassword = await hashPassword(password);
     const newUser = await db.insert(users).values({
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       name,
       role,
@@ -220,7 +226,8 @@ userRoutes.put('/:id', adminMiddleware, zValidator('json', updateUserSchema), as
 
     // If email is being updated, check for conflicts
     if (updateData.email && updateData.email !== existingUser.email) {
-      const emailExists = await db.select().from(users).where(eq(users.email, updateData.email)).get();
+      const normalizedEmail = updateData.email.toLowerCase();
+      const emailExists = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
       if (emailExists) {
         return c.json({ error: 'Email already exists' }, 400);
       }
@@ -239,7 +246,7 @@ userRoutes.put('/:id', adminMiddleware, zValidator('json', updateUserSchema), as
     // Prepare update object
     const updateObject: any = {};
     if (updateData.name) updateObject.name = updateData.name;
-    if (updateData.email) updateObject.email = updateData.email;
+    if (updateData.email) updateObject.email = updateData.email.toLowerCase();
     if (updateData.role) updateObject.role = updateData.role;
     if (updateData.password) {
       updateObject.password = await hashPassword(updateData.password);

@@ -20,10 +20,13 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase().trim();
+      
       if (isLogin) {
-        await login(email, password);
+        await login(normalizedEmail, password);
       } else {
-        await register(email, password, name, adminKey);
+        await register(normalizedEmail, password, name, adminKey);
       }
       navigate('/dashboard');
     } catch (error: any) {

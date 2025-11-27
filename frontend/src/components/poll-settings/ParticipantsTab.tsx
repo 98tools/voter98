@@ -259,9 +259,10 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
         const token = row.token || undefined;
         rowResult.token = token || 'Auto-generated if needed';
         try {
+          const normalizedEmail = row.email.toLowerCase().trim();
           const participantData: any = {
-            name: row.name || row.email,
-            email: row.email,
+            name: row.name || normalizedEmail,
+            email: normalizedEmail,
             voteWeight
           };
           if (token) {
@@ -317,9 +318,10 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     setIsAddingParticipant(true);
     
     try {
+      const normalizedEmail = newParticipant.email.toLowerCase().trim();
       const participantData: any = {
-        name: newParticipant.name || newParticipant.email,
-        email: newParticipant.email,
+        name: newParticipant.name || normalizedEmail,
+        email: normalizedEmail,
         voteWeight: newParticipant.voteWeight
       };
       
@@ -412,9 +414,10 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
         rowResult.token = token || 'Auto-generated if needed';
 
         try {
+          const normalizedEmail = row.email.toLowerCase().trim();
           const participantData: any = {
-            name: row.name || row.email,
-            email: row.email,
+            name: row.name || normalizedEmail,
+            email: normalizedEmail,
             voteWeight
           };
           

@@ -643,6 +643,9 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
   const db = getDb(c.env.DB);
 
   try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+    
     // Check if poll exists
     const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
     if (!poll) {
@@ -665,7 +668,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
     // Check if participant already exists for this poll
     const existingParticipant = await db.select()
       .from(pollParticipants)
-      .where(and(eq(pollParticipants.pollId, pollId), eq(pollParticipants.email, email)))
+      .where(and(eq(pollParticipants.pollId, pollId), eq(pollParticipants.email, normalizedEmail)))
       .get();
     
     if (existingParticipant) {
@@ -679,7 +682,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
     let systemNameUsed = false;
     
     // Check if user exists in the database
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    const existingUser = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
     
     if (finalIsUser === undefined) {
       // Auto-detect: if user exists in database, set as user participant
@@ -699,7 +702,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
     } else {
       // For non-users, use provided name or email as fallback
       if (!finalName || finalName.trim() === '') {
-        finalName = email;
+        finalName = normalizedEmail;
       }
     }
 
@@ -711,7 +714,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
       .values({
         pollId,
         userId,
-        email,
+        email: normalizedEmail,
         name: finalName,
         isUser: finalIsUser,
         token: participantToken,
@@ -966,7 +969,8 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
 
     } else if (email && password) {
       // User login-based access
-      const user = await db.select().from(users).where(eq(users.email, email)).get();
+      const normalizedEmail = email.toLowerCase();
+      const user = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
       if (!user) {
         return c.json({ error: 'Invalid credentials' }, 401);
       }

@@ -103,7 +103,7 @@ const AdminPanel: React.FC = () => {
     try {
       const userData = {
         name: newUser.name,
-        email: newUser.email,
+        email: newUser.email.toLowerCase().trim(),
         password: newUser.password,
         role: newUser.role,
         groupIDs: newUser.selectedGroups
@@ -325,7 +325,7 @@ const AdminPanel: React.FC = () => {
         try {
           const response = await userApi.createUser({
             name,
-            email: row.email.trim(),
+            email: row.email.trim().toLowerCase(),
             password,
             role,
             groupIDs: groupIds
@@ -428,7 +428,7 @@ const AdminPanel: React.FC = () => {
         try {
           const response = await userApi.createUser({
             name,
-            email: row.email.trim(),
+            email: row.email.trim().toLowerCase(),
             password,
             role,
             groupIDs: groupIds
@@ -571,7 +571,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
     try {
       const updateData: any = {
         name: editUser.name,
-        email: editUser.email,
+        email: editUser.email.toLowerCase().trim(),
         role: editUser.role,
         groupIDs: editUser.selectedGroups
       };

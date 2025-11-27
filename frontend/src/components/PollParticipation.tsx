@@ -60,7 +60,7 @@ const PollParticipation: React.FC = () => {
 
     try {
       const credentials = authMethod === 'login' 
-        ? { email, password }
+        ? { email: email.toLowerCase().trim(), password }
         : { token };
 
       const response = await publicPollApi.validateAccess(pollId, credentials);

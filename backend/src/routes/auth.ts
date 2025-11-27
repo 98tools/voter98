@@ -29,8 +29,11 @@ auth.post('/register', zValidator('json', registerSchema), async (c) => {
   const db = getDb(c.env.DB);
 
   try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+    
     // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+    const existingUser = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
     if (existingUser) {
       return c.json({ error: 'User already exists' }, 400);
     }
@@ -49,7 +52,7 @@ auth.post('/register', zValidator('json', registerSchema), async (c) => {
     // Hash password and create user
     const hashedPassword = await hashPassword(password);
     const newUser = await db.insert(users).values({
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       name,
       role,
@@ -84,8 +87,11 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   const db = getDb(c.env.DB);
 
   try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+    
     // Find user by email
-    const user = await db.select().from(users).where(eq(users.email, email)).get();
+    const user = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
     if (!user) {
       return c.json({ error: 'Invalid credentials' }, 401);
     }
