@@ -67,6 +67,7 @@ export const pollParticipants = sqliteTable('poll_participants', {
   token: text('token').unique(), // one-time use token for non-user participants
   tokenUsed: integer('token_used', { mode: 'boolean' }).notNull().default(false),
   tokenViewed: integer('token_viewed', { mode: 'boolean' }).notNull().default(false),
+  tokenLastRevokedAt: integer('token_last_revoked_at'), // timestamp of last token revocation
   voteWeight: real('vote_weight').notNull().default(1.0),
   status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
   hasVoted: integer('has_voted', { mode: 'boolean' }).notNull().default(false),

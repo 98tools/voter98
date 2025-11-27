@@ -979,6 +979,99 @@ pollRoutes.get('/:id/participants/:participantId/token', async (c) => {
   }
 });
 
+// Revoke participant token - with audit logging (poll manager, admin, or editors)
+pollRoutes.post('/:id/participants/:participantId/revoke-token', async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - admin, poll manager, or editors can revoke tokens
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Get participant
+    const participant = await db.select().from(pollParticipants)
+      .where(and(
+        eq(pollParticipants.id, participantId),
+        eq(pollParticipants.pollId, pollId)
+      ))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Only non-user participants have tokens
+    if (participant.isUser) {
+      return c.json({ error: 'User participants do not have tokens' }, 400);
+    }
+
+    // Generate new token
+    const newToken = generateRandomToken();
+
+    // Get request metadata for audit
+    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const userAgent = c.req.header('user-agent') || 'unknown';
+
+    // Create audit event
+    await db.insert(auditEvents).values({
+      actorUserId: user.userId,
+      pollId: pollId,
+      participantId: participantId,
+      eventType: 'TOKEN_REVOKED',
+      meta: JSON.stringify({
+        participantEmail: participant.email,
+        participantName: participant.name,
+        actorRole: user.role,
+        hasVoted: participant.hasVoted,
+        oldTokenUsed: participant.tokenUsed,
+        oldTokenViewed: participant.tokenViewed,
+      }),
+      ipAddress,
+      userAgent,
+    });
+
+    // Update participant with new token and reset flags
+    await db.update(pollParticipants)
+      .set({
+        token: newToken,
+        tokenViewed: false,
+        tokenUsed: false,
+        tokenLastRevokedAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+      .where(eq(pollParticipants.id, participantId));
+
+    return c.json({
+      message: 'Token revoked successfully',
+      participantId: participant.id,
+      participantName: participant.name,
+      participantEmail: participant.email,
+      tokenLastRevokedAt: Date.now(),
+    });
+  } catch (error) {
+    console.error('Revoke participant token error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // Public poll access endpoint - no auth middleware
 const publicPollRoutes = new Hono<{ Bindings: AppBindings }>();
 

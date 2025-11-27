@@ -490,18 +490,33 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     }
   };
 
-  const handleRegenerateToken = async (participantId: string) => {
+  const handleRevokeToken = async (participantId: string) => {
     if (!poll?.id) return;
     
+    if (!confirm('Are you sure you want to revoke this token? A new token will be generated and the participant will need to use the new token to vote.')) {
+      return;
+    }
+    
     try {
-      const newToken = `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await pollApi.updateParticipant(poll.id, participantId, { token: newToken });
+      const response = await pollApi.revokeParticipantToken(poll.id, participantId);
+      // Update participant: clear token from local state, reset tokenViewed, update tokenLastRevokedAt
       setParticipants(participants.map(p => 
-        p.id === participantId ? { ...p, token: newToken } : p
+        p.id === participantId ? { 
+          ...p, 
+          token: undefined, // Clear token from frontend
+          tokenViewed: false,
+          tokenLastRevokedAt: response.data.tokenLastRevokedAt 
+        } : p
       ));
+      // Also hide token if it was visible
+      setVisibleTokens(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(participantId);
+        return newSet;
+      });
     } catch (error: any) {
-      console.error('Failed to regenerate token:', error);
-      alert(error.response?.data?.error || 'Failed to regenerate token');
+      console.error('Failed to revoke token:', error);
+      alert(error.response?.data?.error || 'Failed to revoke token');
     }
   };
 
@@ -919,22 +934,32 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                 )}
                               </button>
                             </div>
-                            {participant.tokenViewed && (
-                              <span className="text-xs text-orange-600 flex items-center">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                Token viewed
-                              </span>
-                            )}
-                            {permissions.canManageParticipants && (
-                              <button
-                                onClick={() => handleRegenerateToken(participant.id)}
-                                className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
-                              >
-                                Regenerate Token
-                              </button>
-                            )}
+                            <div className="flex flex-col gap-1">
+                              {participant.tokenViewed && (
+                                <span className="text-xs text-orange-600 flex items-center">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  Token viewed
+                                </span>
+                              )}
+                              {participant.tokenLastRevokedAt && (
+                                <span className="text-xs text-red-600 flex items-center">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                                  </svg>
+                                  Token revoked
+                                </span>
+                              )}
+                              {permissions.canManageParticipants && (
+                                <button
+                                  onClick={() => handleRevokeToken(participant.id)}
+                                  className="text-xs text-red-600 hover:text-red-800 cursor-pointer text-left"
+                                >
+                                  Revoke Token
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </td>
