@@ -1072,6 +1072,92 @@ pollRoutes.post('/:id/participants/:participantId/revoke-token', async (c) => {
   }
 });
 
+// Get participant audit events (poll manager, admin, or auditors only)
+pollRoutes.get('/:id/participants/:participantId/audit-events', async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const db = getDb(c.env.DB);
+  const user = c.get('user')!;
+
+  try {
+    // Get the poll
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    const isAdmin = user.role === 'admin';
+    const isManager = poll.managerId === user.userId;
+    
+    // Check if user is an auditor
+    const isAuditor = await db
+      .select()
+      .from(pollAuditors)
+      .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isAuditor) {
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
+
+    // Verify participant exists
+    const participant = await db
+      .select()
+      .from(pollParticipants)
+      .where(and(eq(pollParticipants.pollId, pollId), eq(pollParticipants.id, participantId)))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Get audit events for this participant
+    const events = await db
+      .select()
+      .from(auditEvents)
+      .where(eq(auditEvents.participantId, participantId))
+      .orderBy(auditEvents.createdAt)
+      .all();
+
+    // If no events, return empty array
+    if (!events || events.length === 0) {
+      return c.json({ events: [] });
+    }
+
+    // Fetch actor user details for each event
+    const eventsWithActors = await Promise.all(
+      events.map(async (event) => {
+        let actorName = 'System';
+        if (event.actorUserId) {
+          try {
+            const actor = await db
+              .select({ name: users.name, email: users.email })
+              .from(users)
+              .where(eq(users.id, event.actorUserId))
+              .get();
+            if (actor) {
+              actorName = `${actor.name} (${actor.email})`;
+            }
+          } catch (err) {
+            console.error('Error fetching actor for event:', event.id, err);
+          }
+        }
+        return {
+          ...event,
+          actorName,
+        };
+      })
+    );
+
+    return c.json({ events: eventsWithActors });
+  } catch (error: any) {
+    console.error('Get participant audit events error:', error);
+    console.error('Error details:', error?.message, error?.stack);
+    return c.json({ error: 'Internal server error', details: error?.message }, 500);
+  }
+});
+
 // Public poll access endpoint - no auth middleware
 const publicPollRoutes = new Hono<{ Bindings: AppBindings }>();
 

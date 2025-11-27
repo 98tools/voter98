@@ -45,6 +45,8 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
   const [isAddingGroup, setIsAddingGroup] = useState(false);
   const [addGroupError, setAddGroupError] = useState('');
   const [groupResults, setGroupResults] = useState<any>(null);
+  const [auditEventsCache, setAuditEventsCache] = useState<Map<string, any[]>>(new Map());
+  const [hoveredParticipantId, setHoveredParticipantId] = useState<string | null>(null);
 
   useEffect(() => {
     if (poll?.id) {
@@ -490,6 +492,17 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     }
   };
 
+  const fetchAuditEvents = async (participantId: string) => {
+    if (!poll?.id || auditEventsCache.has(participantId)) return;
+    
+    try {
+      const response = await pollApi.getParticipantAuditEvents(poll.id, participantId);
+      setAuditEventsCache(prev => new Map(prev).set(participantId, response.data.events));
+    } catch (error: any) {
+      console.error('Failed to fetch audit events:', error);
+    }
+  };
+
   const handleRevokeToken = async (participantId: string) => {
     if (!poll?.id) return;
     
@@ -513,6 +526,12 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
         const newSet = new Set(prev);
         newSet.delete(participantId);
         return newSet;
+      });
+      // Clear audit events cache to force refresh on next hover
+      setAuditEventsCache(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(participantId);
+        return newMap;
       });
     } catch (error: any) {
       console.error('Failed to revoke token:', error);
@@ -934,29 +953,81 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                 )}
                               </button>
                             </div>
-                            <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
                               {participant.tokenViewed && (
-                                <span className="text-xs text-orange-600 flex items-center">
-                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                  Token viewed
-                                </span>
+                                <div 
+                                  className="relative group"
+                                  onMouseEnter={() => {
+                                    setHoveredParticipantId(participant.id);
+                                    fetchAuditEvents(participant.id);
+                                  }}
+                                  onMouseLeave={() => setHoveredParticipantId(null)}
+                                >
+                                  <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center cursor-help">
+                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                  {hoveredParticipantId === participant.id && auditEventsCache.has(participant.id) && (
+                                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 p-3">
+                                      <div className="font-semibold mb-2 text-red-300">Token Viewed History</div>
+                                      <div className="max-h-48 overflow-y-auto space-y-2">
+                                        {auditEventsCache.get(participant.id)
+                                          ?.filter(event => event.eventType === 'TOKEN_VIEWED')
+                                          .map((event, idx) => (
+                                            <div key={idx} className="border-t border-gray-700 pt-2 first:border-0 first:pt-0">
+                                              <div className="font-medium">{event.actorName}</div>
+                                              <div className="text-gray-400">{new Date(event.createdAt).toLocaleString()}</div>
+                                              {event.ipAddress && <div className="text-gray-400">IP: {event.ipAddress}</div>}
+                                            </div>
+                                          ))}
+                                      </div>
+                                      <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               {participant.tokenLastRevokedAt && (
-                                <span className="text-xs text-red-600 flex items-center">
-                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                                  </svg>
-                                  Token revoked
-                                </span>
+                                <div 
+                                  className="relative group"
+                                  onMouseEnter={() => {
+                                    setHoveredParticipantId(`revoked-${participant.id}`);
+                                    fetchAuditEvents(participant.id);
+                                  }}
+                                  onMouseLeave={() => setHoveredParticipantId(null)}
+                                >
+                                  <div className="w-6 h-6 bg-gray-500 rounded flex items-center justify-center cursor-help">
+                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                  {hoveredParticipantId === `revoked-${participant.id}` && auditEventsCache.has(participant.id) && (
+                                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 p-3">
+                                      <div className="font-semibold mb-2 text-gray-300">Token Revoked History</div>
+                                      <div className="max-h-48 overflow-y-auto space-y-2">
+                                        {auditEventsCache.get(participant.id)
+                                          ?.filter(event => event.eventType === 'TOKEN_REVOKED')
+                                          .map((event, idx) => (
+                                            <div key={idx} className="border-t border-gray-700 pt-2 first:border-0 first:pt-0">
+                                              <div className="font-medium">{event.actorName}</div>
+                                              <div className="text-gray-400">{new Date(event.createdAt).toLocaleString()}</div>
+                                              {event.ipAddress && <div className="text-gray-400">IP: {event.ipAddress}</div>}
+                                              {event.meta?.reason && <div className="text-gray-400">Reason: {event.meta.reason}</div>}
+                                            </div>
+                                          ))}
+                                      </div>
+                                      <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               {permissions.canManageParticipants && (
                                 <button
                                   onClick={() => handleRevokeToken(participant.id)}
-                                  className="text-xs text-red-600 hover:text-red-800 cursor-pointer text-left"
+                                  className="text-xs text-red-600 hover:text-red-800 cursor-pointer underline"
                                 >
-                                  Revoke Token
+                                  Revoke
                                 </button>
                               )}
                             </div>

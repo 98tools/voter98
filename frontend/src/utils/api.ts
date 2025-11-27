@@ -102,6 +102,8 @@ export const pollApi = {
     api.get<{ token: string; participantId: string; participantName: string; participantEmail: string }>(`/polls/${pollId}/participants/${participantId}/token`),
   revokeParticipantToken: (pollId: string, participantId: string) =>
     api.post<{ message: string; participantId: string; participantName: string; participantEmail: string; tokenLastRevokedAt: number }>(`/polls/${pollId}/participants/${participantId}/revoke-token`),
+  getParticipantAuditEvents: (pollId: string, participantId: string) =>
+    api.get<{ events: Array<{ id: string; eventType: string; actorName: string; meta: any; ipAddress?: string; userAgent?: string; createdAt: number }> }>(`/polls/${pollId}/participants/${participantId}/audit-events`),
   sendEmailToParticipant: (pollId: string, participantId: string) =>
     api.post<{ message: string; lastEmailSentAt: number }>(`/polls/${pollId}/participants/${participantId}/send-email`),
   toggleEmailSending: (pollId: string) =>
