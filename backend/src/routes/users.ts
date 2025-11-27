@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getDb } from '../models/db';
-import { users, userGroups } from '../models/schema';
+import { users, userGroups, polls, pollAuditors, pollEditors, pollParticipants } from '../models/schema';
 import { hashPassword } from '../utils/auth';
 import { AppBindings, JWTPayload } from '../types';
 import { eq } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
+import { error } from 'console';
 
 const userRoutes = new Hono<{ Bindings: AppBindings; Variables: { user?: JWTPayload } }>();
 
@@ -286,8 +287,46 @@ userRoutes.delete('/:id', adminMiddleware, async (c) => {
     if (!existingUser) {
       return c.json({ error: 'User not found' }, 404);
     }
+
+    // Check if user is a poll manager or creator
+    const managedPolls = await db.select().from(polls).where(eq(polls.managerId, userId)).all();
+    const createdPolls = await db.select().from(polls).where(eq(polls.createdById, userId)).all();
     
+    if (managedPolls.length > 0 || createdPolls.length > 0) {
+      return c.json({ 
+        error: 'Cannot delete user who is managing or has created polls. Please reassign or delete those polls first.',
+        managedPolls: managedPolls.length,
+        createdPolls: createdPolls.length
+      }, 400);
+    }
+
+    // Check if user created any groups
+    const createdGroups = await db.select().from(userGroups).where(eq(userGroups.createdById, userId)).all();
+    
+    if (createdGroups.length > 0) {
+      return c.json({ 
+        error: 'Cannot delete user who has created user groups. Please reassign or delete those groups first.',
+        createdGroups: createdGroups.length
+      }, 400);
+    }
+
+    // Delete related records that can be safely removed
+    // 1. Delete poll auditor assignments
+    await db.delete(pollAuditors).where(eq(pollAuditors.userId, userId)).run();
+    
+    // 2. Delete poll editor assignments
+    await db.delete(pollEditors).where(eq(pollEditors.userId, userId)).run();
+    
+    // 3. For poll participants, set userId to NULL to preserve participation history
+    //    This is important for maintaining vote integrity and audit trails
+    await db.update(pollParticipants)
+      .set({ userId: null, isUser: false })
+      .where(eq(pollParticipants.userId, userId))
+      .run();
+    
+    // Finally, delete the user
     await db.delete(users).where(eq(users.id, userId)).run();
+    
     return c.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
