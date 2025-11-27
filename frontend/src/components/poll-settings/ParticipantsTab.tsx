@@ -46,7 +46,9 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
   const [addGroupError, setAddGroupError] = useState('');
   const [groupResults, setGroupResults] = useState<any>(null);
   const [auditEventsCache, setAuditEventsCache] = useState<Map<string, any[]>>(new Map());
-  const [hoveredParticipantId, setHoveredParticipantId] = useState<string | null>(null);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [selectedParticipantForAudit, setSelectedParticipantForAudit] = useState<any>(null);
+  const [loadingAuditEvents, setLoadingAuditEvents] = useState(false);
 
   useEffect(() => {
     if (poll?.id) {
@@ -492,14 +494,24 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     }
   };
 
-  const fetchAuditEvents = async (participantId: string) => {
-    if (!poll?.id || auditEventsCache.has(participantId)) return;
+  const handleViewAuditHistory = async (participant: any) => {
+    if (!poll?.id) return;
     
-    try {
-      const response = await pollApi.getParticipantAuditEvents(poll.id, participantId);
-      setAuditEventsCache(prev => new Map(prev).set(participantId, response.data.events));
-    } catch (error: any) {
-      console.error('Failed to fetch audit events:', error);
+    setSelectedParticipantForAudit(participant);
+    setShowAuditModal(true);
+    
+    // Fetch audit events if not already cached
+    if (!auditEventsCache.has(participant.id)) {
+      setLoadingAuditEvents(true);
+      try {
+        const response = await pollApi.getParticipantAuditEvents(poll.id, participant.id);
+        setAuditEventsCache(prev => new Map(prev).set(participant.id, response.data.events));
+      } catch (error: any) {
+        console.error('Failed to fetch audit events:', error);
+        alert('Failed to load audit history');
+      } finally {
+        setLoadingAuditEvents(false);
+      }
     }
   };
 
@@ -955,71 +967,40 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                             </div>
                             <div className="flex items-center gap-2">
                               {participant.tokenViewed && (
-                                <div 
-                                  className="relative group"
-                                  onMouseEnter={() => {
-                                    setHoveredParticipantId(participant.id);
-                                    fetchAuditEvents(participant.id);
-                                  }}
-                                  onMouseLeave={() => setHoveredParticipantId(null)}
-                                >
-                                  <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center cursor-help">
+                                <div className="relative group">
+                                  <button
+                                    onClick={() => handleViewAuditHistory(participant)}
+                                    className="w-6 h-6 bg-red-500 rounded flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
+                                    title="Token has been viewed"
+                                  >
                                     <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                       <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                                       <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                                     </svg>
+                                  </button>
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                    <div>Token has been viewed</div>
+                                    <div className="text-gray-400 text-[10px] mt-1">Click to see history</div>
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                                   </div>
-                                  {hoveredParticipantId === participant.id && auditEventsCache.has(participant.id) && (
-                                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 p-3">
-                                      <div className="font-semibold mb-2 text-red-300">Token Viewed History</div>
-                                      <div className="max-h-48 overflow-y-auto space-y-2">
-                                        {auditEventsCache.get(participant.id)
-                                          ?.filter(event => event.eventType === 'TOKEN_VIEWED')
-                                          .map((event, idx) => (
-                                            <div key={idx} className="border-t border-gray-700 pt-2 first:border-0 first:pt-0">
-                                              <div className="font-medium">{event.actorName}</div>
-                                              <div className="text-gray-400">{new Date(event.createdAt).toLocaleString()}</div>
-                                              {event.ipAddress && <div className="text-gray-400">IP: {event.ipAddress}</div>}
-                                            </div>
-                                          ))}
-                                      </div>
-                                      <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                                    </div>
-                                  )}
                                 </div>
                               )}
                               {participant.tokenLastRevokedAt && (
-                                <div 
-                                  className="relative group"
-                                  onMouseEnter={() => {
-                                    setHoveredParticipantId(`revoked-${participant.id}`);
-                                    fetchAuditEvents(participant.id);
-                                  }}
-                                  onMouseLeave={() => setHoveredParticipantId(null)}
-                                >
-                                  <div className="w-6 h-6 bg-gray-500 rounded flex items-center justify-center cursor-help">
+                                <div className="relative group">
+                                  <button
+                                    onClick={() => handleViewAuditHistory(participant)}
+                                    className="w-6 h-6 bg-gray-500 rounded flex items-center justify-center cursor-pointer hover:bg-gray-600 transition-colors"
+                                    title="Token has been revoked"
+                                  >
                                     <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
                                     </svg>
+                                  </button>
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                    <div>Last revoked: {new Date(participant.tokenLastRevokedAt).toLocaleDateString()}</div>
+                                    <div className="text-gray-400 text-[10px] mt-1">Click to see history</div>
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                                   </div>
-                                  {hoveredParticipantId === `revoked-${participant.id}` && auditEventsCache.has(participant.id) && (
-                                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 p-3">
-                                      <div className="font-semibold mb-2 text-gray-300">Token Revoked History</div>
-                                      <div className="max-h-48 overflow-y-auto space-y-2">
-                                        {auditEventsCache.get(participant.id)
-                                          ?.filter(event => event.eventType === 'TOKEN_REVOKED')
-                                          .map((event, idx) => (
-                                            <div key={idx} className="border-t border-gray-700 pt-2 first:border-0 first:pt-0">
-                                              <div className="font-medium">{event.actorName}</div>
-                                              <div className="text-gray-400">{new Date(event.createdAt).toLocaleString()}</div>
-                                              {event.ipAddress && <div className="text-gray-400">IP: {event.ipAddress}</div>}
-                                              {event.meta?.reason && <div className="text-gray-400">Reason: {event.meta.reason}</div>}
-                                            </div>
-                                          ))}
-                                      </div>
-                                      <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                                    </div>
-                                  )}
                                 </div>
                               )}
                               {permissions.canManageParticipants && (
@@ -2021,6 +2002,171 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audit History Modal */}
+      {showAuditModal && selectedParticipantForAudit && (
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Token Audit History - {selectedParticipantForAudit.name}
+                </h3>
+                <button
+                  onClick={() => setShowAuditModal(false)}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-4 bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Email:</span>
+                    <span className="ml-2 font-medium">{selectedParticipantForAudit.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Type:</span>
+                    <span className="ml-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        selectedParticipantForAudit.isUser 
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-orange-100 text-orange-800'
+                      }`}>
+                        {selectedParticipantForAudit.isUser ? 'Registered User' : 'External'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {loadingAuditEvents ? (
+                <div className="flex items-center justify-center py-12">
+                  <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="ml-3 text-gray-600">Loading audit history...</span>
+                </div>
+              ) : auditEventsCache.has(selectedParticipantForAudit.id) ? (
+                <div className="space-y-6">
+                  {/* Token Viewed Events */}
+                  {(auditEventsCache.get(selectedParticipantForAudit.id)
+                    ?.filter(event => event.eventType === 'TOKEN_VIEWED').length || 0) > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-red-600 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Token Viewed History
+                      </h4>
+                      <div className="space-y-3">
+                        {auditEventsCache.get(selectedParticipantForAudit.id)
+                          ?.filter(event => event.eventType === 'TOKEN_VIEWED')
+                          .map((event, idx) => (
+                            <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">{event.actorName}</div>
+                                  <div className="text-sm text-gray-600 mt-1">
+                                    {new Date(event.createdAt).toLocaleString()}
+                                  </div>
+                                  {event.ipAddress && (
+                                    <div className="text-sm text-gray-500 mt-1">
+                                      IP Address: {event.ipAddress}
+                                    </div>
+                                  )}
+                                  {event.userAgent && (
+                                    <div className="text-xs text-gray-400 mt-1 truncate" title={event.userAgent}>
+                                      {event.userAgent}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Token Revoked Events */}
+                  {(auditEventsCache.get(selectedParticipantForAudit.id)
+                    ?.filter(event => event.eventType === 'TOKEN_REVOKED').length || 0) > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                        </svg>
+                        Token Revoked History
+                      </h4>
+                      <div className="space-y-3">
+                        {auditEventsCache.get(selectedParticipantForAudit.id)
+                          ?.filter(event => event.eventType === 'TOKEN_REVOKED')
+                          .map((event, idx) => (
+                            <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">{event.actorName}</div>
+                                  <div className="text-sm text-gray-600 mt-1">
+                                    {new Date(event.createdAt).toLocaleString()}
+                                  </div>
+                                  {event.ipAddress && (
+                                    <div className="text-sm text-gray-500 mt-1">
+                                      IP Address: {event.ipAddress}
+                                    </div>
+                                  )}
+                                  {event.meta?.reason && (
+                                    <div className="text-sm text-gray-600 mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                      <span className="font-medium">Reason:</span> {event.meta.reason}
+                                    </div>
+                                  )}
+                                  {event.userAgent && (
+                                    <div className="text-xs text-gray-400 mt-1 truncate" title={event.userAgent}>
+                                      {event.userAgent}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {auditEventsCache.get(selectedParticipantForAudit.id)?.length === 0 && (
+                    <div className="text-center py-12">
+                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No audit events found</h3>
+                      <p className="text-gray-500">
+                        No token-related actions have been recorded for this participant yet.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No audit data available</p>
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowAuditModal(false)}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
