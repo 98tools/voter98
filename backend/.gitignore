@@ -37,3 +37,4 @@ migrations/
 
 # cloudflare
 wrangler-local.jsonc
+wrangler.local.jsonc
