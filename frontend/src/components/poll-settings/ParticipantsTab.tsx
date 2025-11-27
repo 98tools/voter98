@@ -49,6 +49,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [selectedParticipantForAudit, setSelectedParticipantForAudit] = useState<any>(null);
   const [loadingAuditEvents, setLoadingAuditEvents] = useState(false);
+  const [showIssuesModal, setShowIssuesModal] = useState(false);
 
   useEffect(() => {
     if (poll?.id) {
@@ -635,6 +636,56 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     return `last sent ${date.toLocaleDateString()} ${date.toLocaleTimeString()} GMT${gmtSign}${gmtOffset}`;
   };
 
+  // Calculate issues
+  const getParticipantIssues = () => {
+    const issues: any[] = [];
+    
+    participants.forEach(participant => {
+      // Issue 1: Token viewed
+      if (participant.tokenViewed && !participant.isUser) {
+        issues.push({
+          participantId: participant.id,
+          participantName: participant.name,
+          participantEmail: participant.email,
+          type: 'token_viewed',
+          severity: 'warning',
+          message: 'Token has been viewed'
+        });
+      }
+      
+      // Issue 2: Token revoked (but participant hasn't voted yet)
+      if (participant.tokenLastRevokedAt && !participant.hasVoted && !participant.isUser) {
+        issues.push({
+          participantId: participant.id,
+          participantName: participant.name,
+          participantEmail: participant.email,
+          type: 'token_revoked',
+          severity: 'info',
+          message: `Token revoked on ${new Date(participant.tokenLastRevokedAt).toLocaleDateString()}`
+        });
+      }
+      
+      // Issue 3: Old token sent via email (critical issue)
+      if (participant.tokenLastRevokedAt && 
+          !participant.hasVoted && 
+          participant.lastEmailSentAt && 
+          participant.lastEmailSentAt < participant.tokenLastRevokedAt) {
+        issues.push({
+          participantId: participant.id,
+          participantName: participant.name,
+          participantEmail: participant.email,
+          type: 'old_token_sent',
+          severity: 'critical',
+          message: 'Outdated token sent via email - participant cannot vote'
+        });
+      }
+    });
+    
+    return issues;
+  };
+
+  const participantIssues = getParticipantIssues();
+
   const handleToggleEmailSending = async () => {
     if (!poll?.id) return;
     
@@ -741,7 +792,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
       </div>
 
       {/* Participants Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-blue-50 rounded-lg p-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -797,6 +848,32 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
             </div>
           </div>
         </div>
+
+        {/* Issues Summary Box */}
+        <button
+          onClick={() => setShowIssuesModal(true)}
+          className={`rounded-lg p-4 transition-all duration-200 cursor-pointer hover:shadow-md ${
+            participantIssues.length > 0 
+              ? 'bg-red-50 hover:bg-red-100' 
+              : 'bg-gray-50 hover:bg-gray-100'
+          }`}
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className={`h-6 w-6 ${participantIssues.length > 0 ? 'text-red-600' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 text-left">
+              <p className={`text-sm font-medium ${participantIssues.length > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                Issues
+              </p>
+              <p className={`text-lg font-semibold ${participantIssues.length > 0 ? 'text-red-900' : 'text-gray-900'}`}>
+                {participantIssues.length}
+              </p>
+            </div>
+          </div>
+        </button>
       </div>
 
       {participants.length === 0 ? (
@@ -2190,6 +2267,201 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => setShowAuditModal(false)}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Issues Modal */}
+      {showIssuesModal && (
+        <div className="fixed inset-0 backdrop-filter backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Participant Issues</h3>
+                <button
+                  onClick={() => setShowIssuesModal(false)}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {participantIssues.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-16 w-16 text-green-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Issues Found</h3>
+                  <p className="text-gray-500">
+                    All participants are in good standing with no token or access issues.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                          <p className="text-xs text-red-600 font-medium">Critical</p>
+                          <p className="text-lg font-bold text-red-900">
+                            {participantIssues.filter(i => i.severity === 'critical').length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                          <p className="text-xs text-yellow-600 font-medium">Warning</p>
+                          <p className="text-lg font-bold text-yellow-900">
+                            {participantIssues.filter(i => i.severity === 'warning').length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium">Info</p>
+                          <p className="text-lg font-bold text-blue-900">
+                            {participantIssues.filter(i => i.severity === 'info').length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Critical Issues */}
+                  {participantIssues.filter(i => i.severity === 'critical').length > 0 && (
+                    <div>
+                      <h4 className="text-md font-semibold text-red-700 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Critical Issues
+                      </h4>
+                      <div className="space-y-2">
+                        {participantIssues
+                          .filter(i => i.severity === 'critical')
+                          .map((issue, idx) => (
+                            <div key={idx} className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-red-900">{issue.participantName}</p>
+                                  <p className="text-sm text-red-700">{issue.participantEmail}</p>
+                                  <p className="text-sm text-red-600 mt-2">{issue.message}</p>
+                                </div>
+                                {poll.status === 'active' && (
+                                  <button
+                                    onClick={() => handleSendEmail(issue.participantId)}
+                                    disabled={sendingEmails.has(issue.participantId)}
+                                    className="ml-4 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+                                  >
+                                    {sendingEmails.has(issue.participantId) ? 'Sending...' : 'Resend Email'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Warning Issues */}
+                  {participantIssues.filter(i => i.severity === 'warning').length > 0 && (
+                    <div>
+                      <h4 className="text-md font-semibold text-yellow-700 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Warnings
+                      </h4>
+                      <div className="space-y-2">
+                        {participantIssues
+                          .filter(i => i.severity === 'warning')
+                          .map((issue, idx) => (
+                            <div key={idx} className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-yellow-900">{issue.participantName}</p>
+                                  <p className="text-sm text-yellow-700">{issue.participantEmail}</p>
+                                  <p className="text-sm text-yellow-600 mt-2">{issue.message}</p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const participant = participants.find(p => p.id === issue.participantId);
+                                    if (participant) handleViewAuditHistory(participant);
+                                  }}
+                                  className="ml-4 px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 cursor-pointer"
+                                >
+                                  View History
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Info Issues */}
+                  {participantIssues.filter(i => i.severity === 'info').length > 0 && (
+                    <div>
+                      <h4 className="text-md font-semibold text-blue-700 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        Informational
+                      </h4>
+                      <div className="space-y-2">
+                        {participantIssues
+                          .filter(i => i.severity === 'info')
+                          .map((issue, idx) => (
+                            <div key={idx} className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-blue-900">{issue.participantName}</p>
+                                  <p className="text-sm text-blue-700">{issue.participantEmail}</p>
+                                  <p className="text-sm text-blue-600 mt-2">{issue.message}</p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const participant = participants.find(p => p.id === issue.participantId);
+                                    if (participant) handleViewAuditHistory(participant);
+                                  }}
+                                  className="ml-4 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
+                                >
+                                  View History
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowIssuesModal(false)}
                   className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
                 >
                   Close
