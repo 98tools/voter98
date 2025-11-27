@@ -527,16 +527,38 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     }
   };
 
-  const toggleTokenVisibility = (participantId: string) => {
-    setVisibleTokens(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(participantId)) {
+  const toggleTokenVisibility = async (participantId: string) => {
+    if (!poll?.id) return;
+    
+    // If token is already visible, just hide it
+    if (visibleTokens.has(participantId)) {
+      setVisibleTokens(prev => {
+        const newSet = new Set(prev);
         newSet.delete(participantId);
-      } else {
+        return newSet;
+      });
+      return;
+    }
+    
+    // Fetch token from backend - this will trigger audit event
+    try {
+      const response = await pollApi.getParticipantToken(poll.id, participantId);
+      
+      // Update the participant with the fetched token
+      setParticipants(participants.map(p => 
+        p.id === participantId ? { ...p, token: response.data.token, tokenViewed: true } : p
+      ));
+      
+      // Show the token
+      setVisibleTokens(prev => {
+        const newSet = new Set(prev);
         newSet.add(participantId);
-      }
-      return newSet;
-    });
+        return newSet;
+      });
+    } catch (error: any) {
+      console.error('Failed to fetch participant token:', error);
+      alert(error.response?.data?.error || 'Failed to fetch participant token');
+    }
   };
 
   const downloadCsvTemplate = () => {
@@ -873,7 +895,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                           <div className="space-y-1">
                             <div className="flex items-center space-x-2">
                               <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded flex-1">
-                                {visibleTokens.has(participant.id) ? (
+                                {visibleTokens.has(participant.id) && participant.token ? (
                                   participant.token
                                 ) : (
                                   '••••••••••••'
@@ -897,6 +919,14 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                 )}
                               </button>
                             </div>
+                            {participant.tokenViewed && (
+                              <span className="text-xs text-orange-600 flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                Token viewed
+                              </span>
+                            )}
                             {permissions.canManageParticipants && (
                               <button
                                 onClick={() => handleRegenerateToken(participant.id)}
@@ -1094,6 +1124,13 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                         : "Token will be generated for external participant"
                       }
                     </p>
+                    {newParticipant.token && (
+                      <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
+                        <p className="text-xs text-orange-700">
+                          ⚠️ <strong>Security Warning:</strong> Custom tokens will be marked as "viewed" for security auditing purposes.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1754,6 +1791,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                           User type is automatically detected! If an email exists in the system, the participant will be marked as a registered user.<br></br>
                           If the email does not exist, the participant will be marked as an external participant.<br></br>
                           For external participants, you can optionally provide a custom token.<br></br>
+                          <strong className="text-orange-700">⚠️ WARNING: Custom tokens will be marked as "viewed" for security auditing purposes.</strong><br></br>
                           If no token is provided, one will be generated automatically.<br></br>
                           You can optionally add vote_weight to any user, otherwise the default value (1) will be used.<br></br>
                           You can optionally add the name, otherwise the email will be displayed as participant's name.

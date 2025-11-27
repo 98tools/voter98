@@ -98,6 +98,8 @@ export const pollApi = {
     name?: string;
   }) =>
     api.put<{ message: string; participant: any }>(`/polls/${pollId}/participants/${participantId}`, updateData),
+  getParticipantToken: (pollId: string, participantId: string) =>
+    api.get<{ token: string; participantId: string; participantName: string; participantEmail: string }>(`/polls/${pollId}/participants/${participantId}/token`),
   sendEmailToParticipant: (pollId: string, participantId: string) =>
     api.post<{ message: string; lastEmailSentAt: number }>(`/polls/${pollId}/participants/${participantId}/send-email`),
   toggleEmailSending: (pollId: string) =>

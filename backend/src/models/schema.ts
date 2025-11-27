@@ -66,6 +66,7 @@ export const pollParticipants = sqliteTable('poll_participants', {
   isUser: integer('is_user', { mode: 'boolean' }).notNull().default(false),
   token: text('token').unique(), // one-time use token for non-user participants
   tokenUsed: integer('token_used', { mode: 'boolean' }).notNull().default(false),
+  tokenViewed: integer('token_viewed', { mode: 'boolean' }).notNull().default(false),
   voteWeight: real('vote_weight').notNull().default(1.0),
   status: text('status').notNull().default('pending'), // 'pending', 'approved', 'rejected'
   hasVoted: integer('has_voted', { mode: 'boolean' }).notNull().default(false),
@@ -102,6 +103,33 @@ export const smtpConfig = sqliteTable('smtp_config', {
   order: integer('order').notNull().default(1), // Order for prioritization
 });
 
+// System audit event table
+export const auditEvents = sqliteTable('audit_events', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+
+  // what is being acted on (can be null depending on action)
+  actorUserId: text('actor_user_id').references(() => users.id), // admin, sub-admin
+  pollId: text('poll_id').references(() => polls.id),
+  participantId: text('participant_id').references(() => pollParticipants.id),
+
+  // standardized event type
+  eventType: text('event_type').notNull(), 
+  // examples:
+  // "TOKEN_VIEWED", "TOKEN_REVOKED",
+  // "PARTICIPANT_APPROVED", "PARTICIPANT_REJECTED",
+  // "VOTE_CAST", "LOGIN_FAILED",
+  // "ADMIN_IP_LOGGED", "EMAIL_SENT", ...
+
+  // JSON payload for any custom data
+  meta: text('meta', { mode: 'json' }),
+
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+});
+
+
 
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
@@ -116,6 +144,8 @@ export type PollVote = typeof pollVotes.$inferSelect;
 export type NewPollVote = typeof pollVotes.$inferInsert;
 export type SmtpConfig = typeof smtpConfig.$inferSelect;
 export type NewSmtpConfig = typeof smtpConfig.$inferInsert;
+export type AuditEvent = typeof auditEvents.$inferSelect;
+export type NewAuditEvent = typeof auditEvents.$inferInsert;
 
 // Ballot question and option types
 export interface BallotOption {

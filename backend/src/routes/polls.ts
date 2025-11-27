@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getDb } from '../models/db';
-import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes, userGroups } from '../models/schema';
+import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes, userGroups, auditEvents } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
 import { eq, and, not, inArray, ne } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
@@ -593,7 +593,13 @@ pollRoutes.get('/:id/participants', async (c) => {
       .where(eq(pollParticipants.pollId, pollId))
       .all();
 
-    return c.json({ participants });
+    // Remove tokens from response for security
+    const sanitizedParticipants = participants.map(p => {
+      const { token, ...rest } = p;
+      return rest;
+    });
+
+    return c.json({ participants: sanitizedParticipants });
   } catch (error) {
     console.error('Get participants error:', error);
     return c.json({ error: 'Internal server error' }, 500);
@@ -708,6 +714,8 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
 
     // Generate token for non-user participants
     const participantToken = !finalIsUser ? (token || generateRandomToken()) : null;
+    // If a custom token was provided, mark tokenViewed as true for security
+    const tokenWasCustom = !finalIsUser && !!token;
 
     // Create participant with all required fields
     const participant = await db.insert(pollParticipants)
@@ -719,6 +727,7 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
         isUser: finalIsUser,
         token: participantToken,
         tokenUsed: false,
+        tokenViewed: tokenWasCustom, // Mark as viewed if custom token was provided
         voteWeight,
         status: 'approved', // Auto-approve for manager-created participants
         hasVoted: false,
@@ -733,10 +742,10 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
         email: participant.email,
         name: participant.name,
         isUser: participant.isUser,
-        token: participant.token,
         voteWeight: participant.voteWeight,
         status: participant.status,
         hasVoted: participant.hasVoted,
+        tokenViewed: participant.tokenViewed,
       },
       systemNameUsed, // Indicate if system name was used instead of provided name
     });
@@ -828,6 +837,7 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
     }
 
     // If token is being updated, check for uniqueness (excluding current participant)
+    let tokenWasCustomUpdated = false;
     if (typeof updateData.token === 'string') {
       // If token is empty or only whitespace, remove from updateData
       if (updateData.token.trim() === '') {
@@ -843,15 +853,25 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
         if (tokenConflict) {
           return c.json({ error: 'Token already in use by another participant' }, 409);
         }
+        // Mark that a custom token was provided
+        tokenWasCustomUpdated = true;
       }
+    }
+
+    // Prepare update data
+    const finalUpdateData: any = {
+      ...updateData,
+      updatedAt: Date.now(),
+    };
+
+    // If a custom token was updated, mark tokenViewed as true
+    if (tokenWasCustomUpdated) {
+      finalUpdateData.tokenViewed = true;
     }
 
     // Update participant
     const updatedParticipant = await db.update(pollParticipants)
-      .set({
-        ...updateData,
-        updatedAt: Date.now(),
-      })
+      .set(finalUpdateData)
       .where(and(
         eq(pollParticipants.id, participantId),
         eq(pollParticipants.pollId, pollId)
@@ -863,12 +883,98 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
       return c.json({ error: 'Participant not found' }, 404);
     }
 
+    // Remove token from response for security
+    const { token, ...sanitizedParticipant } = updatedParticipant;
+
     return c.json({ 
       message: 'Participant updated successfully',
-      participant: updatedParticipant
+      participant: sanitizedParticipant
     });
   } catch (error) {
     console.error('Update participant error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Get participant token - with audit logging (poll manager, admin, or editors)
+pollRoutes.get('/:id/participants/:participantId/token', async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Check if poll exists
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions - admin, poll manager, or editors can view tokens
+    const isManager = poll.managerId === user.userId;
+    const isAdmin = user.role === 'admin';
+    
+    // Check if user is an editor
+    const isEditor = await db.select().from(pollEditors)
+      .where(and(eq(pollEditors.pollId, pollId), eq(pollEditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isEditor) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Get participant
+    const participant = await db.select().from(pollParticipants)
+      .where(and(
+        eq(pollParticipants.id, participantId),
+        eq(pollParticipants.pollId, pollId)
+      ))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Only non-user participants have tokens // TODO this will change after giving also users tokens
+    if (participant.isUser) {
+      return c.json({ error: 'User participants do not have tokens' }, 400);
+    }
+
+    // Get request metadata for audit
+    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const userAgent = c.req.header('user-agent') || 'unknown';
+
+    // Create audit event
+    await db.insert(auditEvents).values({
+      actorUserId: user.userId,
+      pollId: pollId,
+      participantId: participantId,
+      eventType: 'TOKEN_VIEWED',
+      meta: JSON.stringify({
+        participantEmail: participant.email,
+        participantName: participant.name,
+        actorRole: user.role,
+      }),
+      ipAddress,
+      userAgent,
+    });
+
+    // Mark token as viewed
+    await db.update(pollParticipants)
+      .set({
+        tokenViewed: true,
+        updatedAt: Date.now(),
+      })
+      .where(eq(pollParticipants.id, participantId));
+
+    return c.json({
+      token: participant.token,
+      participantId: participant.id,
+      participantName: participant.name,
+      participantEmail: participant.email,
+    });
+  } catch (error) {
+    console.error('Get participant token error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
