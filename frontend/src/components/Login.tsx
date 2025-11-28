@@ -167,7 +167,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 hover-lift"
+              className="w-full bg-primary-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 cursor-pointer"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -189,7 +189,7 @@ const Login: React.FC = () => {
                   setIsLogin(!isLogin);
                   setError('');
                 }}
-                className="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200"
+                className="text-primary-600 hover:text-primary-800 font-medium transition-colors duration-200"
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
