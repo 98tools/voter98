@@ -191,11 +191,14 @@ export async function sendEmailWithTemplate(
   try {
     let template: MailTemplate | undefined;
     
+    console.log(`[sendEmailWithTemplate] Looking for template. templateId: ${templateId}`);
+    
     // Get template (specific or default)
     if (templateId) {
       template = await db.select().from(mailTemplates)
         .where(eq(mailTemplates.id, templateId))
         .get();
+      console.log(`[sendEmailWithTemplate] Specific template ${templateId} found:`, template ? 'YES' : 'NO');
     }
     
     // If no specific template or not found, get default
@@ -203,10 +206,12 @@ export async function sendEmailWithTemplate(
       template = await db.select().from(mailTemplates)
         .where(eq(mailTemplates.isDefault, true))
         .get();
+      console.log(`[sendEmailWithTemplate] Default template found:`, template ? 'YES' : 'NO');
     }
     
     // If still no template, use hardcoded default
     if (!template) {
+      console.log('[sendEmailWithTemplate] No templates found in database, using hardcoded default');
       const subject = `Voting Invitation: {{pollTitle}}`;
       const body = `Hello {{participantName}},
 
@@ -241,6 +246,7 @@ Poll System`;
     }
     
     // Use the template with variable replacement
+    console.log(`[sendEmailWithTemplate] Using template: ${template.name} (ID: ${template.id})`);
     const emailData: EmailData = {
       to,
       subject: replaceTemplateVariables(template.subject, variables),

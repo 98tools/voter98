@@ -2466,28 +2466,35 @@ pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
       return c.json({ error: 'Participant not found' }, 404);
     }
 
-    // Import the sendEmail function from mail utils
-    const { sendEmail } = await import('../utils/mail');
+    // Import the sendEmailWithTemplate function from mail utils
+    const { sendEmailWithTemplate, TemplateVariables } = await import('../utils/mail');
 
-    // Prepare email content
-    const emailSubject = `Vote in Poll: ${poll.title}`;
-    const emailBody = `Hello ${participant.name},
+    // Prepare email content with poll-specific information
+    const pollUrl = `${c.env.FRONTEND_URL || 'http://localhost:5173'}/poll/${pollId}${participant.token ? `?token=${participant.token}` : ''}`;
+    
+    // Prepare template variables
+    const templateVariables: TemplateVariables = {
+      participantName: participant.name,
+      pollTitle: poll.title,
+      pollDescription: poll.description || 'No description provided',
+      pollUrl: pollUrl,
+      pollStartDate: new Date(poll.startDate).toLocaleString(),
+      pollEndDate: new Date(poll.endDate).toLocaleString(),
+    };
+    
+    // Get template ID from poll settings (if exists)
+    const pollSettings = typeof poll.settings === 'string' ? JSON.parse(poll.settings) : poll.settings;
+    const templateId = pollSettings?.mailTemplateId || null;
 
-You are invited to participate in the poll: "${poll.title}"
-
-${poll.description ? `Description: ${poll.description}\n\n` : ''}Poll Link: ${c.env.FRONTEND_URL}/poll/${pollId}${participant.token ? `?token=${participant.token}` : ''}
-
-Please cast your vote before the poll ends.
-
-Best regards,
-The Poll System`;
-
-    // Send email using next available SMTP
-    const result = await sendEmail(db, 'next-available', {
-      to: participant.email,
-      subject: emailSubject,
-      body: emailBody,
-    });
+    // Send email using template
+    const result = await sendEmailWithTemplate(
+      db,
+      'next-available',
+      participant.email,
+      templateId,
+      templateVariables,
+      false // not a cron job
+    );
 
     if (result.success) {
       // Update lastEmailSentAt timestamp
