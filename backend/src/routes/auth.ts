@@ -41,7 +41,7 @@ auth.post('/register', zValidator('json', registerSchema), async (c) => {
     // Check if this is the first user or if admin key is provided
     const allUsers = await db.select().from(users).all();
     const isFirstUser = allUsers.length === 0;
-    const isAdminCreation = adminKey === 'FIRST_ADMIN_2025';
+    const isAdminCreation = adminKey === c.env.JWT_SECRET; // Using JWT_SECRET as admin key for simplicity, may change if needed
 
     // Determine role
     let role = 'user';
