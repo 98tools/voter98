@@ -1115,7 +1115,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(user.createdAt).toLocaleDateString()}
+                              {new Date(user.createdAt).toISOString().split('T')[0]}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end space-x-2">
@@ -1315,7 +1315,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(group.createdAt || Date.now()).toLocaleDateString()}
+                              {new Date(group.createdAt || Date.now()).toISOString().split('T')[0]}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <button
