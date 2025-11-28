@@ -88,6 +88,18 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const isPollCompleted = (poll: Poll) => {
+    const now = Date.now();
+    return poll.endDate < now;
+  };
+
+  const getEffectiveStatus = (poll: Poll) => {
+    if (isPollCompleted(poll)) {
+      return 'completed';
+    }
+    return poll.status;
+  };
+
   const getStatusBadge = (status: string) => {
     const badges = {
       draft: 'bg-gray-100 text-gray-800 border-gray-200',
@@ -308,7 +320,7 @@ const Dashboard: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {polls
-                  .filter(poll => activeTab === 'all' || poll.status === activeTab)
+                  .filter(poll => activeTab === 'all' || getEffectiveStatus(poll) === activeTab)
                   .map((poll, index) => (
                     <div
                       key={poll.id}
@@ -319,9 +331,9 @@ const Dashboard: React.FC = () => {
                         <h4 className="text-lg font-semibold text-gray-900 leading-tight">
                           {poll.title}
                         </h4>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(poll.status)}`}>
-                          {getStatusIcon(poll.status)}
-                          <span className="ml-1">{poll.status}</span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(getEffectiveStatus(poll))}`}>
+                          {getStatusIcon(getEffectiveStatus(poll))}
+                          <span className="ml-1">{getEffectiveStatus(poll)}</span>
                         </span>
                       </div>
                       
@@ -358,7 +370,7 @@ const Dashboard: React.FC = () => {
                           {pollPermissions[poll.id]?.canView ? 'Settings' : 'View'}
                         </button>
                         {/* Participate button for users */}
-                        {user?.role === 'user' && (poll.status === 'completed' || poll.status === 'active') && (
+                        {user?.role === 'user' && !isPollCompleted(poll) && (poll.status === 'completed' || poll.status === 'active') && (
                           <button 
                             onClick={() => navigate(`/poll/${poll.id}`)}
                             className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
@@ -417,7 +429,7 @@ const Dashboard: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {otherPolls
-                    .filter(poll => activeOtherTab === 'all' || poll.status === activeOtherTab)
+                    .filter(poll => activeOtherTab === 'all' || getEffectiveStatus(poll) === activeOtherTab)
                     .map((poll, index) => (
                       <div
                         key={poll.id}
@@ -428,9 +440,9 @@ const Dashboard: React.FC = () => {
                           <h4 className="text-lg font-semibold text-gray-900 leading-tight">
                             {poll.title}
                           </h4>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(poll.status)}`}>
-                            {getStatusIcon(poll.status)}
-                            <span className="ml-1">{poll.status}</span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(getEffectiveStatus(poll))}`}>
+                            {getStatusIcon(getEffectiveStatus(poll))}
+                            <span className="ml-1">{getEffectiveStatus(poll)}</span>
                           </span>
                         </div>
                         

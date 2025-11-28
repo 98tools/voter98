@@ -114,6 +114,12 @@ const PollParticipation: React.FC = () => {
   const handleSubmitVote = async () => {
     if (!poll || !pollId || !sessionToken) return;
 
+    // Check if poll has ended
+    if (isPollCompleted()) {
+      setError('This poll has ended. Voting is no longer allowed.');
+      return;
+    }
+
     // Validate minimum selections
     for (const question of poll.ballot) {
       const questionVotes = votes[question.id] || [];
@@ -183,6 +189,20 @@ const PollParticipation: React.FC = () => {
     return `${value.toFixed(1)}%`;
   };
 
+  const isPollCompleted = () => {
+    if (!poll) return false;
+    const now = Date.now();
+    return poll.endDate < now;
+  };
+
+  const getEffectiveStatus = () => {
+    if (!poll) return '';
+    if (isPollCompleted()) {
+      return 'completed';
+    }
+    return poll.status;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'text-green-600 bg-green-100';
@@ -235,8 +255,8 @@ const PollParticipation: React.FC = () => {
                 <p className="text-gray-600 mb-4">{poll.description}</p>
               )}
               <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(poll?.status || '')}`}>
-                  {poll?.status.toUpperCase()}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus())}`}>
+                  {getEffectiveStatus().toUpperCase()}
                 </span>
                 <span>Ends: {poll && formatDate(poll.endDate)}</span>
               </div>
@@ -260,7 +280,7 @@ const PollParticipation: React.FC = () => {
             
             {/* Action Buttons */}
             <div className="mt-6 flex flex-wrap gap-3">
-              {allowVoteChanges && (
+              {allowVoteChanges && !isPollCompleted() && (
                 <button
                   onClick={handleChangeVote}
                   className="inline-flex items-center px-4 py-2 border border-orange-300 text-sm font-medium rounded-lg text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors duration-200"
@@ -551,8 +571,8 @@ const PollParticipation: React.FC = () => {
                 <p className="text-gray-600 mb-4">{poll.description}</p>
               )}
               <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(poll?.status || '')}`}>
-                  {poll?.status.toUpperCase()}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus())}`}>
+                  {getEffectiveStatus().toUpperCase()}
                 </span>
                 <span>Ends: {poll && formatDate(poll.endDate)}</span>
               </div>
@@ -565,8 +585,24 @@ const PollParticipation: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-gray-900">Access Poll</h2>
-              <p className="text-gray-600 mt-2">Please authenticate to participate in this poll</p>
+              <p className="text-gray-600 mt-2">
+                {isPollCompleted() 
+                  ? 'This poll has ended. You can view results if available.' 
+                  : 'Please authenticate to participate in this poll'}
+              </p>
             </div>
+
+            {/* Poll Ended Warning */}
+            {isPollCompleted() && (
+              <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-blue-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-blue-700 font-medium">The voting period for this poll has ended.</span>
+                </div>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -691,8 +727,8 @@ const PollParticipation: React.FC = () => {
               <p className="text-gray-600 mb-4">{poll.description}</p>
             )}
             <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(poll?.status || '')}`}>
-                {(poll?.status || '').toUpperCase()}
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus())}`}>
+                {getEffectiveStatus().toUpperCase()}
               </span>
               <span>Ends: {formatDate(poll?.endDate)}</span>
             </div>
@@ -718,6 +754,41 @@ const PollParticipation: React.FC = () => {
               </svg>
               <span className="text-red-700 font-medium">{error}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Poll Ended Message */}
+      {isPollCompleted() && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-8 h-8 text-blue-500 mr-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-blue-900">This Poll Has Ended</h3>
+                <p className="text-blue-700 mt-1">The voting period for this poll ended on {formatDate(poll?.endDate)}. Voting is no longer allowed.</p>
+              </div>
+            </div>
+            {poll?.settings.allowResultsView && (
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    setShowResults(!showResults);
+                    if (!showResults && !results) {
+                      loadResults();
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  {showResults ? 'Hide Results' : 'View Results'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -788,7 +859,8 @@ const PollParticipation: React.FC = () => {
                             id={`option-${option.id}`}
                             checked={isSelected}
                             onChange={(e) => handleOptionChange(question.id, option.id, e.target.checked)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            disabled={isPollCompleted()}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>
                         
@@ -843,27 +915,29 @@ const PollParticipation: React.FC = () => {
           ))}
 
           {/* Submit Button */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Please review your selections before submitting your vote.
+          {!isPollCompleted() && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Please review your selections before submitting your vote.
+                </div>
+                <button
+                  onClick={handleSubmitVote}
+                  disabled={!isVoteValid() || submitting}
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Submitting Vote...
+                    </>
+                  ) : (
+                    'Submit Vote'
+                  )}
+                </button>
               </div>
-              <button
-                onClick={handleSubmitVote}
-                disabled={!isVoteValid() || submitting}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Submitting Vote...
-                  </>
-                ) : (
-                  'Submit Vote'
-                )}
-              </button>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
