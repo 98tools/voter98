@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { BallotQuestion, BallotOption } from '../../types';
+import { uploadImage, uploadFile, validateImageFile, validateFile } from '../../utils/storage';
 
 interface QuestionEditorProps {
   question: BallotQuestion;
@@ -26,6 +27,79 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   onDeleteOption,
   onUpdateOption
 }) => {
+  const [uploadingQuestionImage, setUploadingQuestionImage] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadingOptionImage, setUploadingOptionImage] = useState<string | null>(null);
+
+  const handleQuestionImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateImageFile(file, 10);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    setUploadingQuestionImage(true);
+    try {
+      const response = await uploadImage(file);
+      onUpdate({ image: response.data.url });
+    } catch (error) {
+      console.error('Error uploading question image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingQuestionImage(false);
+    }
+  };
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateFile(file, 'any', 20);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    setUploadingAttachment(true);
+    try {
+      const response = await uploadFile(file, 'document');
+      const newAttachments = [...(question.attachments || []), response.data.url];
+      onUpdate({ attachments: newAttachments });
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setUploadingAttachment(false);
+      // Reset the input
+      e.target.value = '';
+    }
+  };
+
+  const handleOptionImageUpload = async (optionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateImageFile(file, 10);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    setUploadingOptionImage(optionId);
+    try {
+      const response = await uploadImage(file);
+      onUpdateOption(optionId, { image: response.data.url });
+    } catch (error) {
+      console.error('Error uploading option image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingOptionImage(null);
+    }
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
       <div className="flex items-center justify-between mb-4">
@@ -97,29 +171,77 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Attachments (Optional)
+              Question Image (Optional)
+            </label>
+            <div className="space-y-2">
+              {question.image && (
+                <div className="relative inline-block">
+                  <img
+                    src={`${import.meta.env.VITE_API_BASE_URL}${question.image}`}
+                    alt="Question preview"
+                    className="max-w-64 max-h-64 object-cover rounded border border-gray-300"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ image: undefined })}
+                    className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 cursor-pointer"
+                    title="Remove image"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              <div>
+                <label className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                  </svg>
+                  {uploadingQuestionImage ? 'Uploading...' : question.image ? 'Change Image' : 'Upload Image'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleQuestionImageUpload}
+                    disabled={uploadingQuestionImage}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP or SVG. Max 10MB.</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Attachments (Documents)
             </label>
             <div className="space-y-2">
               {(question.attachments || []).map((attachment, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="url"
-                    value={attachment}
-                    onChange={(e) => {
-                      const newAttachments = [...(question.attachments || [])];
-                      newAttachments[index] = e.target.value;
-                      onUpdate({ attachments: newAttachments });
-                    }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter attachment URL"
-                  />
+                <div key={index} className="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg p-2">
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                  </svg>
+                  <a
+                    href={`${import.meta.env.VITE_API_BASE_URL}${attachment}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm text-primary-600 hover:text-primary-800 truncate"
+                    title={attachment}
+                  >
+                    {attachment.split('/').pop() || `Attachment ${index + 1}`}
+                  </a>
                   <button
                     type="button"
                     onClick={() => {
                       const newAttachments = (question.attachments || []).filter((_, i) => i !== index);
                       onUpdate({ attachments: newAttachments });
                     }}
-                    className="text-red-600 hover:text-red-800 cursor-pointer"
+                    className="text-red-600 hover:text-red-800 cursor-pointer flex-shrink-0"
+                    title="Remove attachment"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -127,19 +249,20 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   </button>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  const newAttachments = [...(question.attachments || []), ''];
-                  onUpdate({ attachments: newAttachments });
-                }}
-                className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-              >
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <label className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                 </svg>
-                Add Attachment
-              </button>
+                {uploadingAttachment ? 'Uploading...' : 'Upload Document'}
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.json,.md"
+                  onChange={handleAttachmentUpload}
+                  disabled={uploadingAttachment}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-500 mt-1">PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP, etc. Max 20MB.</p>
             </div>
           </div>
 
@@ -266,27 +389,44 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Image URL (Optional)
+                        Option Image (Optional)
                       </label>
-                      <input
-                        type="url"
-                        value={option.image || ''}
-                        onChange={(e) => onUpdateOption(option.id, { image: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="https://example.com/image.jpg"
-                      />
                       {option.image && (
-                        <div className="mt-2">
+                        <div className="mt-2 mb-2 relative inline-block">
                           <img
-                            src={option.image}
+                            src={`${import.meta.env.VITE_API_BASE_URL}${option.image}`}
                             alt="Option preview"
                             className="max-w-32 max-h-32 object-cover rounded border border-gray-300"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
+                          <button
+                            type="button"
+                            onClick={() => onUpdateOption(option.id, { image: undefined })}
+                            className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 cursor-pointer"
+                            title="Remove image"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
                         </div>
                       )}
+                      <label className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                        <svg className="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                        </svg>
+                        {uploadingOptionImage === option.id ? 'Uploading...' : option.image ? 'Change Image' : 'Upload Image'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleOptionImageUpload(option.id, e)}
+                          disabled={uploadingOptionImage === option.id}
+                          className="hidden"
+                        />
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP or SVG. Max 10MB.</p>
                     </div>
                   </div>
                 </div>
@@ -307,6 +447,18 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             {question.description && (
               <p className="text-gray-600 text-sm mt-1">{question.description}</p>
             )}
+            {question.image && (
+              <div className="mt-2">
+                <img
+                  src={question.image}
+                  alt="Question"
+                  className="max-w-64 max-h-64 object-cover rounded border border-gray-300"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
             {question.attachments && question.attachments.length > 0 && (
               <div className="mt-2">
                 <p className="text-xs font-medium text-gray-700 mb-1">Attachments:</p>
@@ -314,15 +466,15 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   {question.attachments.filter(att => att.trim()).map((attachment, idx) => (
                     <a
                       key={idx}
-                      href={attachment}
+                      href={`${import.meta.env.VITE_API_BASE_URL}${attachment}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center text-xs text-primary-600 hover:text-primary-800"
                     >
                       <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
                       </svg>
-                      Attachment {idx + 1}
+                      {attachment.split('/').pop() || `Attachment ${idx + 1}`}
                     </a>
                   ))}
                 </div>

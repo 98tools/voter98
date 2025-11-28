@@ -166,6 +166,7 @@ export interface BallotQuestion {
   minSelection?: number;
   maxSelection?: number;
   attachments?: string[];
+  image?: string;
   options: BallotOption[];
 }
 

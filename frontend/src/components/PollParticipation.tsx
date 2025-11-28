@@ -806,6 +806,20 @@ const PollParticipation: React.FC = () => {
                   <p className="text-gray-600 mb-4">{question.description}</p>
                 )}
                 
+                {/* Question Image */}
+                {question.image && (
+                  <div className="mb-4">
+                    <img
+                      src={question.image}
+                      alt="Question"
+                      className="max-w-full max-h-96 object-contain rounded border border-gray-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                
                 <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                   <span>
                     Select {question.minSelection === question.maxSelection 
@@ -823,19 +837,19 @@ const PollParticipation: React.FC = () => {
                 {question.attachments && question.attachments.length > 0 && (
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-2">Attachments:</p>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {question.attachments.filter(att => att.trim()).map((attachment, idx) => (
                         <a
                           key={idx}
                           href={attachment}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mr-4"
+                          className="inline-flex items-center px-3 py-2 border border-gray-200 rounded-lg text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 mr-2 transition-colors"
                         >
-                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                          <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
                           </svg>
-                          Attachment {idx + 1}
+                          {attachment.split('/').pop() || `Attachment ${idx + 1}`}
                         </a>
                       ))}
                     </div>

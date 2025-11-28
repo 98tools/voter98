@@ -180,6 +180,7 @@ const ballotQuestionSchema = z.object({
   minSelection: z.number().optional().default(1),
   maxSelection: z.number().optional().default(1),
   attachments: z.array(z.string()).optional().default([]),
+  image: z.string().optional(),
   options: z.array(ballotOptionSchema),
 });
 

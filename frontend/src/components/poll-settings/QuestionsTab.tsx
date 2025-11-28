@@ -27,6 +27,7 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, permissions, onSave, 
       minSelection: 1,
       maxSelection: 1,
       attachments: [],
+      image: '',
       options: []
     };
     const updatedQuestions = [...questions, newQuestion];
