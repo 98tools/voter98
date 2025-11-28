@@ -220,15 +220,26 @@ const updatePollSchema = z.object({
 // Apply auth middleware to all routes
 pollRoutes.use('/*', authMiddleware);
 
-// Create poll (admin only)
-pollRoutes.post('/', adminMiddleware, zValidator('json', createPollSchema), async (c) => {
+// Create poll (admin and sub-admin)
+pollRoutes.post('/', subAdminMiddleware, zValidator('json', createPollSchema), async (c) => {
   const pollData = c.req.valid('json');
   const currentUser = c.get('user')!;
   const db = getDb(c.env.DB);
 
   try {
+    // Determine manager ID
+    let managerId = pollData.managerId;
+    if (!managerId) {
+      // If no manager specified, sub-admins become the manager by default
+      if (currentUser.role === 'sub-admin') {
+        managerId = currentUser.userId;
+      } else {
+        return c.json({ error: 'Manager must be specified for admin-created polls' }, 400);
+      }
+    }
+
     // Verify manager exists and is a sub-admin
-    const manager = await db.select().from(users).where(eq(users.id, pollData.managerId)).get();
+    const manager = await db.select().from(users).where(eq(users.id, managerId)).get();
     if (!manager || manager.role !== 'sub-admin') {
       return c.json({ error: 'Manager must be a sub-admin' }, 400);
     }
@@ -243,7 +254,7 @@ pollRoutes.post('/', adminMiddleware, zValidator('json', createPollSchema), asyn
       description: pollData.description,
       startDate: defaultStartDate,
       endDate: defaultEndDate,
-      managerId: pollData.managerId,
+      managerId: managerId,
       createdById: currentUser.userId,
       settings: pollData.settings,
       ballot: pollData.ballot,

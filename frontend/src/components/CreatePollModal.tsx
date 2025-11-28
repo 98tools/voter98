@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userApi, pollApi } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import type { User } from '../types';
 
 interface CreatePollModalProps {
@@ -9,6 +10,7 @@ interface CreatePollModalProps {
 }
 
 const CreatePollModal: React.FC<CreatePollModalProps> = ({ isOpen, onClose, onPollCreated }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     managerId: '',
@@ -20,9 +22,14 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ isOpen, onClose, onPo
 
   useEffect(() => {
     if (isOpen) {
-      loadSubAdmins();
+      if (user?.role === 'admin') {
+        loadSubAdmins();
+      } else if (user?.role === 'sub-admin') {
+        // For sub-admins, set manager to themselves
+        setFormData(prev => ({ ...prev, managerId: user.id }));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const loadSubAdmins = async () => {
     try {
@@ -35,8 +42,14 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ isOpen, onClose, onPo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.managerId) {
+    if (!formData.title.trim()) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    // For admins, managerId is required
+    if (user?.role === 'admin' && !formData.managerId) {
+      setError('Please select a poll manager');
       return;
     }
 
@@ -44,11 +57,17 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ isOpen, onClose, onPo
     setError('');
 
     try {
-      const response = await pollApi.createPoll({
+      const pollData: any = {
         title: formData.title.trim(),
-        managerId: formData.managerId,
         description: formData.description.trim() || undefined,
-      });
+      };
+
+      // Only include managerId if it's set (for admins) or if user is sub-admin
+      if (formData.managerId) {
+        pollData.managerId = formData.managerId;
+      }
+
+      const response = await pollApi.createPoll(pollData);
 
       onPollCreated(response.data.poll.id);
       onClose();
@@ -72,7 +91,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ isOpen, onClose, onPo
       setError('');
       setFormData({
         title: '',
-        managerId: '',
+        managerId: user?.role === 'sub-admin' ? user.id : '',
         description: '',
       });
     }
@@ -129,27 +148,41 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({ isOpen, onClose, onPo
               />
             </div>
 
-            {/* Sub-Admin Selection */}
-            <div>
-              <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-1">
-                Poll Manager (Sub-Admin) *
-              </label>
-              <select
-                id="managerId"
-                value={formData.managerId}
-                onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-                required
-              >
-                <option value="">Select a sub-admin</option>
-                {subAdmins.map((subAdmin) => (
-                  <option key={subAdmin.id} value={subAdmin.id}>
-                    {subAdmin.name} ({subAdmin.email})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Sub-Admin Selection - Only for admins */}
+            {user?.role === 'admin' && (
+              <div>
+                <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-1">
+                  Poll Manager (Sub-Admin) *
+                </label>
+                <select
+                  id="managerId"
+                  value={formData.managerId}
+                  onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={loading}
+                  required
+                >
+                  <option value="">Select a sub-admin</option>
+                  {subAdmins.map((subAdmin) => (
+                    <option key={subAdmin.id} value={subAdmin.id}>
+                      {subAdmin.name} ({subAdmin.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Sub-Admin Info - Only for sub-admins */}
+            {user?.role === 'sub-admin' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Poll Manager
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                  You will be the manager of this poll
+                </div>
+              </div>
+            )}
 
             {/* Description */}
             <div>

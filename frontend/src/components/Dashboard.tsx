@@ -235,7 +235,7 @@ const Dashboard: React.FC = () => {
                     : 'Participate in polls and view your voting history.'}
                 </p>
               </div>
-              {(user?.role === 'admin') && (
+              {(user?.role === 'admin' || user?.role === 'sub-admin') && (
                 <button 
                   onClick={() => setShowCreateModal(true)}
                   className="bg-white bg-opacity-20 hover:bg-opacity-30 text-primary-600 font-medium py-3 px-6 rounded-xl transition-all duration-200 hover-lift border border-white border-opacity-20 cursor-pointer"
