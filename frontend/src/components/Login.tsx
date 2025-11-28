@@ -8,6 +8,7 @@ const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [adminKey, setAdminKey] = useState('');
+  const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAdminKey, setShowAdminKey] = useState(false);
@@ -26,6 +27,10 @@ const Login: React.FC = () => {
       if (isLogin) {
         await login(normalizedEmail, password);
       } else {
+        if (!acceptedPrivacyPolicy) {
+          setError('You must accept the Privacy Policy to create an account.');
+          return;
+        }
         await register(normalizedEmail, password, name, adminKey);
       }
       navigate('/dashboard');
@@ -51,10 +56,10 @@ const Login: React.FC = () => {
               src={`${import.meta.env.VITE_API_BASE_URL}/api/storage/images/logo.png`}
               onError={(e) => { e.currentTarget.src = 'vite.svg' }}
               alt="Logo"
-              className="inline-flex items-center justify-center w-16 h-16 mb-4"
+              className="inline-flex items-center justify-center w-25 h-25 mb-4"
             />
-          <h1 className="text-3xl font-bold text-white mb-2">{import.meta.env.VITE_APP_TITLE || 'Voter98'}</h1>
-          <p className="text-white text-opacity-80">
+          <h1 className="text-3xl font-bold text-primary mb-2">{import.meta.env.VITE_APP_TITLE || 'Voter98'}</h1>
+          <p className="text-primary text-opacity-80">
             {isLogin ? 'Welcome back to your voting platform' : 'Join the future of digital voting'}
           </p>
         </div>
@@ -134,40 +139,33 @@ const Login: React.FC = () => {
 
             {!isLogin && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="adminKey" className="block text-sm font-semibold text-gray-700">
-                    Admin Key (Optional)
+                <div className="flex items-start space-x-3">
+                  <input
+                    id="privacyPolicy"
+                    name="privacyPolicy"
+                    type="checkbox"
+                    checked={acceptedPrivacyPolicy}
+                    onChange={(e) => setAcceptedPrivacyPolicy(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="privacyPolicy" className="text-sm text-gray-700">
+                    I agree to the{' '}
+                    <a
+                      href="/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Privacy Policy
+                    </a>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowAdminKey(!showAdminKey)}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {showAdminKey ? 'Hide' : 'Show'} Admin Key
-                  </button>
                 </div>
-                {showAdminKey && (
-                  <div className="animate-slide-in-right">
-                    <input
-                      id="adminKey"
-                      name="adminKey"
-                      type="text"
-                      value={adminKey}
-                      onChange={(e) => setAdminKey(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white bg-opacity-50 backdrop-filter backdrop-blur-sm"
-                      placeholder="Enter FIRST_ADMIN_2025 for admin access"
-                    />
-                    <p className="mt-2 text-xs text-gray-500 bg-blue-50 p-2 rounded-lg">
-                      💡 Enter "FIRST_ADMIN_2025" to create an admin account, or leave empty for a regular user account.
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (!isLogin && !acceptedPrivacyPolicy)}
               className="w-full bg-primary-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 cursor-pointer"
             >
               {loading ? (
@@ -178,33 +176,42 @@ const Login: React.FC = () => {
                   </svg>
                   Processing...
                 </div>
-              ) : (
+                ) : (
                 isLogin ? 'Sign In' : 'Create Account'
-              )}
-            </button>
+                )}
+              </button>
 
-            <div className="text-center">
-              <button
+              <div className="text-center">
+                <button
                 type="button"
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError('');
+                  setAcceptedPrivacyPolicy(false);
                 }}
-                className="text-primary-600 hover:text-primary-800 font-medium transition-colors duration-200"
-              >
-                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-              </button>
+                className="text-primary-600 hover:text-primary-800 font-medium transition-colors duration-200 cursor-pointer"
+                >
+                {isLogin ? (
+                  <>
+                  Don't have an account? <span className="font-bold">Sign up</span>
+                  </>
+                ) : (
+                  <>
+                  Already have an account? <span className="font-bold">Sign in</span>
+                  </>
+                )}
+                </button>
+              </div>
+              </form>
             </div>
-          </form>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-white text-opacity-70 text-sm">
-          <p>&copy; 2025 Voter98. Secure, transparent, and modern voting platform.</p>
-        </div>
-      </div>
-    </div>
-  );
-};
+            {/* Footer */}
+            <div className="text-center mt-8 text-primary text-opacity-70 text-sm">
+              <p>&copy; 2025 Voter98. Secure, transparent, and modern voting platform.</p>
+            </div>
+            </div>
+          </div>
+          );
+        };
 
-export default Login;
+        export default Login;

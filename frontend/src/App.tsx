@@ -6,6 +6,7 @@ import AdminPanel from './components/admin-panel/AdminPanel';
 import PollSettings from './components/poll-settings/index';
 import PollParticipation from './components/PollParticipation';
 import ProtectedRoute from './components/ProtectedRoute';
+import PrivacyPolicy from './components/PrivacyPolicy';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
