@@ -7,7 +7,7 @@ import { injectColors , setFavicon } from './config/startup'
 // Inject colors and site title from environment variables
 injectColors()
 document.title = import.meta.env.VITE_APP_TITLE || 'Voter98';
-setFavicon(`${import.meta.env.VITE_API_BASE_URL}/storage/images/icon.png` || undefined);
+setFavicon(`${import.meta.env.VITE_API_BASE_URL}/api/storage/images/icon.png` || undefined);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

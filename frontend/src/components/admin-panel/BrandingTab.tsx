@@ -24,14 +24,14 @@ const BrandingTab: React.FC = () => {
   const checkExistingBranding = async () => {
     try {
       // Try to load the existing logo
-      const logoUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/images/logo.png`;
+      const logoUrl = `${import.meta.env.VITE_API_BASE_URL}/api/storage/images/logo.png`;
       const logoResponse = await fetch(logoUrl);
       if (logoResponse.ok) {
         setCurrentLogo(logoUrl);
       }
 
       // Try to load the existing icon
-      const iconUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/images/icon.png`;
+      const iconUrl = `${import.meta.env.VITE_API_BASE_URL}/api/storage/images/icon.png`;
       const iconResponse = await fetch(iconUrl);
       if (iconResponse.ok) {
         setCurrentIcon(iconUrl);

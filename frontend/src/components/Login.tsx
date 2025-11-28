@@ -48,7 +48,7 @@ const Login: React.FC = () => {
         {/* Logo/Brand */}
         <div className="text-center mb-8 animate-fade-in">
             <img
-              src={`${import.meta.env.VITE_API_BASE_URL}/storage/images/logo.png`}
+              src={`${import.meta.env.VITE_API_BASE_URL}/api/storage/images/logo.png`}
               onError={(e) => { e.currentTarget.src = 'vite.svg' }}
               alt="Logo"
               className="inline-flex items-center justify-center w-16 h-16 mb-4"
