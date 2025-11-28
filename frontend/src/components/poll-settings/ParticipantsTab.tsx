@@ -765,7 +765,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                 setShowAddModal(true);
                 setAddParticipantError('');
               }}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200 cursor-pointer"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -774,7 +774,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
             </button>
             <button
               onClick={handleOpenGroupModal}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-secondary-600 hover:bg-secondary-700 transition-colors duration-200 cursor-pointer"
             >
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
@@ -797,7 +797,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <svg className="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
               </svg>
             </div>
             <div className="ml-3">
@@ -901,7 +901,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
               </button>
               <button
                 onClick={handleOpenGroupModal}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-secondary-600 hover:bg-secondary-700 transition-colors duration-200 cursor-pointer"
               >
                 Add Group
               </button>
@@ -1126,7 +1126,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                             <button
                               onClick={() => handleSendEmail(participant.id)}
                               disabled={sendingEmails.has(participant.id)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                               {sendingEmails.has(participant.id) ? (
                                 <>
@@ -1330,7 +1330,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                   <button
                     type="submit"
                     disabled={isAddingParticipant}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
                   >
                     {isAddingParticipant ? (
                       <>
@@ -1525,7 +1525,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                     <button
                       onClick={handleAddGroupParticipants}
                       disabled={isAddingGroup || !selectedGroup}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
+                      className="flex-1 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
                     >
                       {isAddingGroup ? (
                         <>
@@ -1959,16 +1959,16 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                   </div>
 
                   {/* Download Template Button */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="bg-secondary-100 border border-secondary-200 rounded-lg p-4 mb-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-5 w-5 text-secondary-600" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">File input requirements:</h3>
-                        <p className="mt-1 text-sm text-blue-700">
+                        <h3 className="text-sm font-medium text-secondary-800">File input requirements:</h3>
+                        <p className="mt-1 text-sm text-secondary-700">
                           <strong>Only email is required</strong> - name, vote_weight and token are optional. <br></br><br></br>
                           User type is automatically detected! If an email exists in the system, the participant will be marked as a registered user.<br></br>
                           If the email does not exist, the participant will be marked as an external participant.<br></br>
@@ -2020,7 +2020,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                             <div className="flex text-sm text-gray-600">
                               <label
                                 htmlFor="file-upload"
-                                className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                                className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
                               >
                                 <span>Upload a file</span>
                                 <input
@@ -2092,7 +2092,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                     </button>
                     <button
                       onClick={uploadMode === 'file' ? handleFileUpload : handleCsvUpload}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       disabled={isUploading || (uploadMode === 'file' ? !selectedFile : !csvData.trim())}
                     >
                       {isUploading ? (

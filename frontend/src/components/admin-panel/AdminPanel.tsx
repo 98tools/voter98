@@ -512,9 +512,9 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'sub-admin': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-green-100 text-green-800 border-green-200';
+      case 'admin': return 'bg-green-100 text-green-800 border-green-200';
+      case 'sub-admin': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -522,19 +522,19 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
     switch (role) {
       case 'admin':
         return (
-          <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
           </svg>
         );
       case 'sub-admin':
         return (
-          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
           </svg>
         );
       default:
         return (
-          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
           </svg>
         );
@@ -614,7 +614,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600 text-lg">Loading admin panel...</p>
         </div>
       </div>
@@ -629,7 +629,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                   </svg>
@@ -644,7 +644,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
             <div className="flex items-center space-x-4">
               <Link
                 to="/dashboard"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
               >
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l5.293 5.293a1 1 0 010 1.414z" clipRule="evenodd" />
@@ -670,20 +670,20 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Admin Welcome */}
         <div className="mb-8 animate-fade-in">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white">
+          <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl p-8 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-3xl font-bold mb-2">
                   Admin Control Center ⚡
                 </h2>
-                <p className="text-purple-100 text-lg">
+                <p className="text-primary-100 text-lg">
                   Manage users, polls, and monitor the entire voting platform.
                 </p>
               </div>
               <div className="bg-white bg-opacity-20 rounded-xl p-4">
                 <div className="text-center">
-                  <p className="text-purple-900 text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-purple-900 text-sm">Total Users</p>
+                  <p className="text-primary-900 text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-primary-900 text-sm">Total Users</p>
                 </div>
               </div>
             </div>
@@ -694,9 +694,9 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                 </svg>
               </div>
               <div className="ml-4">
@@ -708,8 +708,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -722,8 +722,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -736,8 +736,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover-lift animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -771,7 +771,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                 onClick={() => setActiveTab('users')}
                 className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer ${
                   activeTab === 'users'
-                    ? 'border-purple-500 text-purple-600'
+                    ? 'border-primary-500 text-primary-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -813,7 +813,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                   <div className="flex space-x-3">
                     <button
                       onClick={() => setShowCreateUser(!showCreateUser)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift cursor-pointer"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white  bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 hover-lift cursor-pointer"
                     >
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -844,7 +844,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                             type="text"
                             value={newUser.name}
                             onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                             required
                             placeholder="Enter user's full name"
                           />
@@ -855,7 +855,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                             type="email"
                             value={newUser.email}
                             onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                             required
                             placeholder="Enter user's email"
                           />
@@ -868,7 +868,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                             type="password"
                             value={newUser.password}
                             onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                             required
                             placeholder="Enter user's password"
                             minLength={6}
@@ -879,7 +879,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                           <select
                             value={newUser.role}
                             onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                           >
                             <option value="user">User</option>
                             <option value="sub-admin">Sub-Admin</option>
@@ -908,7 +908,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                                     });
                                   }
                                 }}
-                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                               />
                               <span className="text-sm text-gray-700">{group.name}</span>
                             </label>
@@ -921,7 +921,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                       <div className="flex space-x-3">
                         <button
                           type="submit"
-                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift cursor-pointer"
+                          className="flex-1 bg-gradient-to-r from-primary-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-primary-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 hover-lift cursor-pointer"
                         >
                           Create User
                         </button>
@@ -949,7 +949,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                             type="text"
                             value={editUser.name}
                             onChange={(e) => setEditUser({...editUser, name: e.target.value})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                             required
                             placeholder="Enter user's full name"
                           />
@@ -960,7 +960,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                             type="email"
                             value={editUser.email}
                             onChange={(e) => setEditUser({...editUser, email: e.target.value})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                             required
                             placeholder="Enter user's email"
                           />
@@ -973,7 +973,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                             type="password"
                             value={editUser.password}
                             onChange={(e) => setEditUser({...editUser, password: e.target.value})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                             placeholder="Leave blank to keep current password"
                             minLength={6}
                           />
@@ -984,7 +984,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                           <select
                             value={editUser.role}
                             onChange={(e) => setEditUser({...editUser, role: e.target.value as 'admin' | 'sub-admin' | 'user'})}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                           >
                             <option value="user">User</option>
                             <option value="sub-admin">Sub-Admin</option>
@@ -1013,7 +1013,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                                     });
                                   }
                                 }}
-                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                               />
                               <span className="text-sm text-gray-700">{group.name}</span>
                             </label>
@@ -1026,7 +1026,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                       <div className="flex space-x-3">
                         <button
                           type="submit"
-                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover-lift cursor-pointer"
+                          className="flex-1 bg-gradient-to-r from-primary-600 to-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:from-primary-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 hover-lift cursor-pointer"
                         >
                           Update User
                         </button>
@@ -1065,7 +1065,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                           <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-200">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-blue-600 rounded-full flex items-center justify-center">
                                   <span className="text-white font-semibold text-sm">
                                     {user.name.charAt(0).toUpperCase()}
                                   </span>
@@ -1134,7 +1134,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                   <h3 className="text-xl font-bold text-gray-900">Group Management</h3>
                   <button
                     onClick={() => setShowCreateGroup(!showCreateGroup)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover-lift cursor-pointer"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover-lift cursor-pointer"
                   >
                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -1145,21 +1145,21 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
 
                 {/* Groups Overview Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+                  <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm opacity-90">Total Groups</p>
                         <p className="text-2xl font-bold">{groups.length}</p>
                       </div>
                       <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                         </svg>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+                  <div className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-lg p-4 text-white">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm opacity-90">Total Members</p>
@@ -1168,14 +1168,14 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                         </p>
                       </div>
                       <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                         </svg>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
+                  <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 rounded-lg p-4 text-white">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm opacity-90">Active Groups</p>
@@ -1186,14 +1186,14 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                         </p>
                       </div>
                       <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-6 h-6 text-secondary-600" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white">
+                  <div className="bg-gradient-to-r from-gray-500 to-secondary-600 rounded-lg p-4 text-white">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm opacity-90">Avg Members</p>
@@ -1205,8 +1205,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                         </p>
                       </div>
                       <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        <svg className="w-6 h-6 text-secondary-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                         </svg>
                       </div>
                     </div>
@@ -1650,7 +1650,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                         .map((member) => (
                         <div key={member.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-blue-600 rounded-full flex items-center justify-center">
                               <span className="text-white font-semibold text-sm">
                                 {member.name.charAt(0).toUpperCase()}
                               </span>

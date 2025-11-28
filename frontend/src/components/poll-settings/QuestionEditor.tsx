@@ -77,7 +77,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               type="text"
               value={question.title}
               onChange={(e) => onUpdate({ title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Enter question title"
             />
           </div>
@@ -90,7 +90,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               value={question.description || ''}
               onChange={(e) => onUpdate({ description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               placeholder="Provide additional context for this question"
             />
           </div>
@@ -110,7 +110,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                       newAttachments[index] = e.target.value;
                       onUpdate({ attachments: newAttachments });
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Enter attachment URL"
                   />
                   <button
@@ -153,7 +153,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 min="1"
                 value={question.minSelection}
                 onChange={(e) => onUpdate({ minSelection: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <div>
@@ -165,7 +165,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 min="1"
                 value={question.maxSelection}
                 onChange={(e) => onUpdate({ maxSelection: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -176,7 +176,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               type="checkbox"
               checked={question.randomizedOrder}
               onChange={(e) => onUpdate({ randomizedOrder: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
             />
             <label htmlFor={`randomized-${question.id}`} className="ml-2 block text-sm text-gray-900">
               Randomize option order for each participant
@@ -191,7 +191,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               </label>
               <button
                 onClick={onAddOption}
-                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
+                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 cursor-pointer"
               >
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -223,7 +223,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         type="text"
                         value={option.title}
                         onChange={(e) => onUpdateOption(option.id, { title: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="Option title"
                         required
                       />
@@ -236,7 +236,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         type="text"
                         value={option.shortDescription || ''}
                         onChange={(e) => onUpdateOption(option.id, { shortDescription: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="Brief description shown in summary"
                       />
                     </div>
@@ -248,7 +248,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         value={option.longDescription || ''}
                         onChange={(e) => onUpdateOption(option.id, { longDescription: e.target.value })}
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                         placeholder="Detailed description for this option"
                       />
                     </div>
@@ -260,7 +260,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         type="url"
                         value={option.link || ''}
                         onChange={(e) => onUpdateOption(option.id, { link: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="https://example.com"
                       />
                     </div>
@@ -272,7 +272,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         type="url"
                         value={option.image || ''}
                         onChange={(e) => onUpdateOption(option.id, { image: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="https://example.com/image.jpg"
                       />
                       {option.image && (
@@ -317,7 +317,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                       href={attachment}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                      className="inline-flex items-center text-xs text-primary-600 hover:text-primary-800"
                     >
                       <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
@@ -335,7 +335,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             <span>Max: {question.maxSelection}</span>
             <span>{question.options.length} options</span>
             {question.randomizedOrder && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                 Randomized
               </span>
             )}
@@ -364,7 +364,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                               href={option.link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                              className="inline-flex items-center text-xs text-primary-600 hover:text-primary-800"
                             >
                               <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
