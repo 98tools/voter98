@@ -18,11 +18,36 @@ const ALLOWED_IMAGE_TYPES = [
   'image/svg+xml'
 ];
 
-// Maximum file size (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Allowed document and attachment MIME types
+const ALLOWED_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  'application/x-zip-compressed',
+  'application/x-rar-compressed',
+  'application/x-7z-compressed',
+  'application/json',
+  'text/markdown',
+  'application/vnd.oasis.opendocument.text',
+  'application/vnd.oasis.opendocument.spreadsheet',
+  'application/vnd.oasis.opendocument.presentation'
+];
+
+// All allowed file types (images + documents)
+const ALLOWED_FILE_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES];
+
+// Maximum file size (20MB for general files, can be adjusted)
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 /**
- * Upload an image
+ * Upload a file (image or document)
  * POST /api/storage/upload
  */
 storage.post('/upload', authMiddleware, async (c) => {
@@ -30,15 +55,27 @@ storage.post('/upload', authMiddleware, async (c) => {
     const formData = await c.req.formData();
     const file = formData.get('file') as File | null;
     const customFileName = formData.get('customFileName') as string | null;
+    const fileType = formData.get('fileType') as string | null; // 'image' or 'document' or 'any'
 
     if (!file) {
       return c.json({ error: 'No file provided' }, 400);
     }
 
-    // Validate file type
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    // Validate file type based on requested type
+    let allowedTypes = ALLOWED_FILE_TYPES;
+    let errorMessage = 'Invalid file type. Allowed types: Images (JPEG, PNG, GIF, WebP, SVG) and Documents (PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP, etc.)';
+    
+    if (fileType === 'image') {
+      allowedTypes = ALLOWED_IMAGE_TYPES;
+      errorMessage = 'Invalid file type. Allowed types: JPEG, PNG, GIF, WebP, SVG';
+    } else if (fileType === 'document') {
+      allowedTypes = ALLOWED_DOCUMENT_TYPES;
+      errorMessage = 'Invalid file type. Allowed types: PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP, etc.';
+    }
+
+    if (!allowedTypes.includes(file.type)) {
       return c.json({ 
-        error: 'Invalid file type. Allowed types: JPEG, PNG, GIF, WebP, SVG' 
+        error: errorMessage
       }, 400);
     }
 
@@ -98,7 +135,7 @@ storage.post('/upload', authMiddleware, async (c) => {
 });
 
 /**
- * Get an image
+ * Get an image (backward compatibility)
  * GET /api/storage/images/:fileName
  */
 storage.get('/images/:fileName', async (c) => {
@@ -134,7 +171,52 @@ storage.get('/images/:fileName', async (c) => {
 });
 
 /**
- * Delete an image
+ * Get a file (generic endpoint for any file type)
+ * GET /api/storage/files/:fileName
+ */
+storage.get('/files/:fileName', async (c) => {
+  try {
+    const fileName = c.req.param('fileName');
+    const download = c.req.query('download'); // Optional: force download
+
+    if (!fileName) {
+      return c.json({ error: 'File name is required' }, 400);
+    }
+
+    const object = await c.env.IMAGES_BUCKET.get(fileName);
+
+    if (!object) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('etag', object.httpEtag);
+    
+    // For documents, optionally force download
+    if (download === 'true' || download === '1') {
+      const originalName = object.customMetadata?.originalName || fileName;
+      headers.set('Content-Disposition', `attachment; filename="${originalName}"`);
+      headers.set('Cache-Control', 'private, max-age=0');
+    } else {
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+
+    return new Response(object.body, {
+      headers
+    });
+
+  } catch (error) {
+    console.error('Get file error:', error);
+    return c.json({ 
+      error: 'Failed to retrieve file',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+/**
+ * Delete an image (backward compatibility)
  * DELETE /api/storage/images/:fileName
  */
 storage.delete('/images/:fileName', authMiddleware, async (c) => {
@@ -173,6 +255,53 @@ storage.delete('/images/:fileName', authMiddleware, async (c) => {
 
   } catch (error) {
     console.error('Delete image error:', error);
+    return c.json({ 
+      error: 'Failed to delete file',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+/**
+ * Delete a file (generic endpoint)
+ * DELETE /api/storage/files/:fileName
+ */
+storage.delete('/files/:fileName', authMiddleware, async (c) => {
+  try {
+    const fileName = c.req.param('fileName');
+
+    if (!fileName) {
+      return c.json({ error: 'File name is required' }, 400);
+    }
+
+    // Get object metadata to check ownership
+    const object = await c.env.IMAGES_BUCKET.get(fileName);
+
+    if (!object) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    // Get user info from JWT
+    const user = c.get('user');
+    const userId = user?.userId;
+    const isAdmin = user?.role === 'admin';
+
+    // Check if user is admin or the uploader
+    const uploadedBy = object.customMetadata?.uploadedBy;
+    if (!isAdmin && uploadedBy !== userId) {
+      return c.json({ error: 'Unauthorized to delete this file' }, 403);
+    }
+
+    // Delete from R2
+    await c.env.IMAGES_BUCKET.delete(fileName);
+
+    return c.json({
+      success: true,
+      message: 'File deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete file error:', error);
     return c.json({ 
       error: 'Failed to delete file',
       details: error instanceof Error ? error.message : 'Unknown error'
