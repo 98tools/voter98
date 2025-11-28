@@ -20,13 +20,6 @@
     "JWT_SECRET": "your-super-secret-jwt-key-for-development-please-change-in-production",
     "FRONTEND_URL": "https://xxxxxxx.xxxxxxxx.workers.dev"
   },
-  "kv_namespaces": [
-    {
-      "binding": "VOTER_KV",
-      "id": "YOUR_KV_NAMESPACE_ID_HERE", // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE" // xxxxxxxxxxxxxxxxxxxxxxxxx
-    }
-  ],
   "d1_databases": [
     {
       "binding": "DB",

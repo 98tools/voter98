@@ -1424,21 +1424,11 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
     if (participant.hasVoted) {
       const pollSettings = poll.settings as any;
       
-      // Generate session token even for voted users (for results and potential re-voting)
-      const sessionToken = crypto.randomUUID();
-      
-      // Store session in KV for 1 hour
-      await c.env.VOTER_KV.put(`vote_session:${sessionToken}`, JSON.stringify({
-        pollId: pollId,
-        participantId: participant.id,
-        expires: Date.now() + (60 * 60 * 1000) // 1 hour
-      }), { expirationTtl: 3600 });
-      
       return c.json({ 
         success: true,
         hasVoted: true,
         allowVoteChanges: pollSettings.allowVoteChanges || false,
-        sessionToken,
+        participantToken: participant.token,
         participant: {
           id: participant.id,
           name: participant.name,
@@ -1448,19 +1438,9 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
       });
     }
 
-    // Generate a temporary session token for voting
-    const sessionToken = crypto.randomUUID();
-    
-    // Store session in KV for 1 hour
-    await c.env.VOTER_KV.put(`vote_session:${sessionToken}`, JSON.stringify({
-      pollId: pollId,
-      participantId: participant.id,
-      expires: Date.now() + (60 * 60 * 1000) // 1 hour
-    }), { expirationTtl: 3600 });
-
     return c.json({ 
       success: true,
-      sessionToken,
+      participantToken: participant.token,
       participant: {
         id: participant.id,
         name: participant.name,
@@ -1476,25 +1456,27 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
 
 // Submit vote
 const submitVoteSchema = z.object({
-  sessionToken: z.string(),
+  participantToken: z.string(),
   votes: z.record(z.array(z.string())), // questionId -> array of selected option IDs
 });
 
 publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (c) => {
   const pollId = c.req.param('id');
-  const { sessionToken, votes } = c.req.valid('json');
+  const { participantToken, votes } = c.req.valid('json');
   const db = getDb(c.env.DB);
 
   try {
-    // Validate session token
-    const sessionData = await c.env.VOTER_KV.get(`vote_session:${sessionToken}`);
-    if (!sessionData) {
-      return c.json({ error: 'Invalid or expired session' }, 401);
-    }
+    // Validate participant token
+    const participant = await db.select().from(pollParticipants)
+      .where(and(
+        eq(pollParticipants.pollId, pollId),
+        eq(pollParticipants.token, participantToken),
+        eq(pollParticipants.status, 'approved')
+      ))
+      .get();
 
-    const session = JSON.parse(sessionData);
-    if (session.pollId !== pollId || session.expires < Date.now()) {
-      return c.json({ error: 'Invalid or expired session' }, 401);
+    if (!participant) {
+      return c.json({ error: 'Invalid participant token' }, 401);
     }
 
     const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
@@ -1506,14 +1488,6 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
     const now = Date.now();
     if (poll.endDate < now) {
       return c.json({ error: 'This poll has ended. Voting is no longer allowed.' }, 403);
-    }
-
-    const participant = await db.select().from(pollParticipants)
-      .where(eq(pollParticipants.id, session.participantId))
-      .get();
-
-    if (!participant) {
-      return c.json({ error: 'Participant not found' }, 404);
     }
 
     const pollSettings = poll.settings as any;
@@ -1578,9 +1552,6 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       .set(updateData)
       .where(eq(pollParticipants.id, participant.id));
 
-    // Clean up session
-    await c.env.VOTER_KV.delete(`vote_session:${sessionToken}`);
-
     return c.json({ 
       success: true,
       message: 'Vote submitted successfully' 
@@ -1592,26 +1563,24 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
 });
 
 // Check if participant has voted
-publicPollRoutes.get('/:id/vote-status/:sessionToken', async (c) => {
+publicPollRoutes.get('/:id/vote-status/:participantToken', async (c) => {
   const pollId = c.req.param('id');
-  const sessionToken = c.req.param('sessionToken');
+  const participantToken = c.req.param('participantToken');
 
   try {
-    // Validate session token
-    const sessionData = await c.env.VOTER_KV.get(`vote_session:${sessionToken}`);
-    if (!sessionData) {
-      return c.json({ error: 'Invalid session' }, 401);
-    }
-
-    const session = JSON.parse(sessionData);
-    if (session.pollId !== pollId) {
-      return c.json({ error: 'Invalid session' }, 401);
-    }
-
+    // Validate participant token
     const db = getDb(c.env.DB);
     const participant = await db.select().from(pollParticipants)
-      .where(eq(pollParticipants.id, session.participantId))
+      .where(and(
+        eq(pollParticipants.pollId, pollId),
+        eq(pollParticipants.token, participantToken),
+        eq(pollParticipants.status, 'approved')
+      ))
       .get();
+
+    if (!participant) {
+      return c.json({ error: 'Invalid participant token' }, 401);
+    }
 
     if (!participant) {
       return c.json({ error: 'Participant not found' }, 404);
@@ -1703,9 +1672,9 @@ pollRoutes.get('/:id/results', async (c) => {
 });
 
 // Public poll results (for participants with session tokens)
-publicPollRoutes.get('/:id/results/:sessionToken?', async (c) => {
+publicPollRoutes.get('/:id/results/:participantToken?', async (c) => {
   const pollId = c.req.param('id');
-  const sessionToken = c.req.param('sessionToken');
+  const participantToken = c.req.param('participantToken');
   const db = getDb(c.env.DB);
 
   try {
@@ -1721,17 +1690,15 @@ publicPollRoutes.get('/:id/results/:sessionToken?', async (c) => {
 
     let participant = null;
     
-    // If session token provided, validate it
-    if (sessionToken) {
-      const sessionData = await c.env.VOTER_KV.get(`vote_session:${sessionToken}`);
-      if (sessionData) {
-        const session = JSON.parse(sessionData);
-        if (session.pollId === pollId) {
-          participant = await db.select().from(pollParticipants)
-            .where(eq(pollParticipants.id, session.participantId))
-            .get();
-        }
-      }
+    // If participant token provided, validate it
+    if (participantToken) {
+      participant = await db.select().from(pollParticipants)
+        .where(and(
+          eq(pollParticipants.pollId, pollId),
+          eq(pollParticipants.token, participantToken),
+          eq(pollParticipants.status, 'approved')
+        ))
+        .get();
     }
 
     // Calculate results with participant-level access

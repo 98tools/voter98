@@ -14,7 +14,7 @@ const PollParticipation: React.FC = () => {
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [sessionToken, setSessionToken] = useState('');
+  const [participantToken, setParticipantToken] = useState('');
   const [participant, setParticipant] = useState<any>(null);
   
   // Authentication form
@@ -71,11 +71,11 @@ const PollParticipation: React.FC = () => {
         setHasVoted(true);
         setAllowVoteChanges((response.data as any).allowVoteChanges || false);
         setIsAuthenticated(true);
-        setSessionToken(response.data.sessionToken);
+        setParticipantToken(response.data.participantToken);
       } else {
         // User can vote
         setIsAuthenticated(true);
-        setSessionToken(response.data.sessionToken);
+        setParticipantToken(response.data.participantToken);
         setParticipant(response.data.participant);
       }
     } catch (error: any) {
@@ -112,7 +112,7 @@ const PollParticipation: React.FC = () => {
   };
 
   const handleSubmitVote = async () => {
-    if (!poll || !pollId || !sessionToken) return;
+    if (!poll || !pollId || !participantToken) return;
 
     // Check if poll has ended
     if (isPollCompleted()) {
@@ -133,7 +133,7 @@ const PollParticipation: React.FC = () => {
     setError('');
 
     try {
-      await publicPollApi.submitVote(pollId, sessionToken, votes);
+      await publicPollApi.submitVote(pollId, participantToken, votes);
       setHasVoted(true);
       setShowResults(false); // Hide results after voting
     } catch (error: any) {
@@ -144,11 +144,11 @@ const PollParticipation: React.FC = () => {
   };
 
   const loadResults = async () => {
-    if (!pollId || !sessionToken) return;
+    if (!pollId || !participantToken) return;
 
     setLoadingResults(true);
     try {
-      const response = await publicPollApi.getResults(pollId, sessionToken);
+      const response = await publicPollApi.getResults(pollId, participantToken);
       setResults(response.data.results);
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to load results');

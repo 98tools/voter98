@@ -80,7 +80,6 @@ async function handleCronJob(controller: ScheduledController, env: AppBindings) 
     // Create environment context for the cron function
     const cronEnv = {
       DB: env.DB,
-      VOTER_KV: env.VOTER_KV,
       JWT_SECRET: env.JWT_SECRET,
       FRONTEND_URL: env.FRONTEND_URL || 'http://localhost:5173'
     };

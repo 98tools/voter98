@@ -8,7 +8,6 @@ export interface JWTPayload {
 
 export interface CloudflareBindings {
   DB: D1Database;
-  VOTER_KV: KVNamespace;
   IMAGES_BUCKET: R2Bucket;
   JWT_SECRET: string;
   FRONTEND_URL?: string;

@@ -137,13 +137,13 @@ export const publicPollApi = {
   getPoll: (id: string) => 
     axios.get<{ poll: Poll }>(`${API_BASE_URL}/poll/${id}/public`),
   validateAccess: (id: string, credentials: { email?: string; password?: string; token?: string }) =>
-    axios.post<{ success: boolean; sessionToken: string; participant: any }>(`${API_BASE_URL}/poll/${id}/validate-access`, credentials),
-  submitVote: (id: string, sessionToken: string, votes: Record<string, string[]>) =>
-    axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { sessionToken, votes }),
-  getVoteStatus: (id: string, sessionToken: string) =>
-    axios.get<{ hasVoted: boolean; participant: any }>(`${API_BASE_URL}/poll/${id}/vote-status/${sessionToken}`),
-  getResults: (id: string, sessionToken?: string) =>
-    axios.get<{ results: any }>(`${API_BASE_URL}/poll/${id}/results${sessionToken ? `/${sessionToken}` : ''}`),
+    axios.post<{ success: boolean; participantToken: string; participant: any }>(`${API_BASE_URL}/poll/${id}/validate-access`, credentials),
+  submitVote: (id: string, participantToken: string, votes: Record<string, string[]>) =>
+    axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { participantToken, votes }),
+  getVoteStatus: (id: string, participantToken: string) =>
+    axios.get<{ hasVoted: boolean; participant: any }>(`${API_BASE_URL}/poll/${id}/vote-status/${participantToken}`),
+  getResults: (id: string, participantToken?: string) =>
+    axios.get<{ results: any }>(`${API_BASE_URL}/poll/${id}/results${participantToken ? `/${participantToken}` : ''}`),
 };
 
 // SMTP API
