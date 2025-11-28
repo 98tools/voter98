@@ -1490,6 +1490,12 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       return c.json({ error: 'Poll not found' }, 404);
     }
 
+    // Check if poll has ended
+    const now = Date.now();
+    if (poll.endDate < now) {
+      return c.json({ error: 'This poll has ended. Voting is no longer allowed.' }, 403);
+    }
+
     const participant = await db.select().from(pollParticipants)
       .where(eq(pollParticipants.id, session.participantId))
       .get();
