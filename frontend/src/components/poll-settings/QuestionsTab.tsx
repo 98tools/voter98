@@ -155,6 +155,33 @@ const QuestionsTab: React.FC<QuestionsTabProps> = ({ poll, permissions, onSave, 
               onUpdateOption={(optionId: string, updates: Partial<BallotOption>) => handleUpdateOption(question.id, optionId, updates)}
             />
           ))}
+          
+          {/* Bottom Action Buttons */}
+          {permissions.canEdit && (
+            <div className="flex justify-center items-center space-x-4 pt-4 pb-2">
+              <button
+                onClick={handleAddQuestion}
+                className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer"
+              >
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Add Question
+              </button>
+              {editingQuestion && (
+                <button
+                  onClick={handleSaveQuestions}
+                  disabled={saving}
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                  </svg>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

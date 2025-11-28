@@ -552,6 +552,21 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     <p className="text-gray-400 text-sm">Click "Add Option" above to create voting choices</p>
                   </div>
                 )}
+
+                {/* Add Option Button at Bottom */}
+                {question.options.length > 0 && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={onAddOption}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-md hover:shadow-lg transition-all"
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                      Add Another Option
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
