@@ -29,3 +29,20 @@ export const injectColors = () => {
   if (secondary700) root.style.setProperty('--env-secondary-700', secondary700);
   if (secondary800) root.style.setProperty('--env-secondary-800', secondary800);
 };
+
+// Set favicon from environment variable
+export function setFavicon(url?: string): void {
+  if (!url) return;
+
+  const link = (document.querySelector("link[rel~='icon']") ?? document.createElement("link")) as HTMLLinkElement;
+  link.rel = "icon";
+  link.href = url;
+  document.head.appendChild(link);
+
+  // Fallback if the image fails to load
+  const img = new Image();
+  img.onerror = () => {
+    link.href = "/vite.svg"; // fallback
+  };
+  img.src = url;
+}

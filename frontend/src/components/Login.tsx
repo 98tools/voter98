@@ -47,12 +47,13 @@ const Login: React.FC = () => {
       <div className="relative w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-2xl mb-4">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Voter98</h1>
+            <img
+              src={`${import.meta.env.VITE_API_BASE_URL}/storage/images/logo.png`}
+              onError={(e) => { e.currentTarget.src = 'vite.svg' }}
+              alt="Logo"
+              className="inline-flex items-center justify-center w-16 h-16 mb-4"
+            />
+          <h1 className="text-3xl font-bold text-white mb-2">{import.meta.env.VITE_APP_TITLE || 'Voter98'}</h1>
           <p className="text-white text-opacity-80">
             {isLogin ? 'Welcome back to your voting platform' : 'Join the future of digital voting'}
           </p>

@@ -5,6 +5,7 @@ import { userApi, groupApi } from '../../utils/api';
 import type { User, UserGroup } from '../../types';
 import * as XLSX from 'xlsx';
 import SMTPsettingsTab from './SMTPsettingsTab';
+import BrandingTab from './BrandingTab';
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAuth();
@@ -802,6 +803,18 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                 <span className="mr-2">📧</span>
                 SMTP Management
               </button>
+              <button
+                key="branding"
+                onClick={() => setActiveTab('branding')}
+                className={`py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer ${
+                  activeTab === 'branding'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span className="mr-2">🎨</span>
+                Branding
+              </button>
             </nav>
           </div>
 
@@ -1321,6 +1334,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
               </div>
             )}
             {activeTab === 'smtp' && <SMTPsettingsTab />}
+            {activeTab === 'branding' && <BrandingTab />}
           </div>
         </div>
       </main>
