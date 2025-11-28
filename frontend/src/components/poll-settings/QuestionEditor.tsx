@@ -573,7 +573,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Question Image</p>
                     <img
-                      src={question.image}
+                      src={`${import.meta.env.VITE_API_BASE_URL}${question.image}`}
                       alt="Question"
                       className="w-full h-40 object-cover rounded-lg border border-gray-300"
                       onError={(e) => {
@@ -682,7 +682,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         {option.image && (
                           <div className="flex-shrink-0">
                             <img
-                              src={option.image}
+                              src={`${import.meta.env.VITE_API_BASE_URL}${option.image}`}
                               alt={`Option ${idx + 1}`}
                               className="w-16 h-16 object-cover rounded-lg border-2 border-gray-300"
                               onError={(e) => {
