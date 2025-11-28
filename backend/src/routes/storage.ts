@@ -29,6 +29,7 @@ storage.post('/upload', authMiddleware, async (c) => {
   try {
     const formData = await c.req.formData();
     const file = formData.get('file') as File | null;
+    const customFileName = formData.get('customFileName') as string | null;
 
     if (!file) {
       return c.json({ error: 'No file provided' }, 400);
@@ -52,7 +53,7 @@ storage.post('/upload', authMiddleware, async (c) => {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `${timestamp}-${randomString}.${fileExtension}`;
+    const fileName = customFileName ? customFileName : `${timestamp}-${randomString}.${fileExtension}`;
 
     // Get user info from JWT payload
     const user = c.get('user');
