@@ -1,4 +1,4 @@
-# Voter98 - Advanced Polling & Voting System
+# Iqtra3 - The Voting System for GUofSyrians
 
 [![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -8,7 +8,7 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 
 
-A powerful, web-based polling and voting system that enables organizations to create, manage, and conduct secure online polls with advanced features like email notifications, participant management, and real-time results. Built with React and TypeScript, optimized for easy and fast deployment on **Cloudflare Workers**.
+A powerful, web-based polling and voting system that enables organizations to create, manage, and conduct secure online polls with advanced features like email notifications, participant management, and comprehensive audit trails.
 
 ## Screenshots
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/1e0978ba-6cbb-45dc-9d84-e7083fb0f0e7" />
@@ -46,8 +46,8 @@ Deploy directly to Cloudflare Workers with one click:
 
 1. **Clone the repository**  
 ```bash
-git clone https://github.com/yourusername/voter98.git  
-cd voter98
+git clone https://github.com/mamdouhal/voter15.git  
+cd voter15
 ```
 
 2. **Install dependencies**  
@@ -156,14 +156,14 @@ Backend API: http://localhost:8787
 ### Method 1: Deploy to Cloudflare Workers with one click
 
 `Deploy Backend`<br>
-[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/tree/main/backend)
+[![Deploy to Cloudflare (Backend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/mamdouhal/voter15/tree/main/backend)
 
 `Deploy Frontend`<br>
-[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/voter98/tree/main/frontend)
+[![Deploy to Cloudflare (Frontend)](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/mamdouhal/voter15/tree/main/frontend)
 
-- from Cloudflare dashboard, Workers, voter98-backend, Bindings, `Add Binding`, choose `D1 database` and press Add, Variable name is `DB`, D1 database is `voter-db` which you'll create here
+- from Cloudflare dashboard, Workers, iqtra3-backend, Bindings, `Add Binding`, choose `D1 database` and press Add, Variable name is `DB`, D1 database is `voter-db` which you'll create here
 - again `Add Binding`, choose `KV namespace` and press Add, Variable name is `VOTER_KV`, KV namespace is `voter-kv` which you'll create here
-- navigate to `Settings`, Variables and Secrets, `Add`, Text, Variable name is `FRONTEND_URL`, Value is `https://voter98-frontend.your-username.workers.dev`
+- navigate to `Settings`, Variables and Secrets, `Add`, Text, Variable name is `FRONTEND_URL`, Value is `https://iqtra3-frontend.your-username.workers.dev`
 
 ### Method 2: Deploy to Cloudflare Workers manually
 
@@ -229,7 +229,7 @@ cp wrangler.jsonc.template wrangler.jsonc
 npm run deploy
 ```
 
-4. **Note your backend URL** (e.g., `https://voter15-backend.your-username.workers.dev`)
+4. **Note your backend URL** (e.g., `https://iqtra3-backend.your-username.workers.dev`)
 
 #### Step 4: Configure Frontend
 
@@ -240,7 +240,7 @@ cd ../frontend
 
 2. **Create `.env` file**:
 ```env
-VITE_API_BASE_URL=https://voter15-backend.your-username.workers.dev/api
+VITE_API_BASE_URL=https://iqtra3-backend.your-username.workers.dev/api
 ```
 
 3. **Build and deploy frontend**:
@@ -249,7 +249,7 @@ npm run build
 npm run deploy
 ```
 
-4. **Note your frontend URL** (e.g., `https://voter15-frontend.your-username.workers.dev`)
+4. **Note your frontend URL** (e.g., `https://iqtra3-frontend.your-username.workers.dev`)
 
 #### Step 5: Update Backend Configuration
 
@@ -464,6 +464,6 @@ This project is licensed under the AGPLv3 License - see the LICENSE file for det
 
 ---
 
-Made with ❤️ by the 98tools Team
+Made with ❤️ by GUofSyrians
 
 ⭐ Star this project • 🐛 Report Bug • 🔧 Request Feature
