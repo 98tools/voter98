@@ -8,6 +8,40 @@ import { eq, and, not, inArray, ne } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
 import { verifyPassword, generateRandomToken } from '../utils/auth';
 
+// Helper function to log audit events for active polls
+async function logAuditEvent(
+  db: any,
+  eventType: string,
+  actorUserId: string,
+  pollId: string,
+  participantId: string | null,
+  meta: any,
+  ipAddress: string | null,
+  userAgent: string | null
+) {
+  try {
+    await db.insert(auditEvents).values({
+      eventType,
+      actorUserId,
+      pollId,
+      participantId,
+      meta: meta ? JSON.stringify(meta) : null,
+      ipAddress,
+      userAgent,
+      createdAt: Date.now()
+    });
+  } catch (error) {
+    console.error('Failed to log audit event:', error);
+    // Don't throw - audit logging failure shouldn't break the main operation
+  }
+}
+
+// Helper function to check if poll is active and audit logging should be enabled
+async function shouldAuditPoll(db: any, pollId: string): Promise<boolean> {
+  const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+  return poll && poll.status === 'active';
+}
+
 // Permission types for different poll roles
 type PollPermissions = {
   canView: boolean;
@@ -472,6 +506,16 @@ pollRoutes.put('/:id', zValidator('json', updatePollSchema), async (c) => {
       }
     }
 
+    // Store old values for audit
+    const oldValues: any = {};
+    if (updateData.title !== undefined) oldValues.oldTitle = poll.title;
+    if (updateData.description !== undefined) oldValues.oldDescription = poll.description;
+    if (updateData.startDate !== undefined) oldValues.oldStartDate = poll.startDate;
+    if (updateData.endDate !== undefined) oldValues.oldEndDate = poll.endDate;
+    if (updateData.status !== undefined) oldValues.oldStatus = poll.status;
+    if (updateData.settings !== undefined) oldValues.oldSettings = poll.settings;
+    if (updateData.ballot !== undefined) oldValues.oldBallot = poll.ballot;
+
     // Update poll
     const updatedPoll = await db.update(polls)
       .set({
@@ -481,6 +525,30 @@ pollRoutes.put('/:id', zValidator('json', updatePollSchema), async (c) => {
       .where(eq(polls.id, pollId))
       .returning()
       .get();
+
+    // Audit log if poll is active
+    if (await shouldAuditPoll(db, pollId)) {
+      await logAuditEvent(
+        db,
+        'POLL_UPDATED',
+        user.userId,
+        pollId,
+        null,
+        {
+          updatedFields: Object.keys(updateData),
+          ...oldValues,
+          newTitle: updateData.title,
+          newDescription: updateData.description,
+          newStartDate: updateData.startDate,
+          newEndDate: updateData.endDate,
+          newStatus: updateData.status,
+          settingsChanged: !!updateData.settings,
+          ballotChanged: !!updateData.ballot
+        },
+        c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null,
+        c.req.header('user-agent') || null
+      );
+    }
 
     return c.json({
       message: 'Poll updated successfully',
@@ -735,6 +803,26 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
       .returning()
       .get();
 
+    // Audit log if poll is active
+    if (await shouldAuditPoll(db, pollId)) {
+      await logAuditEvent(
+        db,
+        'PARTICIPANT_ADDED',
+        user.userId,
+        pollId,
+        participant.id,
+        {
+          participantEmail: participant.email,
+          participantName: participant.name,
+          isUser: participant.isUser,
+          voteWeight: participant.voteWeight,
+          customTokenProvided: tokenWasCustom
+        },
+        c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null,
+        c.req.header('user-agent') || null
+      );
+    }
+
     return c.json({
       message: 'Participant added successfully',
       participant: {
@@ -793,6 +881,25 @@ pollRoutes.delete('/:id/participants/:participantId', async (c) => {
 
     if (!deletedParticipant) {
       return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Audit log if poll is active
+    if (await shouldAuditPoll(db, pollId)) {
+      await logAuditEvent(
+        db,
+        'PARTICIPANT_REMOVED',
+        user.userId,
+        pollId,
+        participantId,
+        {
+          participantEmail: deletedParticipant.email,
+          participantName: deletedParticipant.name,
+          hadVoted: deletedParticipant.hasVoted,
+          voteWeight: deletedParticipant.voteWeight
+        },
+        c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null,
+        c.req.header('user-agent') || null
+      );
     }
 
     return c.json({ message: 'Participant removed successfully' });
@@ -881,6 +988,25 @@ pollRoutes.put('/:id/participants/:participantId', zValidator('json', updatePart
 
     if (!updatedParticipant) {
       return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Audit log if poll is active
+    if (await shouldAuditPoll(db, pollId)) {
+      await logAuditEvent(
+        db,
+        'PARTICIPANT_UPDATED',
+        user.userId,
+        pollId,
+        participantId,
+        {
+          updatedFields: Object.keys(updateData),
+          voteWeight: updateData.voteWeight,
+          tokenUpdated: tokenWasCustomUpdated,
+          nameUpdated: !!updateData.name
+        },
+        c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null,
+        c.req.header('user-agent') || null
+      );
     }
 
     // Remove token from response for security
@@ -2275,6 +2401,28 @@ pollRoutes.post('/:id/participants/group', zValidator('json', addGroupParticipan
           error: 'Failed to add participant'
         });
       }
+    }
+
+    // Audit log if poll is active and participants were added
+    if (addedParticipants.length > 0 && await shouldAuditPoll(db, pollId)) {
+      await logAuditEvent(
+        db,
+        'GROUP_PARTICIPANTS_ADDED',
+        user.userId,
+        pollId,
+        null,
+        {
+          groupId: groupId,
+          groupName: group.name,
+          totalMembers: groupMembers.length,
+          addedCount: addedParticipants.length,
+          skippedCount: skippedParticipants.length,
+          errorsCount: errors.length,
+          voteWeight: voteWeight
+        },
+        c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null,
+        c.req.header('user-agent') || null
+      );
     }
 
     return c.json({
