@@ -58,6 +58,7 @@ export interface PollSettings {
   allowResultsView?: boolean;
   voteWeightEnabled?: boolean;
   allowVoteChanges?: boolean;
+  mailTemplateId?: string; // Reference to custom mail template for this poll
 }
 
 export interface Poll {
@@ -159,4 +160,15 @@ export interface PollResults {
     canViewParticipantNames: boolean;
     canViewVoteWeights: boolean;
   };
+}
+
+export interface MailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  htmlBody?: string;
+  isDefault: boolean;
+  createdAt: number;
+  updatedAt: number;
 }

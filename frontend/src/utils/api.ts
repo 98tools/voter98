@@ -159,4 +159,16 @@ export const smtpApi = {
     api.post<{ message: string; smtpConfig: { id: string; host: string; order: number } }>('/smtp/send/next-available', data),
 };
 
+// Mail Templates API
+export const mailTemplateApi = {
+  getAll: () => api.get<{ templates: any[] }>('/mail-templates'),
+  get: (id: string) => api.get<{ template: any }>(`/mail-templates/${id}`),
+  getDefault: () => api.get<{ template: any | null }>('/mail-templates/default/get'),
+  create: (data: { name: string; subject: string; body: string; htmlBody?: string; isDefault?: boolean }) =>
+    api.post<{ message: string; template: any }>('/mail-templates', data),
+  update: (id: string, data: { name?: string; subject?: string; body?: string; htmlBody?: string; isDefault?: boolean }) =>
+    api.put<{ message: string; template: any }>(`/mail-templates/${id}`, data),
+  delete: (id: string) => api.delete<{ message: string }>(`/mail-templates/${id}`),
+};
+
 export default api;

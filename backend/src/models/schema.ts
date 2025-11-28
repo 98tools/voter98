@@ -130,6 +130,18 @@ export const auditEvents = sqliteTable('audit_events', {
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
 });
 
+// Mail templates table for storing email templates
+export const mailTemplates = sqliteTable('mail_templates', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  name: text('name').notNull(), // Template name for identification
+  subject: text('subject').notNull(), // Email subject line
+  body: text('body').notNull(), // Plain text email body
+  htmlBody: text('html_body'), // HTML email body (optional)
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false), // Is this the default template?
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now())
+});
+
 
 
 // Types for TypeScript
@@ -147,6 +159,8 @@ export type SmtpConfig = typeof smtpConfig.$inferSelect;
 export type NewSmtpConfig = typeof smtpConfig.$inferInsert;
 export type AuditEvent = typeof auditEvents.$inferSelect;
 export type NewAuditEvent = typeof auditEvents.$inferInsert;
+export type MailTemplate = typeof mailTemplates.$inferSelect;
+export type NewMailTemplate = typeof mailTemplates.$inferInsert;
 
 // Ballot question and option types
 export interface BallotOption {
@@ -177,4 +191,5 @@ export interface PollSettings {
   showResultsBeforeEnd?: boolean;
   allowResultsView?: boolean;
   voteWeightEnabled?: boolean;
+  mailTemplateId?: string; // Reference to custom mail template for this poll
 }

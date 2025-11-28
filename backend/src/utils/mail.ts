@@ -1,4 +1,4 @@
-import { smtpConfig, SmtpConfig } from '../models/schema';
+import { smtpConfig, SmtpConfig, mailTemplates, MailTemplate } from '../models/schema';
 import { eq, sql } from 'drizzle-orm';
 import { WorkerMailer } from 'worker-mailer';
 
@@ -7,6 +7,44 @@ export interface EmailData {
   subject: string;
   body: string;
   html?: string;
+}
+
+// Available template variables
+export interface TemplateVariables {
+  participantName?: string;
+  pollTitle?: string;
+  pollDescription?: string;
+  pollUrl?: string;
+  pollStartDate?: string;
+  pollEndDate?: string;
+  [key: string]: string | undefined;
+}
+
+// Replace variables in template
+export function replaceTemplateVariables(template: string, variables: TemplateVariables): string {
+  let result = template;
+  
+  // Replace all {{variable}} patterns
+  for (const [key, value] of Object.entries(variables)) {
+    if (value !== undefined) {
+      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
+      result = result.replace(regex, value);
+    }
+  }
+  
+  return result;
+}
+
+// Get available template variables list
+export function getAvailableVariables(): string[] {
+  return [
+    'participantName',
+    'pollTitle',
+    'pollDescription',
+    'pollUrl',
+    'pollStartDate',
+    'pollEndDate'
+  ];
 }
 
 export async function sendEmail(
@@ -138,5 +176,84 @@ export async function resetCronSentCounts(db: any): Promise<void> {
       .run();
   } catch (error) {
     console.error('Error resetting cron sent counts:', error);
+  }
+}
+
+// Send email using a mail template
+export async function sendEmailWithTemplate(
+  db: any,
+  smtpId: string,
+  to: string,
+  templateId: string | null,
+  variables: TemplateVariables,
+  isCronJob: boolean = false
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    let template: MailTemplate | undefined;
+    
+    // Get template (specific or default)
+    if (templateId) {
+      template = await db.select().from(mailTemplates)
+        .where(eq(mailTemplates.id, templateId))
+        .get();
+    }
+    
+    // If no specific template or not found, get default
+    if (!template) {
+      template = await db.select().from(mailTemplates)
+        .where(eq(mailTemplates.isDefault, true))
+        .get();
+    }
+    
+    // If still no template, use hardcoded default
+    if (!template) {
+      const subject = `Voting Invitation: {{pollTitle}}`;
+      const body = `Hello {{participantName}},
+
+You have been invited to participate in the poll: "{{pollTitle}}".
+
+Poll Description: {{pollDescription}}
+
+Please visit the following link to cast your vote:
+{{pollUrl}}
+
+This poll is active from {{pollStartDate}} to {{pollEndDate}}.
+
+Best regards,
+Poll System`;
+      const html = `
+        <h2>Voting Invitation</h2>
+        <p>Hello {{participantName}},</p>
+        <p>You have been invited to participate in the poll: <strong>{{pollTitle}}</strong>.</p>
+        <p><strong>Description:</strong> {{pollDescription}}</p>
+        <p>Please visit the following link to cast your vote:</p>
+        <p><a href="{{pollUrl}}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Vote Now</a></p>
+        <p><strong>Poll Period:</strong> {{pollStartDate}} to {{pollEndDate}}</p>
+        <p>Best regards,<br>Poll System</p>
+      `;
+      
+      return await sendEmail(db, smtpId, {
+        to,
+        subject: replaceTemplateVariables(subject, variables),
+        body: replaceTemplateVariables(body, variables),
+        html: replaceTemplateVariables(html, variables),
+      }, isCronJob);
+    }
+    
+    // Use the template with variable replacement
+    const emailData: EmailData = {
+      to,
+      subject: replaceTemplateVariables(template.subject, variables),
+      body: replaceTemplateVariables(template.body, variables),
+      html: template.htmlBody ? replaceTemplateVariables(template.htmlBody, variables) : undefined,
+    };
+    
+    return await sendEmail(db, smtpId, emailData, isCronJob);
+  } catch (error) {
+    console.error('Send email with template error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send email with template'
+    };
   }
 } 

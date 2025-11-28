@@ -1,7 +1,7 @@
 import { getDb } from '../models/db';
 import { polls, pollParticipants, smtpConfig } from '../models/schema';
 import { eq, and, isNull, sql, gte, lte } from 'drizzle-orm';
-import { sendEmail, resetCronSentCounts, resetDailySentCounts } from './mail';
+import { sendEmail, sendEmailWithTemplate, resetCronSentCounts, resetDailySentCounts, TemplateVariables } from './mail';
 
 export interface CronJobResult {
   success: boolean;
@@ -84,24 +84,29 @@ export async function sendEmailsToParticipants(env: any): Promise<CronJobResult>
             // Prepare email content with poll-specific information
             const pollUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/poll/${poll.id}?token=${participant.token}`;
             
-            const emailData = {
-              to: participant.email,
-              subject: `Voting Invitation: ${poll.title}`,
-              body: `Hello ${participant.name},\n\nYou have been invited to participate in the poll: "${poll.title}".\n\nPoll Description: ${poll.description || 'No description provided'}\n\nPlease visit the following link to cast your vote:\n${pollUrl}\n\nThis poll is active from ${new Date(poll.startDate).toLocaleString()} to ${new Date(poll.endDate).toLocaleString()}.\n\nBest regards,\nPoll System`,
-              html: `
-                <h2>Voting Invitation</h2>
-                <p>Hello ${participant.name},</p>
-                <p>You have been invited to participate in the poll: <strong>${poll.title}</strong>.</p>
-                ${poll.description ? `<p><strong>Description:</strong> ${poll.description}</p>` : ''}
-                <p>Please visit the following link to cast your vote:</p>
-                <p><a href="${pollUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Vote Now</a></p>
-                <p><strong>Poll Period:</strong> ${new Date(poll.startDate).toLocaleString()} to ${new Date(poll.endDate).toLocaleString()}</p>
-                <p>Best regards,<br>Poll System</p>
-              `
+            // Prepare template variables
+            const templateVariables: TemplateVariables = {
+              participantName: participant.name,
+              pollTitle: poll.title,
+              pollDescription: poll.description || 'No description provided',
+              pollUrl: pollUrl,
+              pollStartDate: new Date(poll.startDate).toLocaleString(),
+              pollEndDate: new Date(poll.endDate).toLocaleString(),
             };
-
-            // Send email using next available SMTP config
-            const emailResult = await sendEmail(db, 'next-available', emailData, true);
+            
+            // Get template ID from poll settings (if exists)
+            const pollSettings = typeof poll.settings === 'string' ? JSON.parse(poll.settings) : poll.settings;
+            const templateId = pollSettings?.mailTemplateId || null;
+            
+            // Send email using template
+            const emailResult = await sendEmailWithTemplate(
+              db,
+              'next-available',
+              participant.email,
+              templateId,
+              templateVariables,
+              true // isCronJob
+            );
 
             if (emailResult.success) {
               // Update participant's lastEmailSentAt timestamp

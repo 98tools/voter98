@@ -9,6 +9,7 @@ import SettingsTab from './SettingsTab';
 import ParticipantsTab from './ParticipantsTab';
 import AuditorsTab from './AuditorsTab';
 import ResultsTab from './ResultsTab';
+import EmailTemplateTab from './EmailTemplateTab';
 import PollUrlDisplay from './PollUrlDisplay';
 
 const PollSettings: React.FC = () => {
@@ -253,6 +254,7 @@ const PollSettings: React.FC = () => {
                 { id: 'schedule', label: 'Schedule', icon: 'calendar' },
                 { id: 'questions', label: 'Questions', icon: 'question' },
                 { id: 'settings', label: 'Settings', icon: 'cog' },
+                { id: 'email-template', label: 'Email Template', icon: 'mail' },
                 { id: 'participants', label: 'Participants', icon: 'users' },
                 { id: 'auditors', label: 'Auditors & Editors', icon: 'shield' },
                 { id: 'results', label: 'Results', icon: 'chart' },
@@ -285,6 +287,9 @@ const PollSettings: React.FC = () => {
             )}
             {activeTab === 'settings' && (
               <SettingsTab poll={poll} permissions={permissions} onSave={permissions.canEditSettings ? handleSave : () => {}} saving={saving} />
+            )}
+            {activeTab === 'email-template' && (
+              <EmailTemplateTab poll={poll} permissions={permissions} onSave={permissions.canEditSettings ? handleSave : () => {}} saving={saving} />
             )}
             {activeTab === 'participants' && (
               <ParticipantsTab poll={poll} permissions={permissions} onSave={permissions.canManageParticipants ? handleSave : () => {}} saving={saving} />
