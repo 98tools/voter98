@@ -1959,7 +1959,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                   </div>
 
                   {/* Download Template Button */}
-                  <div className="bg-secondary-100 border border-secondary-200 rounded-lg p-4 mb-4">
+                  <div className="bg-secondary-100 border border-secondary-500 rounded-lg p-4 mb-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
                         <svg className="h-5 w-5 text-secondary-600" viewBox="0 0 20 20" fill="currentColor">

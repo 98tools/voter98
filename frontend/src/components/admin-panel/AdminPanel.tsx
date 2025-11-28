@@ -682,8 +682,8 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
               </div>
               <div className="bg-white bg-opacity-20 rounded-xl p-4">
                 <div className="text-center">
-                  <p className="text-primary-900 text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-primary-900 text-sm">Total Users</p>
+                  <p className="text-primary-800 text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-primary-800 text-sm">Total Users</p>
                 </div>
               </div>
             </div>
