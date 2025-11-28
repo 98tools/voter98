@@ -193,6 +193,7 @@ const pollSettingsSchema = z.object({
   allowResultsView: z.boolean().optional().default(true),
   voteWeightEnabled: z.boolean().optional().default(false),
   allowVoteChanges: z.boolean().optional().default(false),
+  mailTemplateId: z.string().optional(),
 });
 
 // Create poll schema
