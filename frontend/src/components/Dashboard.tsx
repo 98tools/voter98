@@ -167,7 +167,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                   <img
-                    src={`${import.meta.env.VITE_API_BASE_URL}/storage/images/logo.png`}
+                    src={`${import.meta.env.VITE_API_BASE_URL}/api/storage/images/logo.png`}
                     onError={(e) => { e.currentTarget.src = 'vite.svg' }}
                     alt="Logo"
                     className="w-8 h-8"
