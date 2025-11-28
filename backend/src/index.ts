@@ -8,6 +8,7 @@ import groupRoutes from './routes/groups';
 import pollRoutes, { publicPollRoutes } from './routes/polls';
 import seedRoutes from './routes/seed';
 import smtpRoutes from './routes/smtp';
+import storageRoutes from './routes/storage';
 import { sendEmailsToParticipants, resetDailyEmailCounts } from './utils/cron';
 
 const app = new Hono<{ Bindings: AppBindings }>();
@@ -29,6 +30,7 @@ app.route('/api/polls', pollRoutes);
 app.route('/api/poll', publicPollRoutes); // Public poll access routes
 app.route('/api/dev', seedRoutes); // Development routes
 app.route('/api/smtp', smtpRoutes);
+app.route('/api/storage', storageRoutes); // Object storage routes
 
 // Cron job endpoints for Cloudflare Workers
 app.post('/api/cron/send-emails', async (c) => {

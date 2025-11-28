@@ -33,5 +33,12 @@
       "database_name": "voter-db",
       "database_id": "YOUR_D1_DATABASE_ID_HERE" // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES_BUCKET",
+      "bucket_name": "voter98-images",
+      "preview_bucket_name": "voter98-images-preview" // for preview environment, not necessary in production
+    }
   ]
 }
