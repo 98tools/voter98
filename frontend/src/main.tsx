@@ -4,8 +4,9 @@ import './index.css'
 import App from './App.tsx'
 import { injectColors } from './config/colors'
 
-// Inject colors from environment variables
+// Inject colors and site title from environment variables
 injectColors()
+document.title = import.meta.env.VITE_APP_TITLE || 'Voter98';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
