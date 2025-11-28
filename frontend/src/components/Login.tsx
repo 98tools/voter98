@@ -195,17 +195,6 @@ const Login: React.FC = () => {
               </button>
             </div>
           </form>
-
-          {/* Quick demo credentials */}
-          {isLogin && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border-l-4 border-blue-500">
-              <h4 className="text-sm font-semibold text-blue-800 mb-2">Demo Credentials</h4>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p><strong>Email:</strong> admin@example.com</p>
-                <p><strong>Password:</strong> password123</p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
