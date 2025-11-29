@@ -20,6 +20,16 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, permissions, onSave, sa
   const [timeUntilStart, setTimeUntilStart] = useState<string>('');
   const [timeUntilEnd, setTimeUntilEnd] = useState<string>('');
   const [pollStatus, setPollStatus] = useState<'upcoming' | 'active' | 'ended' | 'not-set'>('not-set');
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Check if form data has changed from original poll data
+  useEffect(() => {
+    const originalStart = poll.startDate ? formatForDateTimeLocal(poll.startDate) : '';
+    const originalEnd = poll.endDate ? formatForDateTimeLocal(poll.endDate) : '';
+    
+    const changed = formData.startDate !== originalStart || formData.endDate !== originalEnd;
+    setHasChanges(changed);
+  }, [formData, poll.startDate, poll.endDate]);
 
   // Update current time every second for live countdown
   useEffect(() => {
@@ -96,6 +106,9 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, permissions, onSave, sa
       startDate: start,
       endDate: end,
     });
+    
+    // Reset hasChanges after successful save
+    setHasChanges(false);
   };
 
   const handleQuickDuration = (hours: number) => {
@@ -368,6 +381,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, permissions, onSave, sa
                 </svg>
                 Saving changes...
               </span>
+            ) : hasChanges ? (
+              <span className="text-orange-600 font-medium">⚠️ You have unsaved changes</span>
             ) : (
               <span>💡 Tip: Use quick presets to set common poll durations</span>
             )}
@@ -375,7 +390,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, permissions, onSave, sa
           {permissions.canEdit && (
             <button
               type="submit"
-              disabled={saving || Boolean(formData.startDate && formData.endDate && parseDateTimeLocal(formData.endDate) <= parseDateTimeLocal(formData.startDate))}
+              disabled={saving || !hasChanges || Boolean(formData.startDate && formData.endDate && parseDateTimeLocal(formData.endDate) <= parseDateTimeLocal(formData.startDate))}
               className="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >
               {saving ? (
