@@ -18,7 +18,8 @@
   },
   "vars": {
     "JWT_SECRET": "your-super-secret-jwt-key-for-development-please-change-in-production",
-    "FRONTEND_URL": "https://xxxxxxx.xxxxxxxx.workers.dev"
+    "FRONTEND_URL": "https://xxxxxxx.xxxxxxxx.workers.dev",
+    "TIMEZONE": "Europe/Istanbul"
   },
   "d1_databases": [
     {

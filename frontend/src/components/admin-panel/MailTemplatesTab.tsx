@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { mailTemplateApi } from '../../utils/api';
 import type { MailTemplate } from '../../types';
+import { formatDateTime } from '../../utils/timezone';
 
 const MailTemplatesTab: React.FC = () => {
   const [templates, setTemplates] = useState<MailTemplate[]>([]);
@@ -329,7 +330,7 @@ const MailTemplatesTab: React.FC = () => {
                       <p className="text-sm text-gray-800 line-clamp-3">{template.body}</p>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Last updated: {new Date(template.updatedAt).toLocaleString()}
+                      Last updated: {formatDateTime(template.updatedAt)}
                     </p>
                   </div>
                 </div>

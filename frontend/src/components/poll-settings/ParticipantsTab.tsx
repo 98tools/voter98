@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Poll, PollPermissions, UserGroup } from '../../types';
 import { pollApi, groupApi } from '../../utils/api';
 import * as XLSX from 'xlsx';
+import { formatDateTime } from '../../utils/timezone';
 
 interface ParticipantsTabProps {
   poll: Poll;
@@ -1098,8 +1099,8 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                       User cannot vote with emailed token.
                                     </div>
                                     <div className="text-yellow-200 text-[10px] mt-2">
-                                      Email sent: {new Date(participant.lastEmailSentAt).toLocaleString()}<br/>
-                                      Token revoked: {new Date(participant.tokenLastRevokedAt).toLocaleString()}
+                                      Email sent: {formatDateTime(participant.lastEmailSentAt)}<br/>
+                                      Token revoked: {formatDateTime(participant.tokenLastRevokedAt)}
                                     </div>
                                     <div className="text-yellow-100 text-[10px] mt-2 font-semibold">
                                       → Send new email to fix
@@ -2182,7 +2183,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                 <div className="flex-1">
                                   <div className="font-medium text-gray-900">{event.actorName}</div>
                                   <div className="text-sm text-gray-600 mt-1">
-                                    {new Date(event.createdAt).toLocaleString()}
+                                    {formatDateTime(event.createdAt)}
                                   </div>
                                   {event.ipAddress && (
                                     <div className="text-sm text-gray-500 mt-1">
@@ -2221,7 +2222,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                 <div className="flex-1">
                                   <div className="font-medium text-gray-900">{event.actorName}</div>
                                   <div className="text-sm text-gray-600 mt-1">
-                                    {new Date(event.createdAt).toLocaleString()}
+                                    {formatDateTime(event.createdAt)}
                                   </div>
                                   {event.ipAddress && (
                                     <div className="text-sm text-gray-500 mt-1">

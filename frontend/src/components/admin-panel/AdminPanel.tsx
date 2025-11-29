@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import SMTPsettingsTab from './SMTPsettingsTab';
 import BrandingTab from './BrandingTab';
 import MailTemplatesTab from './MailTemplatesTab';
+import { formatDateTime } from '../../utils/timezone';
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAuth();
@@ -1128,7 +1129,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(user.createdAt).toISOString().split('T')[0]}
+                              {formatDateTime(user.createdAt, { year: 'numeric', month: '2-digit', day: '2-digit' }).split(',')[0]}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end space-x-2">
@@ -1328,7 +1329,7 @@ Bob Wilson,bob@example.com,subadmin123,sub-admin,`;
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(group.createdAt || Date.now()).toISOString().split('T')[0]}
+                              {formatDateTime(group.createdAt || Date.now(), { year: 'numeric', month: '2-digit', day: '2-digit' }).split(',')[0]}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <button

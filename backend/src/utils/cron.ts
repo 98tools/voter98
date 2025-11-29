@@ -2,6 +2,7 @@ import { getDb } from '../models/db';
 import { polls, pollParticipants, smtpConfig } from '../models/schema';
 import { eq, and, isNull, sql, gte, lte } from 'drizzle-orm';
 import { sendEmail, sendEmailWithTemplate, resetCronSentCounts, resetDailySentCounts, TemplateVariables } from './mail';
+import { toLocaleDateString } from './timezone';
 
 export interface CronJobResult {
   success: boolean;
@@ -90,8 +91,8 @@ export async function sendEmailsToParticipants(env: any): Promise<CronJobResult>
               pollTitle: poll.title,
               pollDescription: poll.description || 'No description provided',
               pollUrl: pollUrl,
-              pollStartDate: new Date(poll.startDate).toLocaleString(),
-              pollEndDate: new Date(poll.endDate).toLocaleString(),
+              pollStartDate: toLocaleDateString(poll.startDate, env),
+              pollEndDate: toLocaleDateString(poll.endDate, env),
             };
             
             // Get template ID from poll settings (if exists)

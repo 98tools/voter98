@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Poll, PollPermissions } from '../../types';
+import { formatForDateTimeLocal, parseDateTimeLocal, getTimezoneDisplay } from '../../utils/timezone';
 
 interface ScheduleTabProps {
   poll: Poll;
@@ -10,22 +11,25 @@ interface ScheduleTabProps {
 
 const ScheduleTab: React.FC<ScheduleTabProps> = ({ poll, permissions, onSave, saving }) => {
   const [formData, setFormData] = useState({
-    startDate: poll.startDate ? new Date(poll.startDate).toISOString().slice(0, 16) : '',
-    endDate: poll.endDate ? new Date(poll.endDate).toISOString().slice(0, 16) : '',
+    startDate: poll.startDate ? formatForDateTimeLocal(poll.startDate) : '',
+    endDate: poll.endDate ? formatForDateTimeLocal(poll.endDate) : '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      startDate: new Date(formData.startDate).getTime(),
-      endDate: new Date(formData.endDate).getTime(),
+      startDate: parseDateTimeLocal(formData.startDate),
+      endDate: parseDateTimeLocal(formData.endDate),
     });
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Poll Schedule</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Poll Schedule</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          System Timezone: <span className="font-semibold text-primary-600">{getTimezoneDisplay()}</span>
+        </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

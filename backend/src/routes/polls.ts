@@ -7,6 +7,7 @@ import { AppBindings, JWTPayload } from '../types';
 import { eq, and, not, inArray, ne } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
 import { verifyPassword, generateRandomToken } from '../utils/auth';
+import { toLocaleDateString } from '../utils/timezone';
 
 // Helper function to log audit events for active polls
 async function logAuditEvent(
@@ -2479,8 +2480,8 @@ pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
       pollTitle: poll.title,
       pollDescription: poll.description || 'No description provided',
       pollUrl: pollUrl,
-      pollStartDate: new Date(poll.startDate).toLocaleString(),
-      pollEndDate: new Date(poll.endDate).toLocaleString(),
+      pollStartDate: toLocaleDateString(poll.startDate, c.env),
+      pollEndDate: toLocaleDateString(poll.endDate, c.env),
     };
     
     // Get template ID from poll settings (if exists)
