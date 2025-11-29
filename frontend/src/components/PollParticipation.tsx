@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { publicPollApi } from '../utils/api';
 import type { Poll as PollType, PollResults } from '../types';
+import { formatDateTime, getTimezoneDisplay } from '../utils/timezone';
 
 const PollParticipation: React.FC = () => {
   const { pollId } = useParams<{ pollId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // Poll data
   const [poll, setPoll] = useState<PollType | null>(null);
@@ -18,7 +20,7 @@ const PollParticipation: React.FC = () => {
   const [participant, setParticipant] = useState<any>(null);
   
   // Authentication form
-  const [authMethod, setAuthMethod] = useState<'login' | 'token'>('login');
+  const [authMethod, setAuthMethod] = useState<'login' | 'token'>('token'); // Changed default to 'token'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
@@ -33,11 +35,112 @@ const PollParticipation: React.FC = () => {
   const [results, setResults] = useState<PollResults | null>(null);
   const [loadingResults, setLoadingResults] = useState(false);
 
+  // Timing state for countdown
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [timeUntilStart, setTimeUntilStart] = useState<string>('');
+  const [timeUntilEnd, setTimeUntilEnd] = useState<string>('');
+  const [duration, setDuration] = useState<string>('');
+  const [pollStatus, setPollStatus] = useState<'upcoming' | 'active' | 'ended' | 'not-started'>('not-started');
+
+  // Update current time every second for live countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate poll status and countdowns
+  useEffect(() => {
+    if (poll) {
+      const now = currentTime;
+      const start = poll.startDate;
+      const end = poll.endDate;
+
+      if (now < start) {
+        setPollStatus('upcoming');
+        setTimeUntilStart(calculateTimeRemaining(start - now));
+      } else if (now >= start && now <= end) {
+        setPollStatus('active');
+        setTimeUntilEnd(calculateTimeRemaining(end - now));
+      } else {
+        setPollStatus('ended');
+      }
+
+      // Calculate duration
+      const diff = end - start;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      let durationStr = '';
+      if (days > 0) durationStr += `${days}d `;
+      if (hours > 0) durationStr += `${hours}h `;
+      if (minutes > 0 || durationStr === '') durationStr += `${minutes}m`;
+      setDuration(durationStr.trim());
+    }
+  }, [poll, currentTime]);
+
+  const calculateTimeRemaining = (ms: number): string => {
+    if (ms <= 0) return '0m';
+    
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+
+    let result = '';
+    if (days > 0) result += `${days}d `;
+    if (hours > 0) result += `${hours}h `;
+    if (minutes > 0) result += `${minutes}m `;
+    if (days === 0 && seconds >= 0) result += `${seconds}s`;
+    
+    return result.trim();
+  };
+
   useEffect(() => {
     if (pollId) {
       loadPoll();
+      
+      // Check for token in URL query parameter
+      const urlToken = searchParams.get('token');
+      if (urlToken) {
+        setToken(urlToken);
+        setAuthMethod('token');
+        // Auto-authenticate if token is present
+        setTimeout(() => {
+          handleAuthenticationWithToken(urlToken);
+        }, 500);
+      }
     }
-  }, [pollId]);
+  }, [pollId, searchParams]);
+
+  const handleAuthenticationWithToken = async (tokenValue: string) => {
+    if (!pollId || !tokenValue) return;
+    
+    setAuthLoading(true);
+    setError('');
+
+    try {
+      const response = await publicPollApi.validateAccess(pollId, { token: tokenValue });
+      
+      if ((response.data as any).hasVoted) {
+        setParticipant((response.data as any).participant);
+        setHasVoted(true);
+        setAllowVoteChanges((response.data as any).allowVoteChanges || false);
+        setIsAuthenticated(true);
+        setParticipantToken(response.data.participantToken);
+      } else {
+        setIsAuthenticated(true);
+        setParticipantToken(response.data.participantToken);
+        setParticipant(response.data.participant);
+      }
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'Invalid access token');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const loadPoll = async () => {
     if (!pollId) return;
@@ -561,29 +664,132 @@ const PollParticipation: React.FC = () => {
   // Authentication screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{poll?.title}</h1>
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">{poll?.title}</h1>
               {poll?.description && (
-                <p className="text-gray-600 mb-4">{poll.description}</p>
+                <p className="text-lg text-gray-600 mb-6 max-w-3xl mx-auto">{poll.description}</p>
               )}
-              <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus())}`}>
-                  {getEffectiveStatus().toUpperCase()}
+              <div className="flex items-center justify-center space-x-6">
+                <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium shadow-sm ${
+                  pollStatus === 'active' ? 'bg-green-100 text-green-800 border border-green-200' :
+                  pollStatus === 'upcoming' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                  'bg-gray-100 text-gray-800 border border-gray-200'
+                }`}>
+                  {pollStatus === 'active' && (
+                    <svg className="w-4 h-4 mr-2 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  {pollStatus === 'active' ? 'ACTIVE NOW' : pollStatus === 'upcoming' ? 'UPCOMING' : 'ENDED'}
                 </span>
-                <span>Ends: {poll && formatDate(poll.endDate)}</span>
               </div>
             </div>
           </div>
         </header>
 
+        {/* Timezone Banner */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="bg-primary-50 border-l-4 border-primary-500 p-4 rounded-r-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-primary-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-primary-900">
+                  System Timezone: <span className="font-bold">{getTimezoneDisplay()}</span>
+                </p>
+                <p className="text-xs text-primary-700 mt-1">
+                  All times are displayed in this timezone
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Poll Status Cards */}
+        {poll && (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Duration Card */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Duration</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">{duration}</p>
+                  </div>
+                  <div className="bg-purple-100 p-3 rounded-lg">
+                    <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Countdown Card */}
+              {pollStatus === 'upcoming' && (
+                <div className="bg-white border border-blue-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Starts In</p>
+                      <p className="text-2xl font-bold text-blue-900 mt-2">{timeUntilStart}</p>
+                    </div>
+                    <div className="bg-blue-100 p-3 rounded-lg">
+                      <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pollStatus === 'active' && (
+                <div className="bg-white border border-green-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Ends In</p>
+                      <p className="text-2xl font-bold text-green-900 mt-2">{timeUntilEnd}</p>
+                    </div>
+                    <div className="bg-green-100 p-3 rounded-lg">
+                      <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Start Date Card */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Starts</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.startDate, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              </div>
+
+              {/* End Date Card */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ends</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.endDate, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Authentication Form */}
         <main className="max-w-md mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
             <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
+                <svg className="w-8 h-8 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
               <h2 className="text-2xl font-bold text-gray-900">Access Poll</h2>
               <p className="text-gray-600 mt-2">
                 {isPollCompleted() 
@@ -616,67 +822,36 @@ const PollParticipation: React.FC = () => {
               </div>
             )}
 
-            {/* Auth Method Selection */}
+            {/* Auth Method Selection - SWAPPED ORDER */}
             <div className="mb-6">
-              <div className="flex border border-gray-300 rounded-lg p-1">
-                <button
-                  onClick={() => setAuthMethod('login')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                    authMethod === 'login'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  User Login
-                </button>
+              <div className="flex border-2 border-gray-300 rounded-lg p-1.5 bg-gray-50">
                 <button
                   onClick={() => setAuthMethod('token')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                  className={`flex-1 py-2.5 px-4 text-sm font-semibold rounded-md transition-all ${
                     authMethod === 'token'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  Access Token
+                  🎫 Access Token
+                </button>
+                <button
+                  onClick={() => setAuthMethod('login')}
+                  className={`flex-1 py-2.5 px-4 text-sm font-semibold rounded-md transition-all ${
+                    authMethod === 'login'
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  👤 User Login
                 </button>
               </div>
             </div>
 
             {/* Authentication Form */}
-            {authMethod === 'login' ? (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your email"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your password"
-                    required
-                  />
-                </div>
-              </div>
-            ) : (
+            {authMethod === 'token' ? (
               <div>
-                <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="token" className="block text-sm font-semibold text-gray-700 mb-2">
                   Access Token
                 </label>
                 <input
@@ -684,13 +859,47 @@ const PollParticipation: React.FC = () => {
                   id="token"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                   placeholder="Enter your access token"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-2 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
                   Use the token provided in your invitation email
                 </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
               </div>
             )}
 
@@ -698,16 +907,34 @@ const PollParticipation: React.FC = () => {
             <button
               onClick={handleAuthentication}
               disabled={authLoading || (authMethod === 'login' ? !email || !password : !token)}
-              className="w-full mt-6 py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 py-3.5 px-4 border border-transparent text-base font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
               {authLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline-block"></div>
                   Authenticating...
                 </>
               ) : (
-                'Access Poll'
+                <>
+                  <svg className="w-5 h-5 mr-2 inline-block" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Access Poll
+                </>
               )}
+            </button>
+          </div>
+
+          {/* Back to Home */}
+          <div className="text-center mt-6">
+            <button
+              onClick={() => navigate('/')}
+              className="text-sm text-gray-600 hover:text-gray-900 font-medium inline-flex items-center"
+            >
+              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Home
             </button>
           </div>
         </main>
