@@ -7,11 +7,9 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
-  const [adminKey, setAdminKey] = useState('');
   const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showAdminKey, setShowAdminKey] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
@@ -31,7 +29,7 @@ const Login: React.FC = () => {
           setError('You must accept the Privacy Policy to create an account.');
           return;
         }
-        await register(normalizedEmail, password, name, adminKey);
+        await register(normalizedEmail, password, name);
       }
       navigate('/dashboard');
     } catch (error: any) {
