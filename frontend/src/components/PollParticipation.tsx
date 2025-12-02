@@ -34,6 +34,7 @@ const PollParticipation: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<PollResults | null>(null);
   const [loadingResults, setLoadingResults] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // Timing state for countdown
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -265,6 +266,7 @@ const PollParticipation: React.FC = () => {
     setVotes({});
     setShowResults(false);
     setError('');
+    setAcceptedPrivacy(false);
   };
 
   const isVoteValid = () => {
@@ -1155,27 +1157,59 @@ const PollParticipation: React.FC = () => {
             </div>
           ))}
 
-          {/* Submit Button */}
+          {/* Privacy Policy Acceptance and Submit Button */}
           {!isPollCompleted() && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Please review your selections before submitting your vote.
+              <div className="space-y-4">
+                {/* Privacy Policy Checkbox */}
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="privacy-policy"
+                      type="checkbox"
+                      checked={acceptedPrivacy}
+                      onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label htmlFor="privacy-policy" className="font-medium text-gray-700">
+                      I accept the{' '}
+                      <a
+                        href="/privacy-policy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Privacy Policy
+                      </a>
+                    </label>
+                    <p className="text-gray-500 mt-1">
+                      By submitting your vote, you agree to our privacy policy.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={handleSubmitVote}
-                  disabled={!isVoteValid() || submitting}
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Submitting Vote...
-                    </>
-                  ) : (
-                    'Submit Vote'
-                  )}
-                </button>
+
+                {/* Submit Section */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="text-sm text-gray-600">
+                    Please review your selections before submitting your vote.
+                  </div>
+                  <button
+                    onClick={handleSubmitVote}
+                    disabled={!isVoteValid() || !acceptedPrivacy || submitting}
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Submitting Vote...
+                      </>
+                    ) : (
+                      'Submit Vote'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
