@@ -33,20 +33,23 @@ jobs:
         run: npm install -g wrangler
 
       - name: Update wrangler config with environment variables
-        run: jq \
-            --arg fe "${{ vars.MEMBER_GOOGLE_SHEET_ID }}" \
+        run: |
+          cd backend
+          jq \
+            --arg fe "${{ vars.FRONTEND_URL }}" \
             --arg tz "${{ vars.TIMEZONE }}" \
             --arg dbid "${{ vars.D1_DATABASE_ID }}" \
             '
               .vars.FRONTEND_URL = $fe |
               .vars.TIMEZONE = $tz |
               .d1_databases[0].database_id = $dbid
-            ' wrangler.json > wrangler.local.json
+            ' wrangler.jsonc > wrangler.local.jsonc
 
       - name: Deploy to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: cd backend && wrangler deploy --config wrangler.local.json
+        run: cd backend && wrangler deploy --config wrangler.local.jsonc
+
       - name: Set secrets in Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
