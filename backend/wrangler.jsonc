@@ -7,12 +7,12 @@
     "nodejs_compat"
   ],
   "triggers": {
-    "crons": [ // Cron Triggers
-      "*/5 * * * *", // for sending emails to participants
-      "0 0 * * *" // for resetting daily email counts
+    "crons": [
+      "*/5 * * * *",
+      "0 0 * * *"
     ]
   },
-  "observability": { // Enable Workers Logs
+  "observability": {
     "enabled": true,
     "head_sampling_rate": 1
   },
@@ -32,7 +32,7 @@
     {
       "binding": "IMAGES_BUCKET",
       "bucket_name": "voter98-images",
-      "preview_bucket_name": "voter98-images-preview" // for preview environment, not necessary in production
+      "preview_bucket_name": "voter98-images-preview"
     }
   ]
 }
