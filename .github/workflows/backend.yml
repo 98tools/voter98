@@ -46,7 +46,8 @@ jobs:
             content = content.replace(/"FRONTEND_URL":\s*"[^"]*"/, `"FRONTEND_URL": "${process.env.FRONTEND_URL}"`);
             content = content.replace(/"TIMEZONE":\s*"[^"]*"/, `"TIMEZONE": "${process.env.TIMEZONE}"`);
 
-            content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `"database_id": "${process.env.D1_DATABASE_ID}"`);
+            // Fix database_id in d1_databases array
+            content = content.replace(/("database_id":\s*")[^"]*(")/g, `$1${process.env.D1_DATABASE_ID}$2`);
                     
             // Write back the modified content
             fs.writeFileSync('backend/wrangler.jsonc', content);
