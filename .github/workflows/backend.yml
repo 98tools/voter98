@@ -39,11 +39,8 @@ jobs:
             --arg fe "${{ vars.FRONTEND_URL }}" \
             --arg tz "${{ vars.TIMEZONE }}" \
             --arg dbid "${{ vars.D1_DATABASE_ID }}" \
-            '
-              .vars.FRONTEND_URL = $fe |
-              .vars.TIMEZONE = $tz |
-              .d1_databases[0].database_id = $dbid
-            ' wrangler.jsonc > wrangler.local.jsonc
+            '.vars.FRONTEND_URL = $fe | .vars.TIMEZONE = $tz | .d1_databases[0].database_id = $dbid' \
+            wrangler.jsonc > wrangler.local.jsonc
 
       - name: Deploy to Cloudflare Workers
         env:
