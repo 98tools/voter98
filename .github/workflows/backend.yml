@@ -32,14 +32,14 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler
 
-      - name: Update wrangler config with environment variables
+      - name: Update wrangler config with environment variables && delete secrets
         run: |
           cd backend
           jq \
             --arg fe "${{ vars.FRONTEND_URL }}" \
             --arg tz "${{ vars.TIMEZONE }}" \
             --arg dbid "${{ vars.D1_DATABASE_ID }}" \
-            '.vars.FRONTEND_URL = $fe | .vars.TIMEZONE = $tz | .d1_databases[0].database_id = $dbid' \
+            '.vars.FRONTEND_URL = $fe | .vars.TIMEZONE = $tz | .d1_databases[0].database_id = $dbid | del(.vars.JWT_SECRET)' \
             wrangler.jsonc > wrangler.local.jsonc
 
       - name: Deploy to Cloudflare Workers
@@ -51,4 +51,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          cd backend && echo "${{ secrets.JWT_SECRET }}" | wrangler secret put JWT_SECRET --force || true
+          cd backend && wrangler secret delete JWT_SECRET && echo "${{ secrets.JWT_SECRET }}" | wrangler secret put JWT_SECRET
