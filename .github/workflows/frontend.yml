@@ -14,6 +14,18 @@ jobs:
     environment: production
     env:
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      VITE_APP_TITLE: ${{ vars.VITE_APP_TITLE }}
+      VITE_ORGANIZATION_EMAIL: ${{ vars.VITE_ORGANIZATION_EMAIL }}
+      VITE_COLOR_PRIMARY_100: ${{ vars.VITE_COLOR_PRIMARY_100 }}
+      VITE_COLOR_PRIMARY_500: ${{ vars.VITE_COLOR_PRIMARY_500 }}
+      VITE_COLOR_PRIMARY_600: ${{ vars.VITE_COLOR_PRIMARY_600 }}
+      VITE_COLOR_PRIMARY_700: ${{ vars.VITE_COLOR_PRIMARY_700 }}
+      VITE_COLOR_PRIMARY_800: ${{ vars.VITE_COLOR_PRIMARY_800 }}
+      VITE_COLOR_SECONDARY_100: ${{ vars.VITE_COLOR_SECONDARY_100 }}
+      VITE_COLOR_SECONDARY_500: ${{ vars.VITE_COLOR_SECONDARY_500 }}
+      VITE_COLOR_SECONDARY_600: ${{ vars.VITE_COLOR_SECONDARY_600 }}
+      VITE_COLOR_SECONDARY_700: ${{ vars.VITE_COLOR_SECONDARY_700 }}
+      VITE_COLOR_SECONDARY_800: ${{ vars.VITE_COLOR_SECONDARY_800 }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -32,6 +44,18 @@ jobs:
       - name: Create .env file
         run: |
           echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > frontend/.env
+          echo "VITE_APP_TITLE=${VITE_APP_TITLE}" >> frontend/.env
+          echo "VITE_ORGANIZATION_EMAIL=${VITE_ORGANIZATION_EMAIL}" >> frontend/.env
+          echo "VITE_COLOR_PRIMARY_100=${VITE_COLOR_PRIMARY_100}" >> frontend/.env
+          echo "VITE_COLOR_PRIMARY_500=${VITE_COLOR_PRIMARY_500}" >> frontend/.env
+          echo "VITE_COLOR_PRIMARY_600=${VITE_COLOR_PRIMARY_600}" >> frontend/.env
+          echo "VITE_COLOR_PRIMARY_700=${VITE_COLOR_PRIMARY_700}" >> frontend/.env
+          echo "VITE_COLOR_PRIMARY_800=${VITE_COLOR_PRIMARY_800}" >> frontend/.env
+          echo "VITE_COLOR_SECONDARY_100=${VITE_COLOR_SECONDARY_100}" >> frontend/.env
+          echo "VITE_COLOR_SECONDARY_500=${VITE_COLOR_SECONDARY_500}" >> frontend/.env
+          echo "VITE_COLOR_SECONDARY_600=${VITE_COLOR_SECONDARY_600}" >> frontend/.env
+          echo "VITE_COLOR_SECONDARY_700=${VITE_COLOR_SECONDARY_700}" >> frontend/.env
+          echo "VITE_COLOR_SECONDARY_800=${VITE_COLOR_SECONDARY_800}" >> frontend/.env
 
       - name: Build project
         run: cd frontend && npm run build
