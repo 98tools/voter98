@@ -38,7 +38,7 @@ jobs:
           
           try {
             // Read the file
-            let content = fs.readFileSync('wrangler.jsonc', 'utf8');
+            let content = fs.readFileSync('backend/wrangler.jsonc', 'utf8');
             
             // Replace specific values in the vars section using regex
             content = content.replace(/"FRONTEND_URL":\s*"[^"]*"/, `"FRONTEND_URL": "${process.env.FRONTEND_URL}"`);
@@ -47,8 +47,8 @@ jobs:
             content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `"database_id": "${process.env.D1_DATABASE_ID}"`);
                     
             // Write back the modified content
-            fs.writeFileSync('wrangler.jsonc', content);
-            console.log('Successfully updated wrangler.jsonc with environment variables');
+            fs.writeFileSync('backend/wrangler.jsonc', content);
+            console.log('Successfully updated backend/wrangler.jsonc with environment variables');
           } catch (error) {
             console.error('Error updating config:', error);
             process.exit(1);
