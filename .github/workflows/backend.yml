@@ -1,0 +1,67 @@
+name: Deploy to Cloudflare Worker (backend)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install project dependencies
+        run: cd backend && npm install
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Update wrangler config with environment variables
+        run: |
+          # Create script to update wrangler.jsonc - remove secrets and set vars
+          cat > update_config.cjs << 'EOF'
+          const fs = require('fs');
+          
+          try {
+            // Read the file
+            let content = fs.readFileSync('wrangler.jsonc', 'utf8');
+            
+            // Replace specific values in the vars section using regex
+            content = content.replace(/"FRONTEND_URL":\s*"[^"]*"/, `"FRONTEND_URL": "${process.env.FRONTEND_URL}"`);
+            content = content.replace(/"TIMEZONE":\s*"[^"]*"/, `"TIMEZONE": "${process.env.TIMEZONE}"`);
+
+            content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `"database_id": "${process.env.D1_DATABASE_ID}"`);
+                    
+            // Write back the modified content
+            fs.writeFileSync('wrangler.jsonc', content);
+            console.log('Successfully updated wrangler.jsonc with environment variables');
+          } catch (error) {
+            console.error('Error updating config:', error);
+            process.exit(1);
+          }
+          EOF
+          
+          node update_config.cjs
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: cd backend && cat wrangler.jsonc >> wrangler.local.jsonc && wrangler deploy --config wrangler.local.jsonc
+
+      - name: Set secrets in Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "${{ secrets.JWT_SECRET }}" | wrangler secret put JWT_SECRET
