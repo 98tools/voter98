@@ -25,7 +25,7 @@
     {
       "binding": "DB",
       "database_name": "voter-db",
-      "database_id": "YOUR_D1_DATABASE_ID_HERE" // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+      "database_id": "YOUR_D1_DATABASE_ID_HERE"
     }
   ],
   "r2_buckets": [
