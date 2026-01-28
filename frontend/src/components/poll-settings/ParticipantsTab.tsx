@@ -1154,7 +1154,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                               disabled={markingVoted.has(participant.id)}
                               className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {markingVoted.has(participant.id) ? 'Marking...' : 'Mark as Voted'}
+                              {markingVoted.has(participant.id) ? 'Marking...' : 'Vote in Person'}
                             </button>
                           )}
                           {permissions.canManageParticipants && (
