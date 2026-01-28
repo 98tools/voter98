@@ -193,6 +193,20 @@ const PollParticipation: React.FC = () => {
       const token = response.data.participantToken || (response.data as any).token;
       console.log('Extracted token:', token);
       
+      // Check if this is admin-only access (no participant record)
+      if ((response.data as any).isAdminAccess) {
+        setIsAuthenticated(true);
+        setParticipantToken(null); // No participant token for admin-only access
+        setParticipant(null);
+        setVotingMode('in-person'); // Force in-person voting mode
+        
+        // Set in-person voting list
+        if ((response.data as any).inPersonVoting) {
+          setInPersonVoting((response.data as any).inPersonVoting);
+        }
+        return;
+      }
+      
       if ((response.data as any).hasVoted) {
         // User has already voted
         setParticipant((response.data as any).participant);
@@ -267,10 +281,26 @@ const PollParticipation: React.FC = () => {
       return;
     }
 
-    if (!participantToken) {
-      console.error('Participant token missing');
-      setError('Your session token is missing. Please authenticate again.');
-      return;
+    // Check voting mode and token requirements
+    if (votingMode === 'self') {
+      if (!participantToken) {
+        console.error('Participant token missing for self voting');
+        setError('You are not a participant in this poll. Switch to in-person voting mode.');
+        return;
+      }
+    } else if (votingMode === 'in-person') {
+      if (!inPersonVoting || inPersonVoting.count === 0) {
+        console.error('No in-person voting participants available');
+        setError('No in-person voting participants available.');
+        return;
+      }
+    } else {
+      // Fallback for any other mode - require token
+      if (!participantToken) {
+        console.error('Participant token missing');
+        setError('Your session token is missing. Please authenticate again.');
+        return;
+      }
     }
 
     // Check if poll has ended
@@ -326,8 +356,14 @@ const PollParticipation: React.FC = () => {
         } else {
           // No more in-person votes remaining
           setInPersonVoting(null);
-          setVotingMode('self');
-          alert('All in-person votes have been cast successfully!');
+          // Only switch to 'self' mode if user is a participant
+          if (participant && participantToken) {
+            setVotingMode('self');
+            alert('All in-person votes have been cast successfully! You can now vote for yourself.');
+          } else {
+            // User is admin-only, just inform them
+            alert('All in-person votes have been cast successfully!');
+          }
         }
       } else {
         // Regular vote
@@ -575,6 +611,70 @@ const PollParticipation: React.FC = () => {
               </svg>
               Go Home
             </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Admin-only access who finished all in-person votes
+  if (isAuthenticated && !participant && !participantToken && (!inPersonVoting || inPersonVoting.count === 0)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{poll?.title}</h1>
+              {poll?.description && (
+                <p className="text-gray-600 mb-4">{poll.description}</p>
+              )}
+              <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus())}`}>
+                  {getEffectiveStatus().toUpperCase()}
+                </span>
+                <span>Ends: {poll && formatDate(poll.endDate)}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          {/* Success Banner */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center">
+              <svg className="w-8 h-8 text-green-400 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-green-900">All In-Person Votes Completed!</h3>
+                <p className="text-green-700 mt-1">You have successfully cast all in-person votes for "{poll?.title}".</p>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                Go to Dashboard
+              </button>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+                Go Home
+              </button>
+            </div>
           </div>
         </main>
       </div>
@@ -1230,16 +1330,18 @@ const PollParticipation: React.FC = () => {
             </p>
             
             <div className="flex gap-4 mb-4">
-              <button
-                onClick={() => setVotingMode('self')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  votingMode === 'self'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-blue-700 hover:bg-blue-100 border border-blue-300'
-                }`}
-              >
-                Vote for Myself
-              </button>
+              {participant && participantToken && (
+                <button
+                  onClick={() => setVotingMode('self')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    votingMode === 'self'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-blue-700 hover:bg-blue-100 border border-blue-300'
+                  }`}
+                >
+                  Vote for Myself
+                </button>
+              )}
               <button
                 onClick={() => setVotingMode('in-person')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${

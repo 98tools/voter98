@@ -1519,12 +1519,32 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
         .get();
 
       if (!participant) {
-        return c.json({ error: 'You are not authorized to participate in this poll' }, 403);
-      }
-    }
+        // Check if user has permissions (admin, manager, or editor)
+        const isAdmin = user.role === 'admin';
+        const isManager = poll.managerId === user.id;
+        const isEditor = await db.select()
+          .from(pollEditors)
+          .where(and(
+            eq(pollEditors.pollId, pollId),
+            eq(pollEditors.userId, user.id)
+          ))
+          .get();
 
-    if (!participant) {
-      return c.json({ error: 'Invalid access credentials' }, 401);
+        // If user has no permissions, deny access
+        if (!isAdmin && !isManager && !isEditor) {
+          return c.json({ error: 'You are not authorized to participate in this poll' }, 403);
+        }
+
+        // User has permissions but is not a participant
+        // Allow access for in-person voting only
+        const pollSettings = poll.settings as any;
+        if (!pollSettings.allowInPersonVoting) {
+          return c.json({ error: 'You are not a participant in this poll' }, 403);
+        }
+
+        // Continue to check for in-person voting assignments
+        // participant will remain null, we'll handle this case below
+      }
     }
 
     // Check for in-person voting events if enabled
@@ -1566,29 +1586,46 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
       }
     }
 
-    if (participant.hasVoted && inPersonVotingCount === 0) {
+    // If user is not a participant but has in-person voting assignments, allow access
+    if (!participant && inPersonVotingCount === 0) {
+      return c.json({ error: 'Invalid access credentials' }, 401);
+    }
+
+    // If user is only accessing for in-person voting (not a participant)
+    if (!participant && inPersonVotingCount > 0) {
+      return c.json({ 
+        success: true,
+        isAdminAccess: true,
+        inPersonVoting: {
+          count: inPersonVotingCount,
+          participants: inPersonParticipants
+        }
+      });
+    }
+
+    if (participant!.hasVoted && inPersonVotingCount === 0) {
       return c.json({ 
         success: true,
         hasVoted: true,
         allowVoteChanges: pollSettings.allowVoteChanges || false,
-        participantToken: participant.token,
+        participantToken: participant!.token,
         participant: {
-          id: participant.id,
-          name: participant.name,
-          email: participant.email,
-          voteWeight: participant.voteWeight
+          id: participant!.id,
+          name: participant!.name,
+          email: participant!.email,
+          voteWeight: participant!.voteWeight
         }
       });
     }
 
     return c.json({ 
       success: true,
-      participantToken: participant.token,
+      participantToken: participant!.token,
       participant: {
-        id: participant.id,
-        name: participant.name,
-        email: participant.email,
-        voteWeight: participant.voteWeight
+        id: participant!.id,
+        name: participant!.name,
+        email: participant!.email,
+        voteWeight: participant!.voteWeight
       },
       inPersonVoting: inPersonVotingCount > 0 ? {
         count: inPersonVotingCount,
