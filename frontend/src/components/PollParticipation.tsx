@@ -190,8 +190,8 @@ const PollParticipation: React.FC = () => {
       const response = await publicPollApi.validateAccess(pollId, credentials);
       console.log('Authentication response:', response.data);
       
-      const token = response.data.participantToken || (response.data as any).token;
-      console.log('Extracted token:', token);
+      const extractedToken = response.data.participantToken || (response.data as any).token;
+      console.log('Extracted token:', extractedToken);
       
       // Check if this is admin-only access (no participant record)
       if ((response.data as any).isAdminAccess) {
@@ -213,11 +213,11 @@ const PollParticipation: React.FC = () => {
         setHasVoted(true);
         setAllowVoteChanges((response.data as any).allowVoteChanges || false);
         setIsAuthenticated(true);
-        setParticipantToken(token);
+        setParticipantToken(extractedToken);
       } else {
         // User can vote
         setIsAuthenticated(true);
-        setParticipantToken(token);
+        setParticipantToken(extractedToken);
         setParticipant(response.data.participant);
         
         // Check for in-person voting
