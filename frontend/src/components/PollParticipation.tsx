@@ -328,6 +328,7 @@ const PollParticipation: React.FC = () => {
     );
   }
 
+  // Show error only if poll failed to load
   if (error && !poll) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -344,6 +345,141 @@ const PollParticipation: React.FC = () => {
             Go Home
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // Show upcoming poll message when poll hasn't started yet
+  if (poll && pollStatus === 'upcoming' && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{poll?.title}</h1>
+              {poll?.description && (
+                <p className="text-gray-600 mb-4">{poll.description}</p>
+              )}
+              <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                  UPCOMING
+                </span>
+                <span>Starts: {formatDateTime(poll.startDate)}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          {/* Timezone Banner */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-8">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  System Timezone: <span className="font-bold">{getTimezoneDisplay()}</span>
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  All times are displayed in this timezone
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Poll Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {/* Duration Card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Duration</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">{duration}</p>
+                </div>
+                <div className="bg-purple-100 p-3 rounded-lg">
+                  <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Start Date Card */}
+            <div className="bg-white border border-blue-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div>
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Starts In</p>
+                <p className="text-2xl font-bold text-blue-900">{timeUntilStart}</p>
+              </div>
+            </div>
+
+            {/* End Date Card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ends</p>
+                <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.endDate, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Poll Info Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-6">
+                <svg className="w-10 h-10 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">This Poll Hasn't Started Yet</h2>
+              <p className="text-lg text-gray-600 mb-2">
+                This poll will open for voting on <span className="font-semibold">{formatDateTime(poll.startDate)}</span>
+              </p>
+              <p className="text-gray-500">Check back when the poll starts to cast your vote.</p>
+            </div>
+
+            {/* Questions Preview */}
+            {poll.ballot && poll.ballot.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">Poll Questions Preview</h3>
+                <div className="space-y-6">
+                  {poll.ballot.map((question, index) => (
+                    <div key={question.id} className="bg-gray-50 rounded-lg p-6">
+                      <h4 className="font-semibold text-gray-900 mb-4">
+                        Question {index + 1}: {question.title}
+                      </h4>
+                      {question.description && (
+                        <p className="text-gray-600 text-sm mb-4">{question.description}</p>
+                      )}
+                      <div className="space-y-2">
+                        {question.options.map((option) => (
+                          <div key={option.id} className="flex items-center p-3 bg-white rounded border border-gray-200">
+                            <div className={`w-5 h-5 rounded ${question.maxSelection === 1 ? 'rounded-full' : ''} border-2 border-gray-300`}></div>
+                            <span className="ml-3 text-gray-700">{option.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Button */}
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => navigate('/')}
+              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+            >
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Go Home
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
@@ -768,7 +904,7 @@ const PollParticipation: React.FC = () => {
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Starts</p>
-                  <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.startDate, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.startDate, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
 
@@ -776,7 +912,7 @@ const PollParticipation: React.FC = () => {
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ends</p>
-                  <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.endDate, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDateTime(poll.endDate, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
             </div>

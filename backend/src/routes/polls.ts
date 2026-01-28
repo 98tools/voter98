@@ -1312,18 +1312,23 @@ publicPollRoutes.get('/:id/public', async (c) => {
       return c.json({ error: 'Poll not found' }, 404);
     }
 
-    // Only return active polls for public access
+    // Only return polls that are active or scheduled to be active
     if (poll.status !== 'active') {
       return c.json({ error: 'Poll is not currently active' }, 403);
     }
 
-    // Check if poll is within the voting period
+    // Check poll status and allow viewing if poll is upcoming, active, or ended
     const now = Date.now();
-    if (now < poll.startDate || now > poll.endDate) {
-      return c.json({ error: 'Poll is not currently open for voting' }, 403);
+    let pollStatus = 'ended';
+    
+    if (now < poll.startDate) {
+      pollStatus = 'upcoming';
+    } else if (now >= poll.startDate && now <= poll.endDate) {
+      pollStatus = 'active';
     }
 
     // Return poll data without sensitive information
+    // Include pollStatus so frontend knows the current state
     const publicPoll = {
       id: poll.id,
       title: poll.title,
@@ -1331,6 +1336,7 @@ publicPollRoutes.get('/:id/public', async (c) => {
       startDate: poll.startDate,
       endDate: poll.endDate,
       status: poll.status,
+      pollStatus: pollStatus, // 'upcoming', 'active', or 'ended'
       settings: poll.settings,
       ballot: poll.ballot,
     };

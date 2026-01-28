@@ -68,6 +68,7 @@ export interface Poll {
   startDate: number;
   endDate: number;
   status: 'draft' | 'active' | 'completed' | 'cancelled';
+  pollStatus?: 'upcoming' | 'active' | 'ended'; // Runtime status indicating when poll can be voted on
   managerId: string;
   createdById: string;
   settings: PollSettings;
