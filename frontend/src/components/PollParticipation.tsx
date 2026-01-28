@@ -16,7 +16,7 @@ const PollParticipation: React.FC = () => {
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [participantToken, setParticipantToken] = useState('');
+  const [participantToken, setParticipantToken] = useState<string | null>('');
   const [participant, setParticipant] = useState<any>(null);
   
   // Authentication form
