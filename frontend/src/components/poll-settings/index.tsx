@@ -10,6 +10,7 @@ import ParticipantsTab from './ParticipantsTab';
 import AuditorsTab from './AuditorsTab';
 import ResultsTab from './ResultsTab';
 import EmailTemplateTab from './EmailTemplateTab';
+import EventsTab from './EventsTab';
 import PollUrlDisplay from './PollUrlDisplay';
 
 const PollSettings: React.FC = () => {
@@ -25,7 +26,7 @@ const PollSettings: React.FC = () => {
   // Initialize active tab from URL hash
   useEffect(() => {
     const hash = window.location.hash.slice(1); // Remove the '#' character
-    const validTabs = ['basic', 'schedule', 'questions', 'settings', 'email-template', 'participants', 'auditors', 'results'];
+    const validTabs = ['basic', 'schedule', 'questions', 'settings', 'email-template', 'participants', 'auditors', 'results', 'events'];
     if (hash && validTabs.includes(hash)) {
       setActiveTab(hash);
     }
@@ -273,6 +274,7 @@ const PollSettings: React.FC = () => {
                 { id: 'participants', label: 'Participants', icon: 'users' },
                 { id: 'auditors', label: 'Auditors & Editors', icon: 'shield' },
                 { id: 'results', label: 'Results', icon: 'chart' },
+                { id: 'events', label: 'Events', icon: 'activity' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -314,6 +316,9 @@ const PollSettings: React.FC = () => {
             )}
             {activeTab === 'results' && (
               <ResultsTab poll={poll} />
+            )}
+            {activeTab === 'events' && (
+              <EventsTab poll={poll} permissions={permissions} />
             )}
           </div>
         </div>

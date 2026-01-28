@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getDb } from '../models/db';
 import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes, userGroups, auditEvents } from '../models/schema';
 import { AppBindings, JWTPayload } from '../types';
-import { eq, and, not, inArray, ne } from 'drizzle-orm';
+import { eq, and, not, inArray, ne, desc } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
 import { verifyPassword, generateRandomToken } from '../utils/auth';
 import { toLocaleDateString } from '../utils/timezone';
@@ -1295,6 +1295,99 @@ pollRoutes.get('/:id/participants/:participantId/audit-events', async (c) => {
     return c.json({ events: eventsWithActors });
   } catch (error: any) {
     console.error('Get participant audit events error:', error);
+    console.error('Error details:', error?.message, error?.stack);
+    return c.json({ error: 'Internal server error', details: error?.message }, 500);
+  }
+});
+
+// Get all audit events for a poll (poll manager, admin, or auditors only)
+pollRoutes.get('/:id/audit-events', async (c) => {
+  const pollId = c.req.param('id');
+  const db = getDb(c.env.DB);
+  const user = c.get('user')!;
+
+  try {
+    // Get the poll
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check permissions
+    const isAdmin = user.role === 'admin';
+    const isManager = poll.managerId === user.userId;
+    
+    // Check if user is an auditor
+    const isAuditor = await db
+      .select()
+      .from(pollAuditors)
+      .where(and(eq(pollAuditors.pollId, pollId), eq(pollAuditors.userId, user.userId)))
+      .get();
+
+    if (!isAdmin && !isManager && !isAuditor) {
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
+
+    // Get all audit events for this poll
+    const events = await db
+      .select()
+      .from(auditEvents)
+      .where(eq(auditEvents.pollId, pollId))
+      .orderBy(desc(auditEvents.createdAt))
+      .all();
+
+    // If no events, return empty array
+    if (!events || events.length === 0) {
+      return c.json({ events: [] });
+    }
+
+    // Fetch related data for each event (participant and actor names)
+    const eventsWithDetails = await Promise.all(
+      events.map(async (event) => {
+        let actorName = 'System';
+        let participantName = null;
+
+        if (event.actorUserId) {
+          try {
+            const actor = await db
+              .select({ name: users.name, email: users.email })
+              .from(users)
+              .where(eq(users.id, event.actorUserId))
+              .get();
+            if (actor) {
+              actorName = `${actor.name} (${actor.email})`;
+            }
+          } catch (err) {
+            console.error('Error fetching actor for event:', event.id, err);
+          }
+        }
+
+        if (event.participantId) {
+          try {
+            const participant = await db
+              .select({ name: pollParticipants.name, email: pollParticipants.email })
+              .from(pollParticipants)
+              .where(eq(pollParticipants.id, event.participantId))
+              .get();
+            if (participant) {
+              participantName = `${participant.name} (${participant.email})`;
+            }
+          } catch (err) {
+            console.error('Error fetching participant for event:', event.id, err);
+          }
+        }
+
+        return {
+          ...event,
+          actorName,
+          participantName,
+        };
+      })
+    );
+
+    return c.json({ events: eventsWithDetails });
+  } catch (error: any) {
+    console.error('Get poll audit events error:', error);
     console.error('Error details:', error?.message, error?.stack);
     return c.json({ error: 'Internal server error', details: error?.message }, 500);
   }
