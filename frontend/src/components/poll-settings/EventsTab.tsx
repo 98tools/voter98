@@ -62,7 +62,7 @@ const EventsTab: React.FC<{ poll: Poll; permissions: PollPermissions }> = ({ pol
       'PARTICIPANT_REJECTED': 'Participant Rejected',
       'VOTE_CAST': 'Vote Cast',
       'LOGIN_FAILED': 'Login Failed',
-      'MARKED_AS_IN_PERSON_VOTED': 'Marked as Voted',
+      'MARKED_AS_IN_PERSON_VOTED': 'Marked as Voted in Person',
       'IN_PERSON_VOTE_CAST': 'Vote Recorded',
       'EMAIL_SENT': 'Email Sent',
       'ADMIN_IP_LOGGED': 'Admin Activity',
