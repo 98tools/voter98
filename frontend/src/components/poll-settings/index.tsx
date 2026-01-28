@@ -22,6 +22,21 @@ const PollSettings: React.FC = () => {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
 
+  // Initialize active tab from URL hash
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove the '#' character
+    const validTabs = ['basic', 'schedule', 'questions', 'settings', 'email-template', 'participants', 'auditors', 'results'];
+    if (hash && validTabs.includes(hash)) {
+      setActiveTab(hash);
+    }
+  }, []);
+
+  // Update URL hash when tab changes
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    window.location.hash = tabId;
+  };
+
   useEffect(() => {
     if (pollId) {
       loadPollAndPermissions();
@@ -67,13 +82,13 @@ const PollSettings: React.FC = () => {
     // Validate required fields before launching
     if (!poll.startDate || !poll.endDate) {
       setError('Please set start and end dates before launching the poll');
-      setActiveTab('schedule');
+      handleTabChange('schedule');
       return;
     }
 
     if (poll.ballot.length === 0) {
       setError('Please add at least one question before launching the poll');
-      setActiveTab('questions');
+      handleTabChange('questions');
       return;
     }
 
@@ -81,21 +96,21 @@ const PollSettings: React.FC = () => {
     const invalidQuestions = poll.ballot.filter(q => q.options.length < 2);
     if (invalidQuestions.length > 0) {
       setError('All questions must have at least 2 options before launching the poll');
-      setActiveTab('questions');
+      handleTabChange('questions');
       return;
     }
 
     // Check if start date is in the future or current time
     if (poll.startDate < Date.now()) {
       setError('Start date must be in the future or current time');
-      setActiveTab('schedule');
+      handleTabChange('schedule');
       return;
     }
 
     // Check if end date is after start date
     if (poll.endDate <= poll.startDate) {
       setError('End date must be after start date');
-      setActiveTab('schedule');
+      handleTabChange('schedule');
       return;
     }
 
@@ -261,7 +276,7 @@ const PollSettings: React.FC = () => {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                     activeTab === tab.id
                       ? 'border-primary-500 text-primary-600'
