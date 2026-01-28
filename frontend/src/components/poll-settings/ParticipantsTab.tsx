@@ -575,6 +575,35 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
     }
   };
 
+  const [markingVoted, setMarkingVoted] = useState<Set<string>>(new Set());
+  
+  const handleMarkAsVoted = async (participantId: string) => {
+    if (!poll?.id) return;
+    
+    if (!confirm('Mark this participant as voted in-person? This action will be logged for audit purposes.')) {
+      return;
+    }
+    
+    setMarkingVoted(prev => new Set(prev).add(participantId));
+    
+    try {
+      const response = await pollApi.markParticipantVoted(poll.id, participantId);
+      setParticipants(participants.map(p => 
+        p.id === participantId ? { ...p, hasVoted: true } : p
+      ));
+      alert(response.data.message || 'Participant marked as voted successfully');
+    } catch (error: any) {
+      console.error('Failed to mark participant as voted:', error);
+      alert(error.response?.data?.error || 'Failed to mark participant as voted');
+    } finally {
+      setMarkingVoted(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(participantId);
+        return newSet;
+      });
+    }
+  };
+
   const toggleTokenVisibility = async (participantId: string) => {
     if (!poll?.id) return;
     
@@ -1148,14 +1177,25 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                         </td>
                       )}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {permissions.canManageParticipants && (
-                          <button
-                            onClick={() => handleRemoveParticipant(participant.id)}
-                            className="text-red-600 hover:text-red-900 cursor-pointer"
-                          >
-                            Remove
-                          </button>
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {permissions.canManageParticipants && poll.settings?.allowInPersonVoting && !participant.hasVoted && (
+                            <button
+                              onClick={() => handleMarkAsVoted(participant.id)}
+                              disabled={markingVoted.has(participant.id)}
+                              className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {markingVoted.has(participant.id) ? 'Marking...' : 'Mark as Voted'}
+                            </button>
+                          )}
+                          {permissions.canManageParticipants && (
+                            <button
+                              onClick={() => handleRemoveParticipant(participant.id)}
+                              className="text-red-600 hover:text-red-900 cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

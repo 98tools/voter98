@@ -35,6 +35,14 @@ const PollParticipation: React.FC = () => {
   const [results, setResults] = useState<PollResults | null>(null);
   const [loadingResults, setLoadingResults] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  
+  // In-person voting state
+  const [inPersonVoting, setInPersonVoting] = useState<{
+    count: number;
+    participants: Array<{ id: string; name: string; email: string; voteWeight: number }>;
+  } | null>(null);
+  const [currentInPersonVoteIndex, setCurrentInPersonVoteIndex] = useState(0);
+  const [votingMode, setVotingMode] = useState<'self' | 'in-person'>('self');
 
   // Timing state for countdown
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -135,6 +143,11 @@ const PollParticipation: React.FC = () => {
         setIsAuthenticated(true);
         setParticipantToken(response.data.participantToken);
         setParticipant(response.data.participant);
+        
+        // Check for in-person voting
+        if ((response.data as any).inPersonVoting) {
+          setInPersonVoting((response.data as any).inPersonVoting);
+        }
       }
     } catch (error: any) {
       setError(error.response?.data?.error || 'Invalid access token');
@@ -181,6 +194,11 @@ const PollParticipation: React.FC = () => {
         setIsAuthenticated(true);
         setParticipantToken(response.data.participantToken);
         setParticipant(response.data.participant);
+        
+        // Check for in-person voting
+        if ((response.data as any).inPersonVoting) {
+          setInPersonVoting((response.data as any).inPersonVoting);
+        }
       }
     } catch (error: any) {
       setError(error.response?.data?.error || 'Authentication failed');
@@ -237,9 +255,38 @@ const PollParticipation: React.FC = () => {
     setError('');
 
     try {
-      await publicPollApi.submitVote(pollId, participantToken, votes);
-      setHasVoted(true);
-      setShowResults(false); // Hide results after voting
+      const inPersonParticipantId = votingMode === 'in-person' && inPersonVoting 
+        ? inPersonVoting.participants[currentInPersonVoteIndex]?.id 
+        : undefined;
+
+      await publicPollApi.submitVote(pollId, participantToken, votes, inPersonParticipantId);
+      
+      if (votingMode === 'in-person' && inPersonVoting) {
+        // Remove the participant we just voted for from the list
+        const updatedParticipants = inPersonVoting.participants.filter((_, idx) => idx !== currentInPersonVoteIndex);
+        
+        if (updatedParticipants.length > 0) {
+          // Still have more participants to vote for
+          setInPersonVoting({
+            count: updatedParticipants.length,
+            participants: updatedParticipants
+          });
+          setCurrentInPersonVoteIndex(0);
+          setVotes({});
+          setAcceptedPrivacy(false);
+          alert(`Vote cast successfully for ${inPersonVoting.participants[currentInPersonVoteIndex].name}. You can now vote for the next participant.`);
+        } else {
+          // No more in-person votes remaining
+          setInPersonVoting(null);
+          setVotingMode('self');
+          alert('All in-person votes have been cast successfully!');
+        }
+      } else {
+        // Regular vote
+        setHasVoted(true);
+      }
+      
+      setShowResults(false);
     } catch (error: any) {
       setError(error.response?.data?.error || 'Failed to submit vote');
     } finally {
@@ -1123,6 +1170,63 @@ const PollParticipation: React.FC = () => {
         </div>
       )}
 
+      {/* In-Person Voting Mode Selector */}
+      {inPersonVoting && inPersonVoting.count > 0 && !isPollCompleted() && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-3">In-Person Voting Available</h3>
+            <p className="text-sm text-blue-700 mb-4">
+              You have marked {inPersonVoting.count} participant(s) for in-person voting. You can vote on their behalf.
+            </p>
+            
+            <div className="flex gap-4 mb-4">
+              <button
+                onClick={() => setVotingMode('self')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  votingMode === 'self'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-blue-700 hover:bg-blue-100 border border-blue-300'
+                }`}
+              >
+                Vote for Myself
+              </button>
+              <button
+                onClick={() => setVotingMode('in-person')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  votingMode === 'in-person'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-blue-700 hover:bg-blue-100 border border-blue-300'
+                }`}
+              >
+                Vote In-Person ({inPersonVoting.count})
+              </button>
+            </div>
+
+            {votingMode === 'in-person' && (
+              <div>
+                <label className="block text-sm font-medium text-blue-900 mb-2">
+                  Select participant to vote for:
+                </label>
+                <select
+                  value={currentInPersonVoteIndex}
+                  onChange={(e) => setCurrentInPersonVoteIndex(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {inPersonVoting.participants.map((p, idx) => (
+                    <option key={p.id} value={idx}>
+                      {p.name} ({p.email}) - Weight: {p.voteWeight}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-blue-600 mt-2">
+                  Note: Vote will be submitted on behalf of {inPersonVoting.participants[currentInPersonVoteIndex]?.name}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Poll Ended Message */}
       {isPollCompleted() && (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -1329,7 +1433,11 @@ const PollParticipation: React.FC = () => {
                 {/* Submit Section */}
                 <div className="flex items-center justify-between pt-2">
                   <div className="text-sm text-gray-600">
-                    Please review your selections before submitting your vote.
+                    {votingMode === 'in-person' && inPersonVoting ? (
+                      <span>Voting for: <strong>{inPersonVoting.participants[currentInPersonVoteIndex]?.name}</strong></span>
+                    ) : (
+                      'Please review your selections before submitting your vote.'
+                    )}
                   </div>
                   <button
                     onClick={handleSubmitVote}
@@ -1342,7 +1450,7 @@ const PollParticipation: React.FC = () => {
                         Submitting Vote...
                       </>
                     ) : (
-                      'Submit Vote'
+                      votingMode === 'in-person' ? 'Submit In-Person Vote' : 'Submit Vote'
                     )}
                   </button>
                 </div>

@@ -59,6 +59,7 @@ export interface PollSettings {
   allowResultsView?: boolean;
   voteWeightEnabled?: boolean;
   allowVoteChanges?: boolean;
+  allowInPersonVoting?: boolean; // Allow admins/editors to mark participants as voted in-person
   mailTemplateId?: string; // Reference to custom mail template for this poll
 }
 

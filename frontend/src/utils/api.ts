@@ -106,6 +106,8 @@ export const pollApi = {
     api.get<{ events: Array<{ id: string; eventType: string; actorName: string; meta: any; ipAddress?: string; userAgent?: string; createdAt: number }> }>(`/polls/${pollId}/participants/${participantId}/audit-events`),
   sendEmailToParticipant: (pollId: string, participantId: string) =>
     api.post<{ message: string; lastEmailSentAt: number }>(`/polls/${pollId}/participants/${participantId}/send-email`),
+  markParticipantVoted: (pollId: string, participantId: string) =>
+    api.post<{ message: string; participant: any }>(`/polls/${pollId}/participants/${participantId}/mark-voted`),
   toggleEmailSending: (pollId: string) =>
     api.patch<{ message: string; poll: Poll }>(`/polls/${pollId}/toggle-emails`),
   
@@ -138,8 +140,8 @@ export const publicPollApi = {
     axios.get<{ poll: Poll }>(`${API_BASE_URL}/poll/${id}/public`),
   validateAccess: (id: string, credentials: { email?: string; password?: string; token?: string }) =>
     axios.post<{ success: boolean; participantToken: string; participant: any }>(`${API_BASE_URL}/poll/${id}/validate-access`, credentials),
-  submitVote: (id: string, participantToken: string, votes: Record<string, string[]>) =>
-    axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { participantToken, votes }),
+  submitVote: (id: string, participantToken: string, votes: Record<string, string[]>, inPersonParticipantId?: string) =>
+    axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { participantToken, votes, inPersonParticipantId }),
   getVoteStatus: (id: string, participantToken: string) =>
     axios.get<{ hasVoted: boolean; participant: any }>(`${API_BASE_URL}/poll/${id}/vote-status/${participantToken}`),
   getResults: (id: string, participantToken?: string) =>

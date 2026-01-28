@@ -192,5 +192,6 @@ export interface PollSettings {
   showResultsBeforeEnd?: boolean;
   allowResultsView?: boolean;
   voteWeightEnabled?: boolean;
+  allowInPersonVoting?: boolean;
   mailTemplateId?: string; // Reference to custom mail template for this poll
 }

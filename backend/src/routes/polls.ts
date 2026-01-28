@@ -195,6 +195,7 @@ const pollSettingsSchema = z.object({
   allowResultsView: z.boolean().optional().default(true),
   voteWeightEnabled: z.boolean().optional().default(false),
   allowVoteChanges: z.boolean().optional().default(false),
+  allowInPersonVoting: z.boolean().optional().default(false),
   mailTemplateId: z.string().optional(),
 });
 
@@ -1379,6 +1380,7 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
     }
 
     let participant = null;
+    let userId: string | null = null;
 
     if (token) {
       // Token-based access (non-user participants)
@@ -1397,6 +1399,7 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
       }
 
       console.log(`Found participant: ${participant.name}, hasVoted: ${participant.hasVoted}`);
+      userId = participant.userId;
       // Don't mark token as used yet - only mark it when vote is submitted
 
     } else if (email && password) {
@@ -1413,6 +1416,7 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
         return c.json({ error: 'Invalid credentials' }, 401);
       }
 
+      userId = user.id;
       participant = await db.select().from(pollParticipants)
         .where(and(
           eq(pollParticipants.pollId, pollId),
@@ -1430,9 +1434,46 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
       return c.json({ error: 'Invalid access credentials' }, 401);
     }
 
-    if (participant.hasVoted) {
-      const pollSettings = poll.settings as any;
-      
+    // Check for in-person voting events if enabled
+    const pollSettings = poll.settings as any;
+    let inPersonVotingCount = 0;
+    let inPersonParticipants: any[] = [];
+
+    if (userId && pollSettings.allowInPersonVoting) {
+      // Query audit events where this user marked others as voted in-person
+      const inPersonEvents = await db.select()
+        .from(auditEvents)
+        .where(and(
+          eq(auditEvents.pollId, pollId),
+          eq(auditEvents.actorUserId, userId),
+          eq(auditEvents.eventType, 'MARKED_AS_IN_PERSON_VOTED')
+        ))
+        .all();
+
+      inPersonVotingCount = inPersonEvents.length;
+
+      // Get the participants who were marked
+      if (inPersonVotingCount > 0) {
+        for (const event of inPersonEvents) {
+          if (!event.participantId) continue;
+          const markedParticipant = await db.select()
+            .from(pollParticipants)
+            .where(eq(pollParticipants.id, event.participantId))
+            .get();
+          
+          if (markedParticipant) {
+            inPersonParticipants.push({
+              id: markedParticipant.id,
+              name: markedParticipant.name,
+              email: markedParticipant.email,
+              voteWeight: markedParticipant.voteWeight
+            });
+          }
+        }
+      }
+    }
+
+    if (participant.hasVoted && inPersonVotingCount === 0) {
       return c.json({ 
         success: true,
         hasVoted: true,
@@ -1455,7 +1496,11 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
         name: participant.name,
         email: participant.email,
         voteWeight: participant.voteWeight
-      }
+      },
+      inPersonVoting: inPersonVotingCount > 0 ? {
+        count: inPersonVotingCount,
+        participants: inPersonParticipants
+      } : undefined
     });
   } catch (error) {
     console.error('Validate access error:', error);
@@ -1467,16 +1512,17 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
 const submitVoteSchema = z.object({
   participantToken: z.string(),
   votes: z.record(z.array(z.string())), // questionId -> array of selected option IDs
+  inPersonParticipantId: z.string().optional(), // For in-person voting
 });
 
 publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (c) => {
   const pollId = c.req.param('id');
-  const { participantToken, votes } = c.req.valid('json');
+  const { participantToken, votes, inPersonParticipantId } = c.req.valid('json');
   const db = getDb(c.env.DB);
 
   try {
-    // Validate participant token
-    const participant = await db.select().from(pollParticipants)
+    // Validate participant token (this is the admin/editor or regular participant)
+    const authenticatedParticipant = await db.select().from(pollParticipants)
       .where(and(
         eq(pollParticipants.pollId, pollId),
         eq(pollParticipants.token, participantToken),
@@ -1484,7 +1530,7 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       ))
       .get();
 
-    if (!participant) {
+    if (!authenticatedParticipant) {
       return c.json({ error: 'Invalid participant token' }, 401);
     }
 
@@ -1499,8 +1545,65 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       return c.json({ error: 'This poll has ended. Voting is no longer allowed.' }, 403);
     }
 
+    let targetParticipant = authenticatedParticipant;
+
+    // Handle in-person voting
+    if (inPersonParticipantId) {
+      const pollSettings = poll.settings as any;
+      
+      if (!pollSettings.allowInPersonVoting) {
+        return c.json({ error: 'In-person voting is not enabled for this poll' }, 403);
+      }
+
+      // Verify that the authenticated user marked this participant for in-person voting
+      if (!authenticatedParticipant.userId) {
+        return c.json({ error: 'Only authenticated users can cast in-person votes' }, 403);
+      }
+      
+      const inPersonEvent = await db.select()
+        .from(auditEvents)
+        .where(and(
+          eq(auditEvents.pollId, pollId),
+          eq(auditEvents.participantId, inPersonParticipantId),
+          eq(auditEvents.actorUserId, authenticatedParticipant.userId),
+          eq(auditEvents.eventType, 'MARKED_AS_IN_PERSON_VOTED')
+        ))
+        .get();
+
+      if (!inPersonEvent) {
+        return c.json({ error: 'You are not authorized to cast an in-person vote for this participant' }, 403);
+      }
+
+      // Check if this in-person vote has already been cast
+      const existingInPersonVote = await db.select()
+        .from(auditEvents)
+        .where(and(
+          eq(auditEvents.pollId, pollId),
+          eq(auditEvents.participantId, inPersonParticipantId),
+          eq(auditEvents.actorUserId, authenticatedParticipant.userId),
+          eq(auditEvents.eventType, 'IN_PERSON_VOTE_CAST')
+        ))
+        .get();
+
+      if (existingInPersonVote) {
+        return c.json({ error: 'You have already cast an in-person vote for this participant' }, 403);
+      }
+
+      // Get the target participant
+      const foundParticipant = await db.select()
+        .from(pollParticipants)
+        .where(eq(pollParticipants.id, inPersonParticipantId))
+        .get();
+
+      if (!foundParticipant) {
+        return c.json({ error: 'Target participant not found' }, 404);
+      }
+      
+      targetParticipant = foundParticipant;
+    }
+
     const pollSettings = poll.settings as any;
-    if (participant.hasVoted && !pollSettings.allowVoteChanges) {
+    if (targetParticipant.hasVoted && !inPersonParticipantId && !pollSettings.allowVoteChanges) {
       return c.json({ error: 'Vote already submitted and changes are not allowed' }, 403);
     }
 
@@ -1526,11 +1629,11 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
     }
 
     // If re-voting, delete existing votes first
-    if (participant.hasVoted && pollSettings.allowVoteChanges) {
+    if (targetParticipant.hasVoted && pollSettings.allowVoteChanges && !inPersonParticipantId) {
       await db.delete(pollVotes)
         .where(and(
           eq(pollVotes.pollId, pollId),
-          eq(pollVotes.participantId, participant.id)
+          eq(pollVotes.participantId, targetParticipant.id)
         ));
     }
 
@@ -1539,10 +1642,10 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
     for (const [questionId, selectedOptions] of Object.entries(votes)) {
       voteRecords.push({
         pollId: pollId,
-        participantId: participant.id,
+        participantId: targetParticipant.id,
         questionId: questionId,
         selectedOptions: selectedOptions,
-        voteWeight: participant.voteWeight,
+        voteWeight: targetParticipant.voteWeight,
       });
     }
 
@@ -1551,19 +1654,38 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       await db.insert(pollVotes).values(vote);
     }
     
-    // Mark participant as voted and token as used (if token-based)
-    const updateData: any = { hasVoted: true, updatedAt: Date.now() };
-    if (!participant.isUser && participant.token) {
-      updateData.tokenUsed = true;
+    // Mark participant as voted and log the event
+    if (!inPersonParticipantId) {
+      // Regular voting - mark participant as voted
+      await db.update(pollParticipants)
+        .set({ 
+          hasVoted: true,
+          tokenUsed: targetParticipant.userId ? false : true // Only track token usage for non-user participants
+        })
+        .where(eq(pollParticipants.id, targetParticipant.id));
+    } else {
+      // In-person voting - log the event
+      await logAuditEvent(
+        db,
+        pollId,
+        targetParticipant.id,
+        'IN_PERSON_VOTE_CAST',
+        authenticatedParticipant.userId,
+        { 
+          actorName: authenticatedParticipant.name,
+          participantName: targetParticipant.name,
+          voteWeight: targetParticipant.voteWeight 
+        },
+        c.req.raw.headers.get('CF-Connecting-IP') || c.req.raw.headers.get('X-Forwarded-For') || 'unknown',
+        c.req.raw.headers.get('User-Agent') || 'unknown'
+      );
     }
-    
-    await db.update(pollParticipants)
-      .set(updateData)
-      .where(eq(pollParticipants.id, participant.id));
 
     return c.json({ 
       success: true,
-      message: 'Vote submitted successfully' 
+      message: inPersonParticipantId 
+        ? `In-person vote cast successfully for ${targetParticipant.name}` 
+        : 'Vote submitted successfully' 
     });
   } catch (error) {
     console.error('Submit vote error:', error);
@@ -2536,6 +2658,100 @@ pollRoutes.post('/:id/participants/:participantId/send-email', async (c) => {
   } catch (error) {
     console.error('Error sending email to participant:', error);
     return c.json({ error: 'Failed to send email' }, 500);
+  }
+});
+
+// Mark participant as voted in-person (manager, admin, editor only)
+pollRoutes.post('/:id/participants/:participantId/mark-voted', async (c) => {
+  const pollId = c.req.param('id');
+  const participantId = c.req.param('participantId');
+  const user = c.get('user')!;
+  const db = getDb(c.env.DB);
+
+  try {
+    // Get poll and verify access
+    const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) {
+      return c.json({ error: 'Poll not found' }, 404);
+    }
+
+    // Check if in-person voting is enabled
+    const pollSettings = typeof poll.settings === 'string' ? JSON.parse(poll.settings) : poll.settings;
+    if (!pollSettings.allowInPersonVoting) {
+      return c.json({ error: 'In-person voting is not enabled for this poll' }, 403);
+    }
+
+    // Check permissions - only admin, manager, or editor can mark as voted
+    const permissions = await getUserPollPermissions(db, user.userId, user.role, pollId);
+    if (!permissions.canManageParticipants && user.role !== 'admin') {
+      return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+
+    // Check if poll is active
+    if (poll.status !== 'active') {
+      return c.json({ error: 'Can only mark participants as voted for active polls' }, 400);
+    }
+
+    // Check if poll is within voting period
+    const now = Date.now();
+    if (now < poll.startDate || now > poll.endDate) {
+      return c.json({ error: 'Poll is not currently open for voting' }, 400);
+    }
+
+    // Get participant
+    const participant = await db.select().from(pollParticipants)
+      .where(and(eq(pollParticipants.id, participantId), eq(pollParticipants.pollId, pollId)))
+      .get();
+
+    if (!participant) {
+      return c.json({ error: 'Participant not found' }, 404);
+    }
+
+    // Check if participant has already voted
+    if (participant.hasVoted) {
+      return c.json({ error: 'Participant has already voted' }, 400);
+    }
+
+    // Mark participant as voted
+    await db.update(pollParticipants)
+      .set({ 
+        hasVoted: true,
+        updatedAt: Date.now()
+      })
+      .where(eq(pollParticipants.id, participantId))
+      .run();
+
+    // Log audit event
+    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || null;
+    const userAgent = c.req.header('user-agent') || null;
+
+    await logAuditEvent(
+      db,
+      'MARKED_AS_IN_PERSON_VOTED',
+      user.userId,
+      pollId,
+      participantId,
+      {
+        participantName: participant.name,
+        participantEmail: participant.email,
+        markedBy: user.email
+      },
+      ipAddress,
+      userAgent
+    );
+
+    return c.json({ 
+      message: 'Participant marked as voted successfully',
+      participant: {
+        id: participant.id,
+        name: participant.name,
+        email: participant.email,
+        hasVoted: true
+      }
+    });
+  } catch (error) {
+    console.error('Error marking participant as voted:', error);
+    return c.json({ error: 'Failed to mark participant as voted' }, 500);
   }
 });
 

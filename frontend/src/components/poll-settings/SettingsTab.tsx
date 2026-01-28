@@ -236,6 +236,29 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, permissions, onSave, sa
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="allowInPersonVoting"
+                    type="checkbox"
+                    checked={settings.allowInPersonVoting || false}
+                    onChange={(e) => handleSettingChange('allowInPersonVoting', e.target.checked)}
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="allowInPersonVoting" className="font-medium text-gray-700">
+                    Allow in-person voting
+                  </label>
+                  <p className="text-gray-500">
+                    When enabled, managers and editors can mark participants as voted in-person and cast votes on their behalf. All actions are logged for audit purposes.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
