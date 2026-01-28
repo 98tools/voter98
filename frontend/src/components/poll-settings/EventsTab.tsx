@@ -212,14 +212,32 @@ const EventsTab: React.FC<{ poll: Poll; permissions: PollPermissions }> = ({ pol
                           <span className="ml-2 text-gray-600 text-xs break-words">{event.userAgent}</span>
                         </div>
                       )}
-                      {event.meta && Object.keys(event.meta).length > 0 && (
-                        <div>
-                          <span className="font-medium text-gray-700">Details:</span>
-                          <div className="ml-2 mt-1 bg-white p-2 rounded border border-gray-200 font-mono text-xs overflow-auto max-h-32">
-                            {JSON.stringify(event.meta, null, 2)}
-                          </div>
-                        </div>
-                      )}
+                      {event.meta && (() => {
+                        try {
+                          // If meta is a string, try to parse it as JSON
+                          const metaData = typeof event.meta === 'string' ? JSON.parse(event.meta) : event.meta;
+                          if (Object.keys(metaData).length === 0) return null;
+                          
+                          return (
+                            <div>
+                              <span className="font-medium text-gray-700">Details:</span>
+                              <pre className="ml-2 mt-1 bg-white p-3 rounded border border-gray-200 text-xs overflow-auto max-h-48 whitespace-pre-wrap">
+                                {JSON.stringify(metaData, null, 2)}
+                              </pre>
+                            </div>
+                          );
+                        } catch (e) {
+                          // If parsing fails, display as-is
+                          return (
+                            <div>
+                              <span className="font-medium text-gray-700">Details:</span>
+                              <div className="ml-2 mt-1 bg-white p-3 rounded border border-gray-200 font-mono text-xs overflow-auto max-h-48 break-words">
+                                {String(event.meta)}
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 )}
