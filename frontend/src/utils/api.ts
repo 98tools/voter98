@@ -142,8 +142,16 @@ export const publicPollApi = {
     axios.get<{ poll: Poll }>(`${API_BASE_URL}/poll/${id}/public`),
   validateAccess: (id: string, credentials: { email?: string; password?: string; token?: string }) =>
     axios.post<{ success: boolean; participantToken: string; participant: any }>(`${API_BASE_URL}/poll/${id}/validate-access`, credentials),
-  submitVote: (id: string, participantToken: string, votes: Record<string, string[]>, inPersonParticipantId?: string) =>
-    axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, { participantToken, votes, inPersonParticipantId }),
+  submitVote: (id: string, participantToken: string | null, votes: Record<string, string[]>, inPersonParticipantId?: string, userAuthToken?: string) => {
+    const payload: any = { votes, inPersonParticipantId };
+    if (participantToken) {
+      payload.participantToken = participantToken;
+    }
+    if (userAuthToken) {
+      payload.userAuthToken = userAuthToken;
+    }
+    return axios.post<{ success: boolean; message: string }>(`${API_BASE_URL}/poll/${id}/vote`, payload);
+  },
   getVoteStatus: (id: string, participantToken: string) =>
     axios.get<{ hasVoted: boolean; participant: any }>(`${API_BASE_URL}/poll/${id}/vote-status/${participantToken}`),
   getResults: (id: string, participantToken?: string) =>

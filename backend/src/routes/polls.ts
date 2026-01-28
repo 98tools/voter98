@@ -6,7 +6,7 @@ import { polls, users, pollAuditors, pollEditors, pollParticipants, pollVotes, u
 import { AppBindings, JWTPayload } from '../types';
 import { eq, and, not, inArray, ne, desc } from 'drizzle-orm';
 import { authMiddleware, adminMiddleware, subAdminMiddleware, pollAccessMiddleware } from '../middleware/auth';
-import { verifyPassword, generateRandomToken } from '../utils/auth';
+import { verifyPassword, generateRandomToken, verifyToken } from '../utils/auth';
 import { toLocaleDateString } from '../utils/timezone';
 
 // Helper function to log audit events for active polls
@@ -1640,28 +1640,50 @@ publicPollRoutes.post('/:id/validate-access', zValidator('json', validatePartici
 
 // Submit vote
 const submitVoteSchema = z.object({
-  participantToken: z.string(),
+  participantToken: z.string().optional(), // Optional for admin-only in-person voting
+  userAuthToken: z.string().optional(), // JWT token for admin-only in-person voting
   votes: z.record(z.array(z.string())), // questionId -> array of selected option IDs
   inPersonParticipantId: z.string().optional(), // For in-person voting
 });
 
 publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (c) => {
   const pollId = c.req.param('id');
-  const { participantToken, votes, inPersonParticipantId } = c.req.valid('json');
+  const { participantToken, userAuthToken, votes, inPersonParticipantId } = c.req.valid('json');
   const db = getDb(c.env.DB);
 
   try {
-    // Validate participant token (works for both token-based and user-based participants now)
-    const authenticatedParticipant = await db.select().from(pollParticipants)
-      .where(and(
-        eq(pollParticipants.pollId, pollId),
-        eq(pollParticipants.token, participantToken),
-        eq(pollParticipants.status, 'approved')
-      ))
-      .get();
+    let authenticatedParticipant = null;
+    let authenticatedUserId: string | null = null;
 
-    if (!authenticatedParticipant) {
-      return c.json({ error: 'Invalid participant token' }, 401);
+    // Try participant token first
+    if (participantToken) {
+      authenticatedParticipant = await db.select().from(pollParticipants)
+        .where(and(
+          eq(pollParticipants.pollId, pollId),
+          eq(pollParticipants.token, participantToken),
+          eq(pollParticipants.status, 'approved')
+        ))
+        .get();
+
+      if (!authenticatedParticipant) {
+        return c.json({ error: 'Invalid participant token' }, 401);
+      }
+      authenticatedUserId = authenticatedParticipant.userId;
+    } else if (userAuthToken) {
+      // Admin-only access via JWT token
+      const payload = verifyToken(userAuthToken, c.env.JWT_SECRET);
+      if (!payload) {
+        return c.json({ error: 'Invalid authentication token' }, 401);
+      }
+      authenticatedUserId = payload.userId;
+      
+      // Verify user exists and has permissions
+      const user = await db.select().from(users).where(eq(users.id, authenticatedUserId)).get();
+      if (!user) {
+        return c.json({ error: 'User not found' }, 401);
+      }
+    } else {
+      return c.json({ error: 'Authentication required: provide either participantToken or userAuthToken' }, 401);
     }
 
     const poll = await db.select().from(polls).where(eq(polls.id, pollId)).get();
@@ -1686,7 +1708,7 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       }
 
       // Verify that the authenticated user marked this participant for in-person voting
-      if (!authenticatedParticipant.userId) {
+      if (!authenticatedUserId) {
         return c.json({ error: 'Only authenticated users can cast in-person votes' }, 403);
       }
       
@@ -1695,7 +1717,7 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
         .where(and(
           eq(auditEvents.pollId, pollId),
           eq(auditEvents.participantId, inPersonParticipantId),
-          eq(auditEvents.actorUserId, authenticatedParticipant.userId),
+          eq(auditEvents.actorUserId, authenticatedUserId),
           eq(auditEvents.eventType, 'MARKED_AS_IN_PERSON_VOTED')
         ))
         .get();
@@ -1710,7 +1732,7 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
         .where(and(
           eq(auditEvents.pollId, pollId),
           eq(auditEvents.participantId, inPersonParticipantId),
-          eq(auditEvents.actorUserId, authenticatedParticipant.userId),
+          eq(auditEvents.actorUserId, authenticatedUserId),
           eq(auditEvents.eventType, 'IN_PERSON_VOTE_CAST')
         ))
         .get();
@@ -1732,8 +1754,18 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
       targetParticipant = foundParticipant;
     }
 
+    // For admin-only in-person voting, targetParticipant must be set
+    if (!targetParticipant && inPersonParticipantId) {
+      return c.json({ error: 'Target participant not found' }, 404);
+    }
+
+    // For self-voting, must have a participant record
+    if (!targetParticipant && !inPersonParticipantId) {
+      return c.json({ error: 'You must be a participant to vote for yourself' }, 403);
+    }
+
     const pollSettings = poll.settings as any;
-    if (targetParticipant.hasVoted && !inPersonParticipantId && !pollSettings.allowVoteChanges) {
+    if (targetParticipant && targetParticipant.hasVoted && !inPersonParticipantId && !pollSettings.allowVoteChanges) {
       return c.json({ error: 'Vote already submitted and changes are not allowed' }, 403);
     }
 
@@ -1800,9 +1832,9 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
         pollId,
         targetParticipant.id,
         'IN_PERSON_VOTE_CAST',
-        authenticatedParticipant.userId,
+        authenticatedUserId,
         { 
-          actorName: authenticatedParticipant.name,
+          actorName: authenticatedParticipant?.name || 'Admin',
           participantName: targetParticipant.name,
           voteWeight: targetParticipant.voteWeight 
         },

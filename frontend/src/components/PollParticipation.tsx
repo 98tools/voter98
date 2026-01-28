@@ -335,8 +335,13 @@ const PollParticipation: React.FC = () => {
         ? inPersonVoting.participants[currentInPersonVoteIndex]?.id 
         : undefined;
 
-      console.log('Submitting vote...', { inPersonParticipantId, votingMode, voteCount: Object.keys(votes).length });
-      await publicPollApi.submitVote(pollId, participantToken, votes, inPersonParticipantId);
+      // Get user auth token from localStorage if admin-only access (no participantToken)
+      const userAuthToken = !participantToken && votingMode === 'in-person' 
+        ? localStorage.getItem('token') || undefined 
+        : undefined;
+
+      console.log('Submitting vote...', { inPersonParticipantId, votingMode, voteCount: Object.keys(votes).length, hasUserAuthToken: !!userAuthToken });
+      await publicPollApi.submitVote(pollId, participantToken, votes, inPersonParticipantId, userAuthToken);
       console.log('Vote submitted successfully!');
       
       if (votingMode === 'in-person' && inPersonVoting) {
@@ -373,7 +378,19 @@ const PollParticipation: React.FC = () => {
       setShowResults(false);
     } catch (error: any) {
       console.error('Vote submission error:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to submit vote';
+      let errorMsg = 'Failed to submit vote';
+      
+      if (error.response?.data?.error) {
+        // Check if error is an object (Zod validation error)
+        if (typeof error.response.data.error === 'object') {
+          errorMsg = JSON.stringify(error.response.data.error);
+        } else {
+          errorMsg = error.response.data.error;
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
       setError(errorMsg);
     } finally {
       setSubmitting(false);
@@ -1257,19 +1274,6 @@ const PollParticipation: React.FC = () => {
                   Access Poll
                 </>
               )}
-            </button>
-          </div>
-
-          {/* Back to Home */}
-          <div className="text-center mt-6">
-            <button
-              onClick={() => navigate('/')}
-              className="text-sm text-gray-600 hover:text-gray-900 font-medium inline-flex items-center"
-            >
-              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-              </svg>
-              Back to Home
             </button>
           </div>
         </main>
