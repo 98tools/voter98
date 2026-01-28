@@ -955,12 +955,6 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                       Participant
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Vote Weight
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -987,26 +981,6 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                           <div className="text-sm font-medium text-gray-900">{participant.name}</div>
                           <div className="text-sm text-gray-500">{participant.email}</div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          participant.isUser 
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {participant.isUser ? 'Registered User' : 'External'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          participant.status === 'approved' 
-                            ? 'bg-green-100 text-green-800'
-                            : participant.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {participant.status}
-                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {poll.settings.voteWeightEnabled ? (
@@ -1042,18 +1016,15 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {participant.isUser ? (
-                          <span className="text-green-600 font-medium">System Login</span>
-                        ) : (
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded flex-1">
-                                {visibleTokens.has(participant.id) && participant.token ? (
-                                  participant.token
-                                ) : (
-                                  '••••••••••••'
-                                )}
-                              </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded flex-1">
+                              {visibleTokens.has(participant.id) && participant.token ? (
+                                participant.token
+                              ) : (
+                                '••••••••••••'
+                              )}
+                            </div>
                               <button
                                 onClick={() => toggleTokenVisibility(participant.id)}
                                 className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1 cursor-pointer"
@@ -1147,8 +1118,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ poll, permissions, on
                                 </button>
                               )}
                             </div>
-                          </div>
-                        )}
+                        </div>
                       </td>
                       {poll.status === 'active' && (
                         <td className="px-6 py-4 whitespace-nowrap">
