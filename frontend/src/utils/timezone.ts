@@ -62,14 +62,14 @@ export function formatDateTime(
   const defaultOptions: Intl.DateTimeFormatOptions = {
     timeZone: timezone,
     year: 'numeric',
-    month: 'long',
+    month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     ...options
   };
   
-  return date.toLocaleString('en-US', defaultOptions);
+  return date.toLocaleString('en-CA', defaultOptions);
 }
 
 /**
