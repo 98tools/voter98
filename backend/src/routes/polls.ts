@@ -796,8 +796,8 @@ pollRoutes.post('/:id/participants', zValidator('json', addParticipantSchema, (r
       }
     }
 
-    // Generate token for non-user participants
-    const participantToken = !finalIsUser ? (token || generateRandomToken()) : null;
+    // Generate token for all participants (both user and non-user)
+    const participantToken = token || generateRandomToken();
     // If a custom token was provided, mark tokenViewed as true for security
     const tokenWasCustom = !finalIsUser && !!token;
 
@@ -1521,7 +1521,7 @@ publicPollRoutes.post('/:id/vote', zValidator('json', submitVoteSchema), async (
   const db = getDb(c.env.DB);
 
   try {
-    // Validate participant token (this is the admin/editor or regular participant)
+    // Validate participant token (works for both token-based and user-based participants now)
     const authenticatedParticipant = await db.select().from(pollParticipants)
       .where(and(
         eq(pollParticipants.pollId, pollId),
@@ -2493,6 +2493,7 @@ pollRoutes.post('/:id/participants/group', zValidator('json', addGroupParticipan
       }
 
       try {
+        const memberToken = generateRandomToken();
         const participant = await db.insert(pollParticipants)
           .values({
             pollId,
@@ -2500,7 +2501,7 @@ pollRoutes.post('/:id/participants/group', zValidator('json', addGroupParticipan
             email: member.email,
             name: member.name,
             isUser: true,
-            token: null, // Users don't need tokens
+            token: memberToken, // All participants get tokens
             tokenUsed: false,
             voteWeight,
             status: 'approved',

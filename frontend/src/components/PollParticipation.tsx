@@ -131,17 +131,22 @@ const PollParticipation: React.FC = () => {
     setError('');
 
     try {
+      console.log('Authenticating with token:', tokenValue.substring(0, 10) + '...');
       const response = await publicPollApi.validateAccess(pollId, { token: tokenValue });
+      console.log('Token auth response:', response.data);
+      
+      const token = response.data.participantToken || (response.data as any).token;
+      console.log('Extracted token:', token);
       
       if ((response.data as any).hasVoted) {
         setParticipant((response.data as any).participant);
         setHasVoted(true);
         setAllowVoteChanges((response.data as any).allowVoteChanges || false);
         setIsAuthenticated(true);
-        setParticipantToken(response.data.participantToken);
+        setParticipantToken(token);
       } else {
         setIsAuthenticated(true);
-        setParticipantToken(response.data.participantToken);
+        setParticipantToken(token);
         setParticipant(response.data.participant);
         
         // Check for in-person voting
@@ -150,6 +155,7 @@ const PollParticipation: React.FC = () => {
         }
       }
     } catch (error: any) {
+      console.error('Token auth error:', error);
       setError(error.response?.data?.error || 'Invalid access token');
     } finally {
       setAuthLoading(false);
@@ -180,7 +186,12 @@ const PollParticipation: React.FC = () => {
         ? { email: email.toLowerCase().trim(), password }
         : { token };
 
+      console.log('Authenticating with credentials:', credentials);
       const response = await publicPollApi.validateAccess(pollId, credentials);
+      console.log('Authentication response:', response.data);
+      
+      const token = response.data.participantToken || (response.data as any).token;
+      console.log('Extracted token:', token);
       
       if ((response.data as any).hasVoted) {
         // User has already voted
@@ -188,11 +199,11 @@ const PollParticipation: React.FC = () => {
         setHasVoted(true);
         setAllowVoteChanges((response.data as any).allowVoteChanges || false);
         setIsAuthenticated(true);
-        setParticipantToken(response.data.participantToken);
+        setParticipantToken(token);
       } else {
         // User can vote
         setIsAuthenticated(true);
-        setParticipantToken(response.data.participantToken);
+        setParticipantToken(token);
         setParticipant(response.data.participant);
         
         // Check for in-person voting
@@ -201,6 +212,7 @@ const PollParticipation: React.FC = () => {
         }
       }
     } catch (error: any) {
+      console.error('Authentication error:', error);
       setError(error.response?.data?.error || 'Authentication failed');
     } finally {
       setAuthLoading(false);
@@ -234,7 +246,32 @@ const PollParticipation: React.FC = () => {
   };
 
   const handleSubmitVote = async () => {
-    if (!poll || !pollId || !participantToken) return;
+    console.log('Submit button clicked!', {
+      poll: !!poll,
+      pollId,
+      participantToken,
+      isVoteValid: isVoteValid(),
+      acceptedPrivacy,
+      votes,
+      submitting
+    });
+
+    if (!poll) {
+      console.error('Poll not loaded');
+      setError('Poll is not loaded. Please refresh the page.');
+      return;
+    }
+
+    if (!pollId) {
+      console.error('Poll ID missing');
+      return;
+    }
+
+    if (!participantToken) {
+      console.error('Participant token missing');
+      setError('Your session token is missing. Please authenticate again.');
+      return;
+    }
 
     // Check if poll has ended
     if (isPollCompleted()) {
@@ -246,9 +283,18 @@ const PollParticipation: React.FC = () => {
     for (const question of poll.ballot) {
       const questionVotes = votes[question.id] || [];
       if (questionVotes.length < (question.minSelection || 1)) {
+        console.warn(`Not enough selections for ${question.title}`, {
+          selected: questionVotes.length,
+          required: question.minSelection || 1
+        });
         setError(`Please select at least ${question.minSelection || 1} option(s) for "${question.title}"`);
         return;
       }
+    }
+
+    if (submitting) {
+      console.warn('Already submitting, ignoring click');
+      return;
     }
 
     setSubmitting(true);
@@ -259,7 +305,9 @@ const PollParticipation: React.FC = () => {
         ? inPersonVoting.participants[currentInPersonVoteIndex]?.id 
         : undefined;
 
+      console.log('Submitting vote...', { inPersonParticipantId, votingMode, voteCount: Object.keys(votes).length });
       await publicPollApi.submitVote(pollId, participantToken, votes, inPersonParticipantId);
+      console.log('Vote submitted successfully!');
       
       if (votingMode === 'in-person' && inPersonVoting) {
         // Remove the participant we just voted for from the list
@@ -288,7 +336,9 @@ const PollParticipation: React.FC = () => {
       
       setShowResults(false);
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to submit vote');
+      console.error('Vote submission error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to submit vote';
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -1432,16 +1482,22 @@ const PollParticipation: React.FC = () => {
 
                 {/* Submit Section */}
                 <div className="flex items-center justify-between pt-2">
-                  <div className="text-sm text-gray-600">
-                    {votingMode === 'in-person' && inPersonVoting ? (
-                      <span>Voting for: <strong>{inPersonVoting.participants[currentInPersonVoteIndex]?.name}</strong></span>
+                  <div className="text-sm">
+                    {!isVoteValid() ? (
+                      <span className="text-red-600 font-medium">⚠️ Please answer all questions</span>
+                    ) : !acceptedPrivacy ? (
+                      <span className="text-red-600 font-medium">⚠️ Please accept the privacy policy</span>
+                    ) : votingMode === 'in-person' && inPersonVoting ? (
+                      <span className="text-gray-600">Voting for: <strong>{inPersonVoting.participants[currentInPersonVoteIndex]?.name}</strong></span>
                     ) : (
-                      'Please review your selections before submitting your vote.'
+                      <span className="text-gray-600">Please review your selections before submitting your vote.</span>
                     )}
                   </div>
                   <button
                     onClick={handleSubmitVote}
                     disabled={!isVoteValid() || !acceptedPrivacy || submitting}
+                    type="button"
+                    title={!isVoteValid() ? 'Please select at least one option for each question' : !acceptedPrivacy ? 'Please accept the privacy policy' : submitting ? 'Submitting...' : 'Click to submit your vote'}
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
