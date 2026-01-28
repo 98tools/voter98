@@ -702,7 +702,7 @@ const PollParticipation: React.FC = () => {
                   )}
 
                   {/* Participants List */}
-                  {results.participants.length > 0 && results.permissions.canViewParticipantNames && (
+                  {results.participants.length > 0 && (results.permissions.canViewParticipantNames || results.permissions.canViewParticipantInitials) && (
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-6">Participants</h3>
                       

@@ -186,6 +186,7 @@ export interface BallotQuestion {
 
 export interface PollSettings {
   showParticipantNames?: boolean;
+  showParticipantInitials?: boolean;
   showVoteWeights?: boolean;
   showVoteCounts?: boolean;
   showResultsBeforeEnd?: boolean;

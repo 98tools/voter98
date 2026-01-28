@@ -327,7 +327,7 @@ const PollResults: React.FC<PollResultsProps> = ({ sessionToken }) => {
           )}
 
           {/* Participants List */}
-          {results.participants.length > 0 && (results.permissions.canViewParticipantNames || results.permissions.canViewFullResults) && (
+          {results.participants.length > 0 && (results.permissions.canViewParticipantNames || results.permissions.canViewParticipantInitials || results.permissions.canViewFullResults) && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Participants</h2>
               
@@ -345,7 +345,7 @@ const PollResults: React.FC<PollResultsProps> = ({ sessionToken }) => {
                           </th>
                         </>
                       )}
-                      {(results.permissions.canViewParticipantNames || results.permissions.canViewFullResults) && (
+                      {(results.permissions.canViewParticipantNames || results.permissions.canViewParticipantInitials || results.permissions.canViewFullResults) && (
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Name
                         </th>

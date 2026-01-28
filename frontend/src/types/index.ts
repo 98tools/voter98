@@ -52,6 +52,7 @@ export interface BallotQuestion {
 
 export interface PollSettings {
   showParticipantNames?: boolean;
+  showParticipantInitials?: boolean; // Show initials with masked characters (e.g., "A**** L****")
   showVoteWeights?: boolean;
   showVoteCounts?: boolean;
   showResultsBeforeEnd?: boolean;
@@ -159,6 +160,7 @@ export interface PollResults {
     canViewVoteCounts: boolean;
     canViewResultsBreakdown: boolean;
     canViewParticipantNames: boolean;
+    canViewParticipantInitials: boolean;
     canViewVoteWeights: boolean;
   };
 }

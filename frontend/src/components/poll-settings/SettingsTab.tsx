@@ -69,7 +69,28 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ poll, permissions, onSave, sa
                   <label htmlFor="showParticipantNames" className="font-medium text-gray-700">
                     Show participant names
                   </label>
-                  <p className="text-gray-500">Display the names of participants who have voted. When disabled, participants remain anonymous.</p>
+                  <p className="text-gray-500">Display the full names of participants who have voted. When disabled, participants remain anonymous.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="showParticipantInitials"
+                    type="checkbox"
+                    checked={settings.showParticipantInitials || false}
+                    onChange={(e) => handleSettingChange('showParticipantInitials', e.target.checked)}
+                    disabled={!permissions.canEditSettings}
+                    className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                      !permissions.canEditSettings ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="showParticipantInitials" className="font-medium text-gray-700">
+                    Show participant initials only
+                  </label>
+                  <p className="text-gray-500">Display only the initials of participants with masked characters (e.g., "A**** L****") to provide partial anonymity. Cannot be used together with showing full names.</p>
                 </div>
               </div>
 

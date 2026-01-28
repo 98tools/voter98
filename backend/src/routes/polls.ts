@@ -188,6 +188,7 @@ const ballotQuestionSchema = z.object({
 // Poll settings schema
 const pollSettingsSchema = z.object({
   showParticipantNames: z.boolean().optional().default(false),
+  showParticipantInitials: z.boolean().optional().default(false),
   showVoteWeights: z.boolean().optional().default(false),
   showVoteCounts: z.boolean().optional().default(false),
   showResultsBeforeEnd: z.boolean().optional().default(false),
@@ -1818,6 +1819,16 @@ async function calculatePollResults(db: any, poll: any, accessLevel: string, par
           voteWeight: settings.showVoteWeights ? p.voteWeight : undefined,
           hasVoted: true,
         }));
+    } else if (settings.showParticipantInitials) {
+      // Show initials with masked characters
+      const { formatNameWithInitials } = await import('../utils/formatting');
+      participantData = participants
+        .filter(p => p.hasVoted)
+        .map(p => ({
+          name: formatNameWithInitials(p.name),
+          voteWeight: settings.showVoteWeights ? p.voteWeight : undefined,
+          hasVoted: true,
+        }));
     } else {
       // Only show anonymous vote weights if enabled
       if (settings.voteWeightEnabled) {
@@ -1871,6 +1882,7 @@ async function calculatePollResults(db: any, poll: any, accessLevel: string, par
       canViewVoteCounts: showVoteCounts,
       canViewResultsBreakdown: showResultsBreakdown,
       canViewParticipantNames: ['admin', 'manager', 'auditor'].includes(accessLevel) || (accessLevel === 'participant' && settings.showParticipantNames),
+      canViewParticipantInitials: ['admin', 'manager', 'auditor'].includes(accessLevel) || (accessLevel === 'participant' && settings.showParticipantInitials),
       canViewVoteWeights: ['admin', 'manager', 'auditor'].includes(accessLevel) || (accessLevel === 'participant' && settings.showVoteWeights),
     },
   };
