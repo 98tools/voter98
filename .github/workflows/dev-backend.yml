@@ -56,4 +56,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          cd backend && echo "${{ secrets.JWT_SECRET }}" | wrangler secret put JWT_SECRET 2>/dev/null
+          cd backend && echo "${{ secrets.JWT_SECRET }}" | wrangler secret put JWT_SECRET --config wrangler.local.jsonc --name voter98-backend-dev
