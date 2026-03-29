@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Worker (frontend)
+name: (selfhosted) [fe] Deploy to Cloudflare Worker
 
 on:
   push:
