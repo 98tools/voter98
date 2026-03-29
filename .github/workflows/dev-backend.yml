@@ -56,4 +56,5 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          cd backend && wrangler secret delete JWT_SECRET || true
           cd backend && echo "${{ secrets.JWT_SECRET }}" | wrangler secret put JWT_SECRET
