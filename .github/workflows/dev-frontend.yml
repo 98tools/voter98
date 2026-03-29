@@ -1,0 +1,46 @@
+name: (dev) [fe] Deploy to Cloudflare Worker
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+      
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      VITE_APP_TITLE: ${{ vars.VITE_APP_TITLE }}
+      VITE_ORGANIZATION_EMAIL: ${{ vars.VITE_ORGANIZATION_EMAIL }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install project dependencies
+        run: cd frontend && npm install
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Create .env file
+        run: |
+          echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > frontend/.env
+          echo "VITE_APP_TITLE=${VITE_APP_TITLE}" >> frontend/.env
+          echo "VITE_ORGANIZATION_EMAIL=${VITE_ORGANIZATION_EMAIL}" >> frontend/.env
+
+      - name: Build project
+        run: cd frontend && npm run build
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: cd frontend && wrangler deploy --name voter98-frontend-dev
