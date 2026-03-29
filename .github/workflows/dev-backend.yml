@@ -17,6 +17,8 @@ jobs:
       FRONTEND_URL: ${{ vars.FRONTEND_URL }}
       TIMEZONE: ${{ vars.TIMEZONE }}
       D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME }}
+      BUCKET_NAME: ${{ vars.BUCKET_NAME }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -39,7 +41,9 @@ jobs:
             --arg fe "${{ vars.FRONTEND_URL }}" \
             --arg tz "${{ vars.TIMEZONE }}" \
             --arg dbid "${{ vars.D1_DATABASE_ID }}" \
-            '.vars.FRONTEND_URL = $fe | .vars.TIMEZONE = $tz | .d1_databases[0].database_id = $dbid | del(.vars.JWT_SECRET)' \
+            --arg dbname "${{ vars.D1_DATABASE_NAME }}" \
+            --arg bucketname "${{ vars.BUCKET_NAME }}" \
+            '.vars.FRONTEND_URL = $fe | .vars.TIMEZONE = $tz | .d1_databases[0].database_id = $dbid | .d1_databases[0].database_name = $dbname | .r2_buckets[0].bucket_name = $bucketname | del(.vars.JWT_SECRET)' \
             wrangler.jsonc > wrangler.local.jsonc
 
       - name: Deploy to Cloudflare Workers

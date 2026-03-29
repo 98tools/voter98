@@ -14,7 +14,6 @@ jobs:
     environment: dev
     env:
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-      VITE_APP_TITLE: ${{ vars.VITE_APP_TITLE }}
       VITE_ORGANIZATION_EMAIL: ${{ vars.VITE_ORGANIZATION_EMAIL }}
     steps:
       - name: Checkout repo
@@ -34,7 +33,6 @@ jobs:
       - name: Create .env file
         run: |
           echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > frontend/.env
-          echo "VITE_APP_TITLE=${VITE_APP_TITLE}" >> frontend/.env
           echo "VITE_ORGANIZATION_EMAIL=${VITE_ORGANIZATION_EMAIL}" >> frontend/.env
 
       - name: Build project
