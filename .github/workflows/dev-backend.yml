@@ -6,6 +6,7 @@ on:
       - dev
     paths:
       - 'backend/**'
+      - '.github/workflows/dev-backend.yml'
   workflow_dispatch:
   
 

@@ -6,6 +6,7 @@ on:
       - dev
     paths:
       - 'frontend/**'
+      - '.github/workflows/dev-frontend.yml'
   workflow_dispatch:
       
 jobs:
